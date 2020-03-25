@@ -1,3 +1,14 @@
+# Experiment Folders
+Experiments
+Features
+Labels
+Buffers
+EEG
+Manifests
+
+# Mac journaling
+.DS_store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
