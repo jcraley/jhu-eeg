@@ -1,3 +1,6 @@
+import os
+import csv
+import pickle
 import numpy as np
 from sklearn import metrics
 from collections import OrderedDict
@@ -24,8 +27,8 @@ def compute_metrics(labels, preds):
     else:
         stats['prec'] = 'NA'
     if tp > 0:
-        stats['f1'] = 2 * ( stats['prec'] * stats['sens']
-                         / (stats['prec'] + stats['sens']) )
+        stats['f1'] = 2 * (stats['prec'] * stats['sens']
+                           / (stats['prec'] + stats['sens']))
     else:
         stats['f1'] = 'NA'
     stats['spec'] = float(tn / (tn + fp))
@@ -38,7 +41,7 @@ def compute_metrics(labels, preds):
             'thresholds': thresholds
         }
         stats['auc-roc'] = metrics.auc(fpr, tpr)
-        
+
         # Compute AUC-PR
         precision, recall, thresholds = metrics.precision_recall_curve(
             labels, preds[:, 1])
@@ -60,24 +63,24 @@ def score_recording(labels, preds):
     # Find the true onsets and offsets
     true_onsets = np.where(np.diff(labels) == 1)[0] + 1
     true_offsets = np.where(np.diff(labels) == -1)[0] + 1
-    
+
     # Find the true positives
     y_hat = np.argmax(preds, axis=1)
     tp_samples = y_hat * labels
     fp_samples = y_hat * (1 - labels)
-    
+
     # Find beginning of seizure detections
     detections = np.where(np.diff(y_hat) == 1)[0] + 1
-    
+
     # Loop over the seizures
     ncorrect = 0
     latency_samples = 0
     for onset, offset in zip(true_onsets, true_offsets):
-        
+
         # Check for an accurate sample
         if np.sum(tp_samples[onset:offset]) > 0:
             ncorrect += 1
-            
+
             # Find the onset
             if tp_samples[onset] == 1:
                 # Detection occurs before onset annotation
@@ -90,9 +93,10 @@ def score_recording(labels, preds):
                 latency_samples += first_tp - onset
             else:
                 # Detection is after onset
-                latency_samples += np.where(tp_samples[onset:offset] == 1)[0][0]
+                latency_samples += np.where(
+                    tp_samples[onset:offset] == 1)[0][0]
     nfps = np.sum(fp_samples[detections])
-    
+
     return {
         'nfps': nfps,
         'latency_samples': latency_samples,
