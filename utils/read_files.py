@@ -1,5 +1,11 @@
 import csv
-import configparser
+
+
+def read_channel_list(channel_list_fn):
+    # Read label list
+    with open(channel_list_fn) as f:
+        channel_list = f.readlines()
+    return [label.strip() for label in channel_list]
 
 
 def get_label_list(connection_fn):

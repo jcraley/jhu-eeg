@@ -81,6 +81,7 @@ class TestConfiguration():
             'notch': preprocessing_cfg.getboolean('notch'),
             'lpf fc': preprocessing_cfg.getfloat('lpf fc'),
             'hpf fc': preprocessing_cfg.getfloat('hpf fc'),
+            'clip level': preprocessing_cfg.getfloat('clip level'),
             'normalize': preprocessing_cfg.getboolean('normalize'),
             'window length': preprocessing_cfg.getfloat('window length'),
             'overlap': preprocessing_cfg.getfloat('overlap'),

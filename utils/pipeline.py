@@ -3,8 +3,9 @@ import json
 import os
 import pickle
 import time
-import torch
+
 import numpy as np
+import torch
 from sklearn.linear_model import LogisticRegression
 
 import utils.evaluation as evaluation
@@ -102,10 +103,7 @@ class Pipeline():
         # Initilize things that don't very long
         manifest = read.read_manifest(self.params['train manifest'])
         self.fs = int(manifest[0]['fs'])
-        # Read label list
-        with open(self.params['channel list']) as f:
-            self.channel_list = f.readlines()
-        self.channel_list = [label.strip() for label in self.channel_list]
+        self.channel_list = read.read_channel_list(self.params['channel list'])
         self.nchns = len(self.channel_list)
         print(self.channel_list)
 

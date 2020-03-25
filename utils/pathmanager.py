@@ -34,15 +34,16 @@ class PathManager():
         }
 
         # Initialize data specific folders
-        self.preprocessing_str = "lpf_fc{}_hpf_fc{}_notch{}_normalize{}".format(
+        self.preprocessing_str = "lpf_fc{}_hpf_fc{}_notch{}_clip{}_normalize{}".format(
             self.config_dict['lpf fc'], self.config_dict['hpf fc'],
-            self.config_dict['notch'], self.config_dict['normalize']
+            self.config_dict['notch'], self.config_dict['clip level'],
+            self.config_dict['normalize']
         )
         self.window_str = "window_length{}_overlap{}".format(
             self.config_dict['window length'], self.config_dict['overlap']
         )
         self.path_dict.update({
-            'raw data': os.path.join('Data', self.config_dict['dataset']),
+            'raw data': os.path.join('EDF', self.config_dict['dataset']),
             'buffers': os.path.join(
                 'Buffers', self.config_dict['dataset'], self.preprocessing_str
             ),
