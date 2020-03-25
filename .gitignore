@@ -5,6 +5,7 @@ Labels
 Buffers
 EEG
 Manifests
+WindowedBuffers
 
 # Mac journaling
 .DS_store
