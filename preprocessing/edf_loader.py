@@ -1,5 +1,6 @@
 import numpy as np
 import pyedflib
+
 from preprocessing.eeg_info import EegInfo
 
 
@@ -22,22 +23,6 @@ class EdfLoader():
 
     def __init__(self, label_list=None):
         self.label_list = label_list
-
-    def _check(self, eeg_info):
-        """
-        Check to make sure all fs are equal, if so make it all the same value
-        """
-        # Check for equal fs
-        if len(set(eeg_info.fs)) <= 1:
-            eeg_info.fs = eeg_info.fs[0]
-        else:
-            print(eeg_info.fs)
-            raise ValueError('Unequal sampling frequencies')
-        # Check for equal nsamples
-        if len(set(eeg_info.nsamples)) <= 1:
-            eeg_info.nsamples = eeg_info.nsamples[0]
-        else:
-            raise ValueError('Unequal number of samples')
 
     def load_metadata(self, fn):
         """
@@ -101,8 +86,6 @@ class EdfLoader():
         # Close the edf file
         f._close()
         del f
-
-        self._check(eeg_info)
 
         return eeg_info
 
