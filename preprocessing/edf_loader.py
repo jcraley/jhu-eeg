@@ -1,4 +1,3 @@
-import numpy as np
 import pyedflib
 
 from preprocessing.eeg_info import EegInfo
@@ -86,6 +85,9 @@ class EdfLoader():
         # Close the edf file
         f._close()
         del f
+
+        if len(set(eeg_info.fs)) == 1:
+            eeg_info.fs = eeg_info.fs[0]
 
         return eeg_info
 
