@@ -1,11 +1,11 @@
 import sys
-import utils.testconfiguration as tc
+
 import utils.pathmanager as pm
+import utils.testconfiguration as tc
 from utils.pipeline import Pipeline
 
 
 def main():
-    
     """Set up the experiment, initialize folders, and write config"""
     # Load the experiment configuration and paths
     argv = sys.argv[1:]
@@ -13,7 +13,7 @@ def main():
     paths = pm.PathManager(params)
     paths.initialize_experiment_folders()
     pipeline = Pipeline(params, paths)
-    
+
     # Save experiment configuration
     pipeline.write_config_file()
 
@@ -29,10 +29,10 @@ def main():
 
     """Score test and train sets"""
     if params['score val']:
-        pipeline.score_val_manifest()
+        pipeline.score_val_dataset()
 
     if params['score train']:
-        pipeline.score_train_manifest()
+        pipeline.score_train_dataset()
 
 
 if __name__ == '__main__':

@@ -6,7 +6,6 @@ import time
 
 import numpy as np
 import torch
-from sklearn.linear_model import LogisticRegression
 
 import utils.evaluation as evaluation
 import utils.output_tools as out
@@ -14,6 +13,7 @@ import utils.pathmanager as pm
 import utils.read_files as read
 import utils.testconfiguration as tc
 import utils.visualization as viz
+from models.sklearnmodels import LogisticRegression
 from utils.dataset import EpilepsyDataset
 
 
@@ -48,6 +48,11 @@ def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix):
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerow({k: stats[k] for k in fieldnames})
+
+    frmt = "{:<8}"*len(fieldnames)
+    print(frmt.format(*fieldnames))
+    frmt = "{:<8.3f}"*len(fieldnames)
+    print(frmt.format(*[stats[k] for k in fieldnames]))
 
 
 def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
@@ -143,22 +148,23 @@ class Pipeline():
 
     def train(self):
         # Train the model
-        X = self.train_dataset.data.numpy()
-        X = X.reshape(X.shape[0], -1)
-        y = self.train_dataset.labels.numpy()
-        self.model.fit(X, y)
+        self.model.fit(self.train_dataset)
         model_fn = os.path.join(self.paths['models'], 'model.pt')
         torch.save(self.model, model_fn)
 
-    def score_train_manifest(self):
+    def score_train_dataset(self):
+        print("Scoring the training dataset")
         self.score_dataset(self.train_dataset, 'train_',
                            self.params['visualize train'],
                            self.paths['figures'], self.paths['results'])
+        print("")
 
-    def score_val_manifest(self):
+    def score_val_dataset(self):
+        print("Scoring the validation dataset")
         self.score_dataset(self.val_dataset, 'val_',
                            self.params['visualize val'],
                            self.paths['figures'], self.paths['results'])
+        print("")
 
     def score_dataset(self, dataset, prefix, visualize,
                       figures_folder, results_folder):
@@ -171,8 +177,7 @@ class Pipeline():
         for file in dataset:
             # Run and save predictions
             fn = file['filename'].split('.')[0]
-            X = file['buffers'].to(self.device).numpy()
-            X = X.reshape(X.shape[0], -1)
+            X = file['buffers']
             pred = self.model.predict_proba(X)
             pred_fn = os.path.join(self.paths['predictions'], fn + '.pt')
             torch.save(pred, pred_fn)
@@ -187,6 +192,7 @@ class Pipeline():
             make_images(all_fns, all_preds, all_labels,
                         self.paths['figures'], prefix, '')
 
+        print("Unsmoothed results")
         # Compute windowise statistics and write out
         iid_window_report(all_preds, all_labels, self.paths['results'],
                           prefix, '')
@@ -197,6 +203,7 @@ class Pipeline():
 
         # Check for smoothing and run if so
         if self.params['smoothing'] > 0:
+            print("Smoothed results")
             smoothed_preds = smooth(all_preds, self.params['smoothing'])
 
             if visualize:
