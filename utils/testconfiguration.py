@@ -18,6 +18,8 @@ class TestConfiguration():
 
     def __init__(self, default_cfg='default.ini', argv=None):
         """Load the configuration from the given config_fn"""
+        
+        print('n')
         # Read the default settings
         self.config = configparser.ConfigParser()
         self.config.read(default_cfg)
@@ -56,7 +58,11 @@ class TestConfiguration():
     def _update(self):
         """Update dictionary of internal parameters"""
         self.all_params = {}
+        self._update_experiment_params()
+        self._update_preprocessing_params()
+        self._update_model_params()
 
+    def _update_experiment_params(self):
         # EXPERIMENT parameters
         exp_cfg = self.config['EXPERIMENT']
         self.all_params.update({
@@ -73,8 +79,10 @@ class TestConfiguration():
             'visualize train': exp_cfg.getboolean('visualize train'),
             'smoothing': exp_cfg.getint('smoothing'),
             'features': json.loads(exp_cfg['features']),
+            'load to device': exp_cfg.getboolean('load to device')
         })
 
+    def _update_preprocessing_params(self):
         # PREPROCESSING parameters
         preprocessing_cfg = self.config['PREPROCESSING']
         self.all_params.update({
@@ -87,6 +95,7 @@ class TestConfiguration():
             'overlap': preprocessing_cfg.getfloat('overlap'),
         })
 
+    def _update_model_params(self):
         # MODEL parameters
         model_cfg = self.config['MODEL']
         self.all_params.update({
