@@ -147,6 +147,8 @@ class Pipeline():
         X = X.reshape(X.shape[0], -1)
         y = self.train_dataset.labels.numpy()
         self.model.fit(X, y)
+        model_fn = os.path.join(self.paths['models'], 'model.pt')
+        torch.save(self.model, model_fn)
 
     def score_train_manifest(self):
         self.score_dataset(self.train_dataset, 'train_',
