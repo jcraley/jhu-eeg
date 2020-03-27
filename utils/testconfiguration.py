@@ -92,6 +92,7 @@ class TestConfiguration():
         self.all_params.update({
             'model type': model_cfg['model type'],
             'model kwargs': model_cfg['model kwargs'],
+            'load model fn': model_cfg['load model fn'],
         })
 
     def _parse_arguments(self, argv):

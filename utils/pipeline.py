@@ -152,6 +152,9 @@ class Pipeline():
         model_fn = os.path.join(self.paths['models'], 'model.pt')
         torch.save(self.model, model_fn)
 
+    def load_model(self):
+        self.model = torch.load(self.params['load model fn'])
+
     def score_train_dataset(self):
         print("Scoring the training dataset")
         self.score_dataset(self.train_dataset, 'train_',

@@ -21,11 +21,12 @@ def main():
     pipeline.initialize_val_dataset()
     pipeline.initialize_train_dataset()
 
-    """Initialize the model"""
-    pipeline.initialize_model()
-
-    """Train"""
-    pipeline.train()
+    """Train or load a model"""
+    if pipeline.params['load model fn']:
+        pipeline.load_model()
+    else:
+        pipeline.initialize_model()
+        pipeline.train()
 
     """Score test and train sets"""
     if params['score val']:
