@@ -19,7 +19,6 @@ class TestConfiguration():
     def __init__(self, default_cfg='default.ini', argv=None):
         """Load the configuration from the given config_fn"""
         
-        print('n')
         # Read the default settings
         self.config = configparser.ConfigParser()
         self.config.read(default_cfg)
@@ -79,7 +78,8 @@ class TestConfiguration():
             'visualize train': exp_cfg.getboolean('visualize train'),
             'smoothing': exp_cfg.getint('smoothing'),
             'features': json.loads(exp_cfg['features']),
-            'load to device': exp_cfg.getboolean('load to device')
+            'load to device': exp_cfg.getboolean('load to device'),
+            'load as': exp_cfg['load as'],
         })
 
     def _update_preprocessing_params(self):

@@ -1,9 +1,17 @@
+import os
 import utils.output_tools as out
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
+
+
+def make_images(fns, preds, labels, viz_folder, prefix, suffix):
+    for fn, pred, label in zip(fns, preds, labels):
+        pic_fn = os.path.join(viz_folder,
+                              '{}{}{}.png'.format(prefix, fn, suffix))
+        plot_yhat(pred, label, fn=pic_fn)
 
 
 def plot_yhat(y_hat, label, fn=None):

@@ -21,16 +21,16 @@ def compute_metrics(labels, preds):
     if tp + fn > 0:
         stats['sens'] = float(tp / (tp + fn))
     else:
-        stats['sens'] = 'NA'
+        stats['sens'] = 0.0
     if tp + fp > 0:
         stats['prec'] = float(tp / (tp + fp))
     else:
-        stats['prec'] = 'NA'
+        stats['prec'] = 0.0
     if tp > 0:
         stats['f1'] = 2 * (stats['prec'] * stats['sens']
                            / (stats['prec'] + stats['sens']))
     else:
-        stats['f1'] = 'NA'
+        stats['f1'] = 0.0
     stats['spec'] = float(tn / (tn + fp))
     if np.sum(labels) > 0:
         # Compute the AUC-ROC
@@ -52,8 +52,8 @@ def compute_metrics(labels, preds):
         }
         stats['auc-pr'] = metrics.auc(recall, precision)
     else:
-        stats['auc-roc'] = 'NA'
-        stats['auc-pr'] = 'NA'
+        stats['auc-roc'] = 0.0
+        stats['auc-pr'] = 0.0
 
     return stats
 
@@ -102,3 +102,74 @@ def score_recording(labels, preds):
         'latency_samples': latency_samples,
         'ncorrect': ncorrect
     }
+
+def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix):
+    # Compute window based statistics and write out
+    stats = compute_metrics(np.concatenate(all_labels),
+                                       np.concatenate(all_preds))
+    stats_fn = os.path.join(report_folder,
+                            '{}stats{}.pkl'.format(prefix, suffix))
+    pr_fn = os.path.join(report_folder,
+                         '{}pr{}.pkl'.format(prefix, suffix))
+    roc_fn = os.path.join(report_folder,
+                          '{}roc{}.pkl'.format(prefix, suffix))
+    results_fn = os.path.join(report_folder,
+                              '{}iid_results{}.csv'.format(prefix, suffix))
+    with open(stats_fn, 'wb') as f:
+        pickle.dump(stats, f)
+    with open(pr_fn, 'wb') as f:
+        pickle.dump(stats['pr curve'], f)
+    with open(roc_fn, 'wb') as f:
+        pickle.dump(stats['roc curve'], f)
+    with open(results_fn, 'w', newline='') as csvfile:
+        fieldnames = ['acc', 'sens', 'spec', 'prec', 'f1', 'auc-roc',
+                      'auc-pr']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerow({k: stats[k] for k in fieldnames})
+
+    frmt = "{:<8}"*len(fieldnames)
+    print(frmt.format(*fieldnames))
+    frmt = "{:<8.4f}"*len(fieldnames)
+    print(frmt.format(*[stats[ff] for ff in fieldnames]))
+
+
+def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
+                    suffix):
+    # Score based on sequences
+    total_fps = 0
+    total_latency_samples = 0
+    total_correct = 0
+    all_results = []
+    for fn, pred, label in zip(all_fns, all_preds, all_labels):
+        stats = score_recording(label, pred)
+        all_results.append({
+            'fn': fn,
+            'nfps': stats['nfps'],
+            'latency_samples': stats['latency_samples'],
+            'ncorrect': stats['ncorrect'],
+        })
+        total_fps += stats['nfps']
+        total_latency_samples += stats['latency_samples']
+        total_correct += stats['ncorrect']
+
+    # Write sequence stats
+    results_fn = os.path.join(report_folder,
+                              '{}seizure_results{}.csv'.format(prefix, suffix))
+    with open(results_fn, 'w', newline='') as csvfile:
+        fieldnames = ['fn', 'nfps', 'latency_samples', 'ncorrect']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(all_results)
+
+
+def smooth(all_preds, smoothing):
+    smoothed_preds = []
+    for pred in all_preds:
+        new_pred = np.zeros_like(pred)
+        for ii in range(len(pred)):
+            start = max(ii - smoothing // 2, 0)
+            end = ii + smoothing // 2
+            new_pred[ii, :] = np.mean(pred[start:end, :], axis=0)
+        smoothed_preds.append(new_pred)
+    return smoothed_preds
