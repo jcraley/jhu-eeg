@@ -80,6 +80,7 @@ class TestConfiguration():
             'features': json.loads(exp_cfg['features']),
             'load to device': exp_cfg.getboolean('load to device'),
             'load as': exp_cfg['load as'],
+            'load model fn': exp_cfg['load model fn'],
         })
 
     def _update_preprocessing_params(self):
