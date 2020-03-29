@@ -6,6 +6,7 @@ Buffers
 EDF
 Manifests
 WindowedBuffers
+ChannelLists
 
 # Mac journaling
 .DS_store
