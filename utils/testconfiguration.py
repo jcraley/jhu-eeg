@@ -18,7 +18,7 @@ class TestConfiguration():
 
     def __init__(self, default_cfg='default.ini', argv=None):
         """Load the configuration from the given config_fn"""
-        
+
         # Read the default settings
         self.config = configparser.ConfigParser()
         self.config.read(default_cfg)
@@ -102,7 +102,6 @@ class TestConfiguration():
         self.all_params.update({
             'model type': model_cfg['model type'],
             'model kwargs': model_cfg['model kwargs'],
-            'load model fn': model_cfg['load model fn'],
         })
 
     def _parse_arguments(self, argv):
