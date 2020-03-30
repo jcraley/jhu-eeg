@@ -58,14 +58,15 @@ def compute_metrics(labels, preds):
     return stats
 
 
-def score_recording(labels, preds):
+def score_recording(labels, preds, threshold=0.5):
     """Score a single recording"""
     # Find the true onsets and offsets
     true_onsets = np.where(np.diff(labels) == 1)[0] + 1
     true_offsets = np.where(np.diff(labels) == -1)[0] + 1
 
     # Find the true positives
-    y_hat = np.argmax(preds, axis=1)
+    y_hat = np.zeros(preds.shape[0])
+    y_hat[np.where(preds[:, 1] >= threshold)] = 1
     tp_samples = y_hat * labels
     fp_samples = y_hat * (1 - labels)
 
