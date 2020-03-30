@@ -8,6 +8,9 @@ Manifests
 WindowedBuffers
 ChannelLists
 
+# Scripts for phoenix
+cpu_header.sh
+
 # Mac journaling
 .DS_store
 
