@@ -51,6 +51,8 @@ class Pipeline():
             features_dir=self.paths['features'],
             features=self.params['features']
         )
+        if self.params['load as'] == 'sequences':
+            self.train_dataset.set_as_sequences(True)
 
     def initialize_val_dataset(self):
         if self.params['load to device']:
@@ -67,6 +69,8 @@ class Pipeline():
             features_dir=self.paths['features'],
             features=self.params['features']
         )
+        if self.params['load as'] == 'sequences':
+            self.val_dataset.set_as_sequences(True)
 
     def initialize_model(self):
         """Initialize the experiment's model"""
@@ -120,30 +124,31 @@ class Pipeline():
         # If visualize, output pngs for each
         if visualize:
             viz.make_images(all_fns, all_preds, all_labels,
-                        self.paths['figures'], prefix, '')
+                            self.paths['figures'], prefix, '')
 
         print("Unsmoothed results")
         # Compute windowise statistics and write out
         evaluation.iid_window_report(all_preds, all_labels, self.paths['results'],
-                          prefix, '')
+                                     prefix, '')
 
         # Score based on sequences
         evaluation.sequence_report(all_fns, all_preds, all_labels, self.paths['results'],
-                        prefix, '')
+                                   prefix, '')
 
         # Check for smoothing and run if so
         if self.params['smoothing'] > 0:
             print("Smoothed results")
-            smoothed_preds = evaluation.smooth(all_preds, self.params['smoothing'])
+            smoothed_preds = evaluation.smooth(
+                all_preds, self.params['smoothing'])
 
             if visualize:
                 viz.make_images(all_fns, smoothed_preds, all_labels,
-                            self.paths['figures'], prefix, '_smoothed')
+                                self.paths['figures'], prefix, '_smoothed')
 
             # Compute windowise statistics and write out
             evaluation.iid_window_report(smoothed_preds, all_labels, self.paths['results'],
-                              prefix, '_smoothed')
+                                         prefix, '_smoothed')
 
             # Score based on sequences
             evaluation.sequence_report(all_fns, smoothed_preds, all_labels,
-                            self.paths['results'], prefix, '_smoothed')
+                                       self.paths['results'], prefix, '_smoothed')
