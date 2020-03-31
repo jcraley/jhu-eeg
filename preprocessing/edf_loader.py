@@ -7,6 +7,7 @@ def _check_label(label, label_list):
     """
     Checks if a label is in the label list
     """
+
     # If the label is not present, try splitting it
     if label.upper() not in label_list:
         label = label[4:].split('-')[0].upper()
@@ -78,9 +79,9 @@ class EdfLoader():
             eeg_info.label_list = []
             for edf_chn in range(nsignals):
                 label = signal_labels[edf_chn]
-                eeg_info.label_list.append(label)
-                eeg_info.labels2chns[label] = edf_chn
-                eeg_info.chns2labels[edf_chn] = label
+                eeg_info.label_list.append(label.upper())
+                eeg_info.labels2chns[label.upper()] = edf_chn
+                eeg_info.chns2labels[edf_chn] = label.upper()
 
         # Close the edf file
         f._close()
