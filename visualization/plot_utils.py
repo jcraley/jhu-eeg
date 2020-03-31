@@ -1,6 +1,7 @@
 import numpy as np
 import preprocessing.dsp as dsp
 from models.basemodel import BaseModel
+import torch
 
 def checkAnnotations(t_start,window_size,edf_info):
     """
@@ -66,7 +67,7 @@ def filterData(data, fs, lp=30, hp=1.6, standardize=True):
     return dsp.prefilter(data, fs, notch=True, lpf_fc=lp,
                             hpf_fc=hp, standardize=standardize)
 
-def predict(data,model_fn):
+def predict(data,model):
     """
     Loads model, passes data through the model to get binary seizure predictions
 
@@ -78,7 +79,7 @@ def predict(data,model_fn):
         preds - a numpy array of binary predictions
     """
     # TODO - implement this function
-    model = torch.load(model_fn)
     preds = model.predict(data)
+    preds = np.array(preds)
 
-    return None
+    return preds

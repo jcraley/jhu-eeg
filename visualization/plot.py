@@ -31,6 +31,8 @@ from utils import pipeline
 # TODO: get rid of read_file
 from plot_utils import *
 
+from preds_info import PredsInfo
+
 import time
 
 class MainPage(QMainWindow):
@@ -188,6 +190,8 @@ class MainPage(QMainWindow):
         self.window_size = 10
         self.count = 0
         self.ann_list = [] # list of annotations
+        self.aspan_list = [] # list of lines on the axis from preds
+        self.pi = PredsInfo() # holds data needed to predict
 
     def valuechange(self):
         """
@@ -213,7 +217,9 @@ class MainPage(QMainWindow):
         #name.append('JH01scalp1_0001.edf')
         #name.append('chb01_01.edf')
         name_len = len(name[0])
-        if name[0] == None or name[0][name_len-4:] != ".edf":
+        if name[0] == None:
+            return
+        elif name[0][name_len-4:] != ".edf":
             alert = QMessageBox()
             alert.setText('Please select an .edf file')
             alert.setIcon(QMessageBox.Information)
@@ -329,6 +335,10 @@ class MainPage(QMainWindow):
         for i, a in enumerate(self.ann_list):
             a.remove()
         self.ann_list[:] = []
+        for aspan in self.aspan_list:
+            aspan.remove()
+        self.aspan_list[:] = []
+
         #self.m.fig.cla()
 
         fs = self.edf_info.fs
@@ -374,9 +384,9 @@ class MainPage(QMainWindow):
 
             if self.predicted == 1:
                 for k in range(self.window_size):
-                    if self.windowed_preds[self.count + k]:
+                    if self.preds[self.count + k]:
                         # ax.axvspan(k * fs, (k + 1) * fs, ymin=0,ymax=0.5,color='paleturquoise', alpha=0.5)
-                        ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5)
+                        self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
 
         self.ax.set_xlim([0,self.edf_info.fs*self.window_size])
         step_size = self.edf_info.fs # Updating the x labels with scaling
@@ -473,7 +483,7 @@ class MainPage(QMainWindow):
                 alert.setIcon(QMessageBox.Information)
                 retval = alert.exec_()
             else:
-                self.ptData = torch.load(ptfile_fn[0])
+                self.pi.set_data(ptfile_fn[0])
 
     def loadModel(self):
         """
@@ -495,11 +505,26 @@ class MainPage(QMainWindow):
                 alert.setIcon(QMessageBox.Information)
                 retval = alert.exec_()
             else:
-                self.preds = predict(self.ptData,model_fn[0])
+                self.pi.set_model(model_fn[0])
 
     def predict(self):
         # TODO: replace this function with loadModel/loadPtData
-        return None
+        if self.init == 0:
+            return
+        if self.pi.ready:
+            self.preds = predict(self.pi.data,self.pi.model)
+            self.predicted = 1
+            self.callmovePlot(0,0,0)
+        elif not self.pi.data_loaded:
+            alert = QMessageBox()
+            alert.setText('Please load data')
+            alert.setIcon(QMessageBox.Information)
+            retval = alert.exec_()
+        else:
+            alert = QMessageBox()
+            alert.setText('Please load a model')
+            alert.setIcon(QMessageBox.Information)
+            retval = alert.exec_()
 
 
 class PlotCanvas(FigureCanvas):
