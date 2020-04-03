@@ -26,9 +26,10 @@ def checkAnnotations(t_start,window_size,edf_info):
     i = 0
     ret = []
     idx_w_ann = np.zeros((window_size))
-    if ann != []:
+
+    if len(ann[0]) != 0:
         ann_i = int(float(ann[0,i]))
-        while ann_i <= t_start and i < ann.shape[1]:
+        while ann_i <= t_end and i < ann.shape[1]:
             if int(float(ann[0,i])) >= t_start and int(float(ann[0,i])) <= t_end:
                 ret.append(ann[:,i])
                 idx_w_ann[int(float(ann[0,i]))-t_start] = 1
@@ -38,7 +39,7 @@ def checkAnnotations(t_start,window_size,edf_info):
             else:
                 i = ann.shape[1]
     else:
-        return [], idx_w_ann
+        return ret, idx_w_ann
 
     if not(idx_w_ann[0] == 1 and idx_w_ann[1] == 1):
         idx_w_ann[0] = 0
@@ -50,9 +51,9 @@ def checkAnnotations(t_start,window_size,edf_info):
     if idx_w_ann[window_size - 2] == 0 and idx_w_ann[window_size - 1] == 1:
         idx_w_ann[window_size - 1] = 0
 
-    return np.array(ret).T, idx_w_ann
+    return ret, idx_w_ann
 
-def filterData(data, fs, lp=30, hp=1.6, standardize=True):
+def filterData(data, fs, fi):
     """
     Calls dsp.prefilter to filter the data
 
@@ -64,8 +65,16 @@ def filterData(data, fs, lp=30, hp=1.6, standardize=True):
     returns:
         filtered data
     """
-    return dsp.prefilter(data, fs, notch=True, lpf_fc=lp,
-                            hpf_fc=hp, standardize=standardize)
+    if fi.do_lp == 0:
+        lp = 0
+    else:
+        lp = fi.lp
+    if fi.do_hp == 0:
+        hp = 0
+    else:
+        hp = fi.hp
+    return dsp.prefilter(data, fs, notch=fi.do_notch, lpf_fc=lp,
+                            hpf_fc=hp, standardize=True)
 
 def predict(data,model):
     """
@@ -83,3 +92,28 @@ def predict(data,model):
     preds = np.array(preds)
 
     return preds
+
+def getTime(count):
+    t_str = ""
+    t = count
+    hrs = 0
+    min = 0
+    sec = 0
+    if int(t / 3600) > 0:
+        hrs = int(t / 3600)
+        t = t % 3600
+    if int(t / 60) > 0:
+        min = int(t / 60)
+        t = t % 60
+    sec = t
+    if sec >= 10:
+        str_sec = str(sec)
+    else:
+        str_sec = "0" + str(sec)
+    if min >= 10:
+        str_min = str(min)
+    else:
+        str_min = "0" + str(min)
+    str_hr = str(hrs)
+    t_str = str_hr + ":" + str_min + ":" + str_sec
+    return t_str
