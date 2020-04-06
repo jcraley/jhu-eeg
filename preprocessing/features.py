@@ -1,6 +1,29 @@
+import nolds
 import numpy as np
 import scipy.signal
 import torch
+
+
+def sampen(windowed_buffers, **kwargs):
+    """Find the sample entropy of the buffers"""
+    T, C, _ = windowed_buffers.size()
+    sampen_feature = torch.zeros((T, C, 1), dtype=torch.float32)
+    for tt in range(T):
+        for cc in range(C):
+            sampen_feature[tt, cc, 0] = nolds.sampen(
+                windowed_buffers[tt, cc, :])
+    return sampen_feature
+
+
+def lle(windowed_buffers, **kwargs):
+    """Find the largest Lyapunov exponent of the buffers"""
+    T, C, _ = windowed_buffers.size()
+    lyap_e_feature = torch.zeros((T, C, 1), dtype=torch.float32)
+    for tt in range(T):
+        for cc in range(C):
+            lyap = torch.tensor(nolds.lyap_e(windowed_buffers[tt, cc, :]))
+            lyap_e_feature[tt, cc, 0] = lyap[0]
+    return lyap_e_feature
 
 
 def power(windowed_buffers, fs=200):
