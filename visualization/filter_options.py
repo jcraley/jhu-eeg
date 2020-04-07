@@ -41,6 +41,9 @@ class FilterOptions(QWidget):
         self.btnGetLP.setRange(0, self.data.fs / 2)
         layout.addWidget(self.btnGetLP,0,1)
 
+        lp_hz_lbl = QLabel("Hz",self)
+        layout.addWidget(lp_hz_lbl,0,2)
+
         self.cbox_hp= QCheckBox("Highpass",self)
         self.cbox_hp.toggled.connect(self.hp_filterChecked)
         self.cbox_hp.setToolTip("Click to filter")
@@ -53,6 +56,9 @@ class FilterOptions(QWidget):
         self.btnGetHP.setRange(0, self.data.fs / 2)
         layout.addWidget(self.btnGetHP,1,1)
 
+        hp_hz_lbl = QLabel("Hz",self)
+        layout.addWidget(hp_hz_lbl,1,2)
+
         self.cbox_notch = QCheckBox("Notch",self)
         self.cbox_notch.toggled.connect(self.notch_filterChecked)
         self.cbox_notch.setToolTip("Click to filter")
@@ -64,6 +70,9 @@ class FilterOptions(QWidget):
         self.btnGetNotch.setValue(self.data.notch)
         self.btnGetNotch.setRange(0, self.data.fs / 2)
         layout.addWidget(self.btnGetNotch,2,1)
+
+        notch_hz_lbl = QLabel("Hz",self)
+        layout.addWidget(notch_hz_lbl,2,2)
 
         self.setLayout(layout)
 
@@ -91,8 +100,6 @@ class FilterOptions(QWidget):
             self.data.do_notch = 0
 
     def change(self):
-        # self.main = MainPage()
-        # self.main.show()
         hp = self.btnGetHP.value()
         lp = self.btnGetLP.value()
         if (lp > 0 and lp < self.data.fs / 2 and hp > 0 and hp < self.data.fs / 2):

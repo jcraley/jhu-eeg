@@ -38,7 +38,7 @@ class MainPage(QMainWindow):
         self.left = 10
         self.top = 10
         self.title = 'EEG Visualization'
-        self.width = 1200
+        self.width = 1300
         self.height = 1000
         self.initUI()
 
@@ -73,7 +73,7 @@ class MainPage(QMainWindow):
         test0= QLabel("",self)
         grid_lt.addWidget(test0,2,0)
 
-        buttonLoadPtFile = QPushButton("Load data",self)
+        buttonLoadPtFile = QPushButton("Load preprocessed data",self)
         buttonLoadPtFile.clicked.connect(self.loadPtData)
         buttonLoadPtFile.setToolTip("Click to load preprocessed data (as a torch tensor)")
         grid_lt.addWidget(buttonLoadPtFile,3,0)
@@ -201,7 +201,7 @@ class MainPage(QMainWindow):
         self.filter_win_open = 0
 
         # Labels for both types of montages
-        self.labels = ["Annotations","CZ-PZ","FZ-CZ","P4-O2","C4-P4","F4-C4","FP2-F4",
+        self.labels = ["Notes","CZ-PZ","FZ-CZ","P4-O2","C4-P4","F4-C4","FP2-F4",
                        "P3-O1","C3-P3","F3-C3","FP1-F3","P8-O2","T8-P8",
                        "F8-T8","FP2-F8","P7-O1","T7-P7","F7-T7","FP1-F7",""]
         self.labelsAR = ["Annotations","O2","O1","PZ","CZ","FZ","P8","P7","T8","T7","F8",
@@ -478,16 +478,16 @@ class MainPage(QMainWindow):
                     txt = txt + "\n" + ann[2,i]
                 else:
                     if idx_w_ann[int_prev - self.count] and int_prev % 2 == 1:
-                        self.ann_list.append(self.ax.annotate(txt, xy=((int_prev - self.count)*fs, -y_lim / 2 + y_lim),color='red'))
+                        self.ann_list.append(self.ax.annotate(txt, xy=((int_prev - self.count)*fs, -y_lim / 2 + y_lim),color='black'))
                     else:
-                        self.ann_list.append(self.ax.annotate(txt, xy=((int_prev - self.count)*fs, -y_lim / 2),color='red'))
+                        self.ann_list.append(self.ax.annotate(txt, xy=((int_prev - self.count)*fs, -y_lim / 2),color='black'))
                     txt = ann[2,i]
                 int_prev = int_i
             if txt != "":
                 if idx_w_ann[int_i - self.count] and int_i % 2 == 1:
-                    self.ann_list.append(self.ax.annotate(txt, xy=((int_i - self.count)*fs, -y_lim / 2 + y_lim),color='red'))
+                    self.ann_list.append(self.ax.annotate(txt, xy=((int_i - self.count)*fs, -y_lim / 2 + y_lim),color='black'))
                 else:
-                    self.ann_list.append(self.ax.annotate(txt, xy=((int_i - self.count)*fs, -y_lim / 2),color='red'))
+                    self.ann_list.append(self.ax.annotate(txt, xy=((int_i - self.count)*fs, -y_lim / 2),color='black'))
 
         if print_graph == 1:
             file = QFileDialog.getSaveFileName(self, 'Save File')
@@ -551,6 +551,9 @@ class MainPage(QMainWindow):
                 else:
                     self.labelLoadPtFile.setText(ptfile_fn[0].split('/')[-1][0:15] + "...")
                 self.pi.set_data(ptfile_fn[0])
+                self.predicted = 0
+                self.predLabel.setText("")
+                self.callmovePlot(0,0,0)
 
     def loadModel(self):
         """
@@ -569,6 +572,9 @@ class MainPage(QMainWindow):
                 else:
                     self.labelLoadModel.setText(model_fn[0].split('/')[-1][0:15] + "...")
                 self.pi.set_model(model_fn[0])
+                self.predicted = 0
+                self.predLabel.setText("")
+                self.callmovePlot(0,0,0)
 
     def predict(self):
         """
@@ -577,13 +583,13 @@ class MainPage(QMainWindow):
         if self.init == 0:
             return
         if self.pi.ready:
-            self.preds = predict(self.pi.data,self.pi.model)
-            if self.max_time != self.preds.shape[0]:
-                self.throwAlert('Predictions are not the same amount of seconds as the .edf file you loaded. Please check your file.')
-            else:
-                self.predicted = 1
-                self.predLabel.setText("Predictions plotted.")
-                self.callmovePlot(0,0,0)
+            self.preds = predict(self.pi.data,self.pi.model,self)
+            if self.predicted == 1:
+                if self.max_time != self.preds.shape[0]:
+                    self.throwAlert('Predictions are not the same amount of seconds as the .edf file you loaded. Please check your file.')
+                else:
+                    self.predLabel.setText("Predictions plotted.")
+                    self.callmovePlot(0,0,0)
         elif not self.pi.data_loaded:
             self.throwAlert('Please load data')
         else:

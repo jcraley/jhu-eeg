@@ -88,14 +88,11 @@ def filterData(data, fs, fi):
         # HPF
         if hp > 0:
             filt_bufs[chn] = dsp.applyHighPass(filt_bufs[chn], fs, hp)
-        #if clip_level > 0:
-        #    filt_bufs[chn] = clip(filt_bufs[chn], clip_level)
-        # Standardize
         filt_bufs[chn] = dsp.scale(filt_bufs[chn])
 
     return filt_bufs
 
-def predict(data,model):
+def predict(data,model,parent):
     """
     Loads model, passes data through the model to get binary seizure predictions
 
@@ -106,10 +103,15 @@ def predict(data,model):
     returns:
         preds - a numpy array of binary predictions
     """
-    # TODO - implement this function
-    preds = model.predict(data)
-    preds = np.array(preds)
+    try:
+        preds = model.predict(data)
+        preds = np.array(preds)
+    except:
+        parent.throwAlert("An error occured when trying to call the predict() " +
+                    "function using your model. Please check your model and data.")
+        return
 
+    parent.predicted = 1
     return preds
 
 def getTime(count):
