@@ -5,7 +5,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog,QMenu,
                                 QVBoxLayout,QSizePolicy, QMessageBox, QWidget,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
-                                QSlider, QGridLayout)
+                                QSlider, QGridLayout, QDockWidget, QListWidget)
 from PyQt5.QtGui import QIcon
 from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5
 if is_pyqt5():
@@ -38,7 +38,7 @@ class MainPage(QMainWindow):
         self.left = 10
         self.top = 10
         self.title = 'EEG Visualization'
-        self.width = 1100
+        self.width = 1200
         self.height = 1000
         self.initUI()
 
@@ -92,7 +92,10 @@ class MainPage(QMainWindow):
         buttonPredict = QPushButton("Predict",self)
         buttonPredict.clicked.connect(self.predict)
         buttonPredict.setToolTip("Click to run data through model")
-        grid_lt.addWidget(buttonPredict,5,0,1,2)
+        grid_lt.addWidget(buttonPredict,5,1,1,1)
+
+        self.predLabel = QLabel("",self)
+        grid_lt.addWidget(self.predLabel,5,0)
 
         test= QLabel("",self)
         grid_lt.addWidget(test,6,0)
@@ -170,6 +173,15 @@ class MainPage(QMainWindow):
         self.time_lbl = QLabel("0:00:00",self)
         grid_rt.addWidget(self.time_lbl,7,7)
 
+        # Annotation dock
+        self.scroll = QDockWidget()
+        self.ann_qlist = QListWidget()
+        self.scroll.setWidget(self.ann_qlist)
+        self.scroll.setFloating(False)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.scroll)
+        self.scroll.hide()
+        self.ann_qlist.itemClicked.connect(self.ann_clicked)
+
 
         wid = QWidget(self)
         self.setCentralWidget(wid)
@@ -184,8 +196,9 @@ class MainPage(QMainWindow):
         self.init = 0 # if any data has been loaded in yet
         self.window_size = 10 # number of seconds to display at a time
         self.filter_checked = 0 # whether or not to plot filtered data
-        self.ylim = [150,2] # ylim for unfiltered and filtered data
+        self.ylim = [150,3] # ylim for unfiltered and filtered data
         self.predicted = 0 # whether or not predictions have been made
+        self.filter_win_open = 0
 
         # Labels for both types of montages
         self.labels = ["Annotations","CZ-PZ","FZ-CZ","P4-O2","C4-P4","F4-C4","FP2-F4",
@@ -203,8 +216,9 @@ class MainPage(QMainWindow):
         Called when the main window is closed to act as a destructor and close
         any window that is still open.
         """
-        print ("User has clicked the red x on the main window")
-        # self.examp.change()
+
+        if self.filter_win_open:
+            self.filter_ops.closeWindow()
         event.accept()
 
     def initGraph(self):
@@ -213,17 +227,41 @@ class MainPage(QMainWindow):
         is loaded.
         """
         #self.init = 1 # set in load_data to prevent issues with slider
-        self.filter_checked = 0
+        self.filter_checked = 0 # whether or not filter checkbox is checked
         self.cbox_filter.setChecked(False)
-        self.ylim = [150,2] # reset scale of axis
-        self.predicted = 0
-        self.max_time = 0
-        self.window_size = 10
-        self.count = 0
+        self.ylim = [150,3] # reset scale of axis
+        self.predicted = 0 # whether or not predictions have been made
+        self.max_time = 0 # number of seconds in the recording
+        self.window_size = 10 # number of seconds displayed at once
+        self.count = 0 # current location in time
         self.ann_list = [] # list of annotations
         self.aspan_list = [] # list of lines on the axis from preds
         self.pi = PredsInfo() # holds data needed to predict
-        self.fi = FilterInfo()
+        self.fi = FilterInfo() # holds data needed to filter
+        self.ann_qlist.clear() # Clear annotations
+        self.populateAnnDock() # Add annotations if they exist
+        self.predLabel.setText("") # reset text of predictions
+        self.labelLoadPtFile.setText("No data loaded.") # no data label reset
+        self.labelLoadModel.setText("No model loaded.") # no data model reset
+
+    def ann_clicked(self,item):
+        """
+        Moves the plot when annotations in the dock are clicked.
+        """
+        self.count = int(float(self.edf_info.annotations[0][self.ann_qlist.currentRow()]))
+        self.callmovePlot(0,0,0)
+
+    def populateAnnDock(self):
+        """
+        Fills the annotation dock with annotations if they exist.
+        """
+        ann = self.edf_info.annotations
+        if len(ann[0]) == 0:
+            self.scroll.hide()
+        else:
+            for i in range(len(ann[0])):
+                self.ann_qlist.addItem(ann[2][i])
+            self.scroll.show()
 
     def valuechange(self):
         """
@@ -245,11 +283,9 @@ class MainPage(QMainWindow):
         data is initially unfiltered
         """
         name = QFileDialog.getOpenFileName(self, 'Open File')
-        #name = []
-        #name.append('JH01scalp1_0001.edf')
-        #name.append('chb01_01.edf')
+
         name_len = len(name[0])
-        if name[0] == None:
+        if name[0] == None or name_len == 0:
             return
         elif name[0][name_len-4:] != ".edf":
             self.throwAlert('Please select an .edf file')
@@ -270,6 +306,7 @@ class MainPage(QMainWindow):
 
             self.data = np.array(self.data)
             fs = self.edf_info.fs
+            self.fi.fs = fs
             self.max_time = int(self.data.shape[1] / fs)
             self.slider.setMaximum(self.max_time - self.window_size)
 
@@ -298,14 +335,14 @@ class MainPage(QMainWindow):
         if self.init == 1:
             if self.ylim[0] > 50:
                 self.ylim[0] = self.ylim[0] - 15
-                self.ylim[1] = self.ylim[1] - 0.2
+                self.ylim[1] = self.ylim[1] - 0.3
                 self.callmovePlot(0,0,0)
 
     def decAmp(self):
         if self.init == 1:
             if self.ylim[0] < 250:
                 self.ylim[0] = self.ylim[0] + 15
-                self.ylim[1] = self.ylim[1] + 0.2
+                self.ylim[1] = self.ylim[1] + 0.3
                 self.callmovePlot(0,0,0)
 
     def incWindow_size(self):
@@ -355,9 +392,8 @@ class MainPage(QMainWindow):
             y_lim - the values for the y_limits of the plot
 
         """
-        nchns = self.data.shape[0] # put this somewhere else
+        nchns = self.data.shape[0]
         # Clear plot
-        # TODO: write a function for this
         del(self.ax.lines[0:nchns])
         for i, a in enumerate(self.ann_list):
             a.remove()
@@ -430,8 +466,6 @@ class MainPage(QMainWindow):
         self.ax.set_xticklabels(np.arange(self.count, self.count + self.window_size + 1, step=step_width), fontdict=None, minor=False)
         self.ax.set_xlabel("Time (s)")
 
-
-        #ax.figure.savefig("test.png",bbox_inches='tight')
         ann, idx_w_ann = checkAnnotations(self.count,self.window_size,self.edf_info)
         # Add in annotations
         if len(ann) != 0:
@@ -458,6 +492,7 @@ class MainPage(QMainWindow):
         if print_graph == 1:
             file = QFileDialog.getSaveFileName(self, 'Save File')
             self.ax.figure.savefig(file[0] +".png",bbox_inches='tight')
+
         self.m.draw()
 
     def filterChecked(self):
@@ -494,6 +529,7 @@ class MainPage(QMainWindow):
 
     def changeFilter(self):
         if self.init == 1:
+            self.filter_win_open = 1
             self.filter_ops = FilterOptions(self.fi,self)
             self.filter_ops.show()
 
@@ -505,7 +541,7 @@ class MainPage(QMainWindow):
         if self.init == 1:
             ptfile_fn = QFileDialog.getOpenFileName(self, 'Open torch file')
             ptfile_len = len(ptfile_fn[0])
-            if ptfile_fn[0] == None:
+            if ptfile_fn[0] == None or ptfile_len == 0:
                 return
             elif ptfile_fn[0][ptfile_len-3:] != ".pt":
                 self.throwAlert('Please select a .pt file')
@@ -523,7 +559,7 @@ class MainPage(QMainWindow):
         if self.init == 1:
             model_fn = QFileDialog.getOpenFileName(self, 'Open model')
             model_fn_len = len(model_fn[0])
-            if model_fn[0] == None:
+            if model_fn[0] == None or model_fn_len == 0:
                 return
             elif model_fn[0][model_fn_len-3:] != ".pt":
                 self.throwAlert('Please select a .pt file')
@@ -535,7 +571,9 @@ class MainPage(QMainWindow):
                 self.pi.set_model(model_fn[0])
 
     def predict(self):
-        # TODO: replace this function with loadModel/loadPtData
+        """
+        Take loaded model and data and compute predictions
+        """
         if self.init == 0:
             return
         if self.pi.ready:
@@ -544,6 +582,7 @@ class MainPage(QMainWindow):
                 self.throwAlert('Predictions are not the same amount of seconds as the .edf file you loaded. Please check your file.')
             else:
                 self.predicted = 1
+                self.predLabel.setText("Predictions plotted.")
                 self.callmovePlot(0,0,0)
         elif not self.pi.data_loaded:
             self.throwAlert('Please load data')
@@ -564,9 +603,6 @@ class PlotCanvas(FigureCanvas):
 
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
-
-
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

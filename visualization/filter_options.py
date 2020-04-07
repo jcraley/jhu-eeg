@@ -38,6 +38,7 @@ class FilterOptions(QWidget):
 
         self.btnGetLP = QSpinBox(self)
         self.btnGetLP.setValue(self.data.lp)
+        self.btnGetLP.setRange(0, self.data.fs / 2)
         layout.addWidget(self.btnGetLP,0,1)
 
         self.cbox_hp= QCheckBox("Highpass",self)
@@ -49,6 +50,7 @@ class FilterOptions(QWidget):
 
         self.btnGetHP = QSpinBox(self)
         self.btnGetHP.setValue(self.data.hp)
+        self.btnGetHP.setRange(0, self.data.fs / 2)
         layout.addWidget(self.btnGetHP,1,1)
 
         self.cbox_notch = QCheckBox("Notch",self)
@@ -60,6 +62,7 @@ class FilterOptions(QWidget):
 
         self.btnGetNotch = QSpinBox(self)
         self.btnGetNotch.setValue(self.data.notch)
+        self.btnGetNotch.setRange(0, self.data.fs / 2)
         layout.addWidget(self.btnGetNotch,2,1)
 
         self.setLayout(layout)
@@ -90,11 +93,17 @@ class FilterOptions(QWidget):
     def change(self):
         # self.main = MainPage()
         # self.main.show()
-        self.data.lp = self.btnGetLP.value()
-        self.data.hp = self.btnGetHP.value()
-        self.data.notch = self.btnGetNotch.value()
+        hp = self.btnGetHP.value()
+        lp = self.btnGetLP.value()
+        if (lp > 0 and lp < self.data.fs / 2 and hp > 0 and hp < self.data.fs / 2):
+            if lp - hp > 0:
+                self.data.lp = self.btnGetLP.value()
+                self.data.hp = self.btnGetHP.value()
+        if self.btnGetNotch.value() > 0 and self.btnGetNotch.value() < self.data.fs / 2:
+            self.data.notch = self.btnGetNotch.value()
         self.parent.callmovePlot(0,0,0)
         self.closeWindow()
 
     def closeWindow(self):
+        self.parent.filter_win_open = 0
         self.close()

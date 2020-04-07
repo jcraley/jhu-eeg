@@ -2,6 +2,8 @@ import numpy as np
 import preprocessing.dsp as dsp
 from models.basemodel import BaseModel
 import torch
+import scipy.signal
+from copy import deepcopy
 
 def checkAnnotations(t_start,window_size,edf_info):
     """
@@ -73,8 +75,25 @@ def filterData(data, fs, fi):
         hp = 0
     else:
         hp = fi.hp
-    return dsp.prefilter(data, fs, notch=fi.do_notch, lpf_fc=lp,
-                            hpf_fc=hp, standardize=True)
+
+    nchns = len(data)
+    filt_bufs = deepcopy(data)
+    for chn in range(nchns):
+        # Notch
+        if fi.notch > 0:
+            filt_bufs[chn] = applyNotch(filt_bufs[chn], fs,fi.notch)
+        # LPF
+        if lp > 0:
+            filt_bufs[chn] = dsp.applyLowPass(filt_bufs[chn], fs, lp)
+        # HPF
+        if hp > 0:
+            filt_bufs[chn] = dsp.applyHighPass(filt_bufs[chn], fs, hp)
+        #if clip_level > 0:
+        #    filt_bufs[chn] = clip(filt_bufs[chn], clip_level)
+        # Standardize
+        filt_bufs[chn] = dsp.scale(filt_bufs[chn])
+
+    return filt_bufs
 
 def predict(data,model):
     """
@@ -117,3 +136,11 @@ def getTime(count):
     str_hr = str(hrs)
     t_str = str_hr + ":" + str_min + ":" + str_sec
     return t_str
+
+
+def applyNotch(x, fs, fc=60, Q=20.0):
+    """Apply a notch filter at 60 Hz
+    """
+    w60Hz = fc / (fs / 2)
+    b, a = scipy.signal.iirnotch(w60Hz, Q)
+    return scipy.signal.filtfilt(b, a, x, method='gust')
