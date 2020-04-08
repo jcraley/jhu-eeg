@@ -85,3 +85,7 @@ class PathManager():
 
     def __getitem__(self, key):
         return self.path_dict[key]
+
+    def __setitem__(self, key, value):
+        self.path_dict[key] = value
+        init_folder(self.path_dict[key])
