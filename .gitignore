@@ -8,6 +8,10 @@ Manifests
 WindowedBuffers
 ChannelLists
 
+# Scripts
+cpu_header.sh
+gpu_header.sh
+
 # Mac journaling
 .DS_store
 
