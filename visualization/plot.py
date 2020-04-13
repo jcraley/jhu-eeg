@@ -7,12 +7,10 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog,QMenu,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
                                 QSlider, QGridLayout, QDockWidget, QListWidget)
 from PyQt5.QtGui import QIcon
-from matplotlib.backends.qt_compat import QtCore, QtWidgets, is_pyqt5
-if is_pyqt5():
-    from matplotlib.backends.backend_qt5agg import (
-        FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
-else:
-    from matplotlib.backends.backend_qt4agg import (
+import matplotlib
+matplotlib.use("Qt5Agg")
+from matplotlib.backends.qt_compat import QtCore, QtWidgets
+from matplotlib.backends.backend_qt5agg import (
         FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.figure import Figure
 
@@ -28,8 +26,6 @@ from plot_utils import *
 from preds_info import PredsInfo
 from filter_info import FilterInfo
 from filter_options import FilterOptions
-
-import time
 
 class MainPage(QMainWindow):
 
@@ -145,6 +141,12 @@ class MainPage(QMainWindow):
         self.slider.sliderReleased.connect(self.valuechange)
         grid_rt.addWidget(self.slider, 6,0,1,8)
 
+        self.buttonChgMont = QPushButton("Change montage",self)
+        self.buttonChgMont.clicked.connect(self.chgMont)
+        self.buttonChgMont.setToolTip("Click to change montage")
+        self.buttonChgMont.hide()
+        grid_rt.addWidget(self.buttonChgMont, 7,0)
+
         buttonLt10s = QPushButton("<10",self)
         buttonLt10s.clicked.connect(self.leftPlot10s)
         buttonLt10s.setToolTip("Click to go back")
@@ -204,7 +206,7 @@ class MainPage(QMainWindow):
         self.labels = ["Notes","CZ-PZ","FZ-CZ","P4-O2","C4-P4","F4-C4","FP2-F4",
                        "P3-O1","C3-P3","F3-C3","FP1-F3","P8-O2","T8-P8",
                        "F8-T8","FP2-F8","P7-O1","T7-P7","F7-T7","FP1-F7",""]
-        self.labelsAR = ["Annotations","O2","O1","PZ","CZ","FZ","P8","P7","T8","T7","F8",
+        self.labelsAR = ["Notes","O2","O1","PZ","CZ","FZ","P8","P7","T8","T7","F8",
                         "F7","P4","P3","C4","C3","F4","F3","FP2","FP1"]
 
         self.fi = FilterInfo()
@@ -243,13 +245,15 @@ class MainPage(QMainWindow):
         self.predLabel.setText("") # reset text of predictions
         self.labelLoadPtFile.setText("No data loaded.") # no data label reset
         self.labelLoadModel.setText("No model loaded.") # no data model reset
+        self.buttonChgMont.hide()
+        self.plot_bipolar = 0
 
     def ann_clicked(self,item):
         """
         Moves the plot when annotations in the dock are clicked.
         """
         self.count = int(float(self.edf_info.annotations[0][self.ann_qlist.currentRow()]))
-        self.callmovePlot(0,0,0)
+        self.callmovePlot(0,0)
 
     def populateAnnDock(self):
         """
@@ -272,7 +276,14 @@ class MainPage(QMainWindow):
             self.count = size + 1
             if self.count + self.window_size > self.max_time + 1:
                 self.count = self.max_time - self.window_size
-            self.callmovePlot(0,1,0)
+            self.callmovePlot(0,1)
+
+    def chgMont(self):
+        """
+        Funtion to change between bipolar and average reference.
+        """
+        self.plot_bipolar = not(self.plot_bipolar)
+        self.callmovePlot(0,0)
 
 
     def load_data(self):
@@ -291,7 +302,11 @@ class MainPage(QMainWindow):
             self.throwAlert('Please select an .edf file')
         else:
             loader = EdfLoader()
-            self.edf_info = loader.load_metadata(name[0])
+            try:
+                self.edf_info = loader.load_metadata(name[0])
+            except:
+                self.throwAlert("The .edf file is invalid.")
+                return
             self.edf_info.annotations = np.array(self.edf_info.annotations)
 
             self.initGraph()
@@ -301,49 +316,61 @@ class MainPage(QMainWindow):
             if self.data.ndim == 1:
                 data_temp = np.zeros((self.data.shape[0],self.data[0].shape[0]))
                 for i in range(self.data.shape[0]):
-                    data_temp[i,:] = self.data[i]
+                    try:
+                        if self.data[i].shape == self.data[0].shape:
+                            data_temp[i,:] = self.data[i]
+                    except:
+                        pass
                 self.data = data_temp
 
             self.data = np.array(self.data)
             fs = self.edf_info.fs
+            try:
+                fs = fs[0]
+                self.edf_info.fs = fs
+            except:
+                pass
             self.fi.fs = fs
             self.max_time = int(self.data.shape[1] / fs)
             self.slider.setMaximum(self.max_time - self.window_size)
 
             edf_montages = EdfMontage(self.edf_info)
             self.montage = edf_montages.reorder_data(self.data)
+            if self.montage.shape[0] == 19:
+                self.montage_bipolar = edf_montages.get_bipolar_from_ar(self.montage)
+                self.buttonChgMont.show()
 
             self.m.fig.clf()
             self.ax = self.m.fig.add_subplot(self.m.gs[0])
 
-            self.movePlot(1,self.data.shape[1] / fs,self.ylim[0],0)
+            self.movePlot(1,0,self.ylim[0],0,0)
             self.init = 1
 
     def rightPlot1s(self):
-        self.callmovePlot(1,1,0)
+        self.callmovePlot(1,1)
 
     def leftPlot1s(self):
-        self.callmovePlot(0,1,0)
+        self.callmovePlot(0,1)
 
     def rightPlot10s(self):
-        self.callmovePlot(1,10,0)
+        self.callmovePlot(1,10)
 
     def leftPlot10s(self):
-        self.callmovePlot(0,10,0)
+        self.callmovePlot(0,10)
 
     def incAmp(self):
         if self.init == 1:
             if self.ylim[0] > 50:
                 self.ylim[0] = self.ylim[0] - 15
                 self.ylim[1] = self.ylim[1] - 0.3
-                self.callmovePlot(0,0,0)
+                self.callmovePlot(0,0)
 
     def decAmp(self):
         if self.init == 1:
             if self.ylim[0] < 250:
                 self.ylim[0] = self.ylim[0] + 15
                 self.ylim[1] = self.ylim[1] + 0.3
-                self.callmovePlot(0,0,0)
+                self.callmovePlot(0,0)
 
     def incWindow_size(self):
         if self.init == 1:
@@ -352,14 +379,14 @@ class MainPage(QMainWindow):
                 self.slider.setMaximum(self.max_time - self.window_size)
                 if self.count + self.window_size > self.max_time:
                     self.count = self.max_time - self.window_size
-                self.callmovePlot(0,0,0)
+                self.callmovePlot(0,0)
 
     def decWindow_size(self):
         if self.init == 1:
             if self.window_size - 5 >= 5:
                 self.window_size = self.window_size - 5
                 self.slider.setMaximum(self.max_time - self.window_size)
-                self.callmovePlot(0,0,0)
+                self.callmovePlot(0,0)
 
     def getCount(self):
         if self.init == 1:
@@ -367,22 +394,22 @@ class MainPage(QMainWindow):
                                             0,0,self.max_time - self.window_size)
             if ok:
                 self.count = num + 1
-                self.callmovePlot(0,1,0)
+                self.callmovePlot(0,1)
 
     def print_graph(self):
         self.callmovePlot(0,0,1)
 
-    def callmovePlot(self,right,num_move,print_graph):
+    def callmovePlot(self,right,num_move,print_graph = 0):
         """
         Helper function to call movePlot for various buttons.
         """
         if self.init == 1:
             if self.filter_checked == 1:
-                self.movePlot(right,num_move,self.ylim[1],print_graph)
+                self.movePlot(right,num_move,self.ylim[1],print_graph,self.plot_bipolar)
             else:
-                self.movePlot(right,num_move,self.ylim[0],print_graph)
+                self.movePlot(right,num_move,self.ylim[0],print_graph,self.plot_bipolar)
 
-    def movePlot(self, right, num_move, y_lim, print_graph):
+    def movePlot(self, right, num_move, y_lim, print_graph, use_mont2):
         """
         Function to shift the plot left and right
 
@@ -419,11 +446,13 @@ class MainPage(QMainWindow):
         if self.filter_checked == 1:
             self.prep_filter_ws()
             plotData = self.filteredData
-        else:
+        elif use_mont2 == 0:
             plotData = self.montage
+        else:
+            plotData = self.montage_bipolar
 
-        for i in range(self.montage.shape[0]):
-            if self.montage.shape[0] == 18:
+        for i in range(plotData.shape[0]):
+            if plotData.shape[0] == 18:
                 if i < 2:
                     col = 'g'
                 elif i < 6 or (i < 14 and i >= 10):
@@ -467,6 +496,9 @@ class MainPage(QMainWindow):
         self.ax.set_xlabel("Time (s)")
 
         ann, idx_w_ann = checkAnnotations(self.count,self.window_size,self.edf_info)
+        font_size = 10 - self.window_size / 5
+        if font_size < 6:
+            font_size = 6
         # Add in annotations
         if len(ann) != 0:
             ann = np.array(ann).T
@@ -478,16 +510,16 @@ class MainPage(QMainWindow):
                     txt = txt + "\n" + ann[2,i]
                 else:
                     if idx_w_ann[int_prev - self.count] and int_prev % 2 == 1:
-                        self.ann_list.append(self.ax.annotate(txt, xy=((int_prev - self.count)*fs, -y_lim / 2 + y_lim),color='black'))
+                        self.ann_list.append(self.ax.annotate(txt, xy=((int_prev - self.count)*fs, -y_lim / 2 + y_lim),color='black',size=font_size))
                     else:
-                        self.ann_list.append(self.ax.annotate(txt, xy=((int_prev - self.count)*fs, -y_lim / 2),color='black'))
+                        self.ann_list.append(self.ax.annotate(txt, xy=((int_prev - self.count)*fs, -y_lim / 2),color='black',size=font_size))
                     txt = ann[2,i]
                 int_prev = int_i
             if txt != "":
                 if idx_w_ann[int_i - self.count] and int_i % 2 == 1:
-                    self.ann_list.append(self.ax.annotate(txt, xy=((int_i - self.count)*fs, -y_lim / 2 + y_lim),color='black'))
+                    self.ann_list.append(self.ax.annotate(txt, xy=((int_i - self.count)*fs, -y_lim / 2 + y_lim),color='black',size=font_size))
                 else:
-                    self.ann_list.append(self.ax.annotate(txt, xy=((int_i - self.count)*fs, -y_lim / 2),color='black'))
+                    self.ann_list.append(self.ax.annotate(txt, xy=((int_i - self.count)*fs, -y_lim / 2),color='black',size=font_size))
 
         if print_graph == 1:
             file = QFileDialog.getSaveFileName(self, 'Save File')
@@ -509,12 +541,10 @@ class MainPage(QMainWindow):
         if self.init == 1:
             fs = self.edf_info.fs
             if cbox.isChecked():
-                self.filteredData = np.zeros(self.montage.shape)
                 self.filter_checked = 1
-                self.movePlot(1,0,self.ylim[1],0)
             else:
                 self.filter_checked = 0
-                self.movePlot(1,0,self.ylim[0],0)
+            self.callmovePlot(1,0)
         elif self.init == 0 and cbox.isChecked():
             cbox.setChecked(False)
 
@@ -523,7 +553,12 @@ class MainPage(QMainWindow):
         Does filtering for one window of size window_size
         """
         fs = self.edf_info.fs
-        filt_window_size = filterData(self.montage[:,self.count * fs:(self.count + self.window_size)*fs],fs,self.fi)
+        if self.plot_bipolar == 0:
+            self.filteredData = np.zeros(self.montage.shape)
+            filt_window_size = filterData(self.montage[:,self.count * fs:(self.count + self.window_size)*fs],fs,self.fi)
+        else:
+            self.filteredData = np.zeros(self.montage_bipolar.shape)
+            filt_window_size = filterData(self.montage_bipolar[:,self.count * fs:(self.count + self.window_size)*fs],fs,self.fi)
         filt_window_size = np.array(filt_window_size)
         self.filteredData[:,self.count * fs:(self.count + self.window_size)*fs] = filt_window_size
 

@@ -1,5 +1,4 @@
 import numpy as np
-import pyedflib
 from preprocessing.eeg_info import EegInfo
 
 
@@ -82,6 +81,7 @@ class EdfMontage():
         returns:
             montage_data - a EdfMontage object with the correctly ordered channels
         """
+        # print(self.eeg_info.labels2chns)
         mont = _check_montage(list(self.eeg_info.labels2chns.keys())[0])
         if mont == 1:
             self.nchns = 19
@@ -111,3 +111,19 @@ class EdfMontage():
             if edf_chn != -1:
                 montage_ar[chn,:] = data[edf_chn,:]
         return montage_ar
+
+    def get_bipolar_from_ar(self,ar_data):
+        montage_bip = np.zeros((18,ar_data.shape[1]))
+        bip_idx = np.zeros((18,2))
+        for k in range(18):
+            str0 = self.labels[k].split('-')[0]
+            str1 = self.labels[k].split('-')[1]
+            idx0 = np.argmax(np.char.find(self.labelsAR,str0))
+            idx1 = np.argmax(np.char.find(self.labelsAR,str1))
+            bip_idx[k,0] = idx0
+            bip_idx[k,1] = idx1
+        for k in range(18):
+            idx0 = bip_idx[k,0]
+            idx1 = bip_idx[k,1]
+            montage_bip[k,:] = ar_data[int(idx0),:] - ar_data[int(idx1),:]
+        return montage_bip

@@ -1,9 +1,9 @@
 import numpy as np
 import preprocessing.dsp as dsp
-from models.basemodel import BaseModel
 import torch
 import scipy.signal
 from copy import deepcopy
+from models.basemodel import BaseModel
 
 def checkAnnotations(t_start,window_size,edf_info):
     """
