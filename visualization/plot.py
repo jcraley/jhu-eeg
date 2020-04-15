@@ -22,6 +22,7 @@ import torch
 from preprocessing.edf_loader import *
 from montages import *
 from plot_utils import *
+import pyedflib
 
 from preds_info import PredsInfo
 from filter_info import FilterInfo
@@ -126,6 +127,11 @@ class MainPage(QMainWindow):
         buttonPrint.clicked.connect(self.print_graph)
         buttonPrint.setToolTip("Click to print a copy of the graph")
         grid_lt.addWidget(buttonPrint,11,0)
+
+        #buttonSaveEDF = QPushButton("Save to .edf",self)
+        #buttonSaveEDF.clicked.connect(self.save_to_edf)
+        #buttonSaveEDF.setToolTip("Click to save current signals to an .edf file")
+        #grid_lt.addWidget(buttonSaveEDF,12,0)
 
 
         # Right side of the screen
@@ -285,6 +291,28 @@ class MainPage(QMainWindow):
         self.plot_bipolar = not(self.plot_bipolar)
         self.callmovePlot(0,0)
 
+    def save_to_edf(self):
+        """
+        Function to save current data to .edf file
+        """
+        if self.init == 1:
+            if self.filter_checked == 1:
+                if self.plot_bipolar == 1:
+                    dataToSave = filterData(self.montage_bipolar, self.edf_info.fs, self.fi)
+                else:
+                    dataToSave = filterData(self.montage, self.edf_info.fs, self.fi)
+            else:
+                if self.plot_bipolar == 1:
+                    dataToSave = self.montage_bipolar
+                else:
+                    dataToSave = self.montage
+            file = QFileDialog.getSaveFileName(self, 'Save File')
+            nchns = dataToSave.shape[0]
+            savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns)
+            savedEDF.blockWritePhysicalSamples(dataToSave[1,:])
+            ann = self.edf_info.annotations
+            savedEDF.writeAnnotation(ann[1][0], 1, ann[2][0])
+            savedEDF.close()
 
     def load_data(self):
         """
@@ -309,7 +337,6 @@ class MainPage(QMainWindow):
                 return
             self.edf_info.annotations = np.array(self.edf_info.annotations)
 
-            self.initGraph()
 
             self.data = loader.load_buffers(self.edf_info)
             self.data = np.array(self.data)
@@ -330,9 +357,13 @@ class MainPage(QMainWindow):
                 self.edf_info.fs = fs
             except:
                 pass
+
+            self.initGraph()
+
             self.fi.fs = fs
             self.max_time = int(self.data.shape[1] / fs)
             self.slider.setMaximum(self.max_time - self.window_size)
+
 
             edf_montages = EdfMontage(self.edf_info)
             self.montage = edf_montages.reorder_data(self.data)
@@ -465,8 +496,8 @@ class MainPage(QMainWindow):
                 self.ax.set_yticklabels(self.labels, fontdict=None, minor=False)
                 if self.predicted == 1:
                     for k in range(self.window_size):
-                        if self.windowed_preds[self.count + k]:
-                            ax.axvspan(k * fs, (k + 1) * fs, color='paleturquoise', alpha=0.5)
+                        if self.preds[self.count + k]:
+                            self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
             else:
                 col = ['b','r','g','g','g','b','r','b','r','b','r','b','r','b',
                         'r','b','r','b','r','b']

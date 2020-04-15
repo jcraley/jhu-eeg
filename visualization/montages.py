@@ -7,6 +7,7 @@ def _check_label(label, label_list):
     Checks if a label is in the label list
     """
     # If the label is not present, try splitting it
+
     if label not in label_list:
         label_CAPS = {k.upper(): v for k, v in label_list.items()}
         if label in label_CAPS:
@@ -40,7 +41,21 @@ def _check_label(label, label_list):
     if label not in label_list:
         label = label[4:].split('-')[0].upper()
 
+
     # return label
+    if label in label_list:
+        return label_list[label]
+
+    # check for alternate labels
+    if label == "T7":
+        label = "T3"
+    if label == "P7":
+        label = "T5"
+    if label == "T8":
+        label = "T4"
+    if label == "P8":
+        label = "T6"
+
     if label in label_list:
         return label_list[label]
     else:
