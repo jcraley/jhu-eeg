@@ -343,7 +343,12 @@ class MainPage(QMainWindow):
                 labels = self.labelsAR
             else:
                 labels = self.labels
-            savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns)
+
+            # if predictions, save them as well
+            if self.predicted == 1:
+                savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns + 1)
+            else:
+                savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns)
 
             # Set fs and physical min/max
             fs = self.edf_info.fs
@@ -352,11 +357,18 @@ class MainPage(QMainWindow):
                 savedEDF.setPhysicalMinimum(i, np.min(dataToSave[i]))
                 savedEDF.setSamplefrequency(i, fs)
                 savedEDF.setLabel(i, labels[i + 1])
+            # if predictions, save them as well
+            if self.predicted == 1:
+                savedEDF.setPhysicalMaximum(nchns, 1)
+                savedEDF.setPhysicalMinimum(nchns, 0)
+                savedEDF.setSamplefrequency(nchns, 1)
+                savedEDF.setLabel(nchns, "PREDICTIONS")
+                temp = []
+                for i in range(nchns):
+                    temp.append(dataToSave[i])
+                temp.append(self.pi.preds)
+                dataToSave = temp
 
-            # Write samples
-            #for j in range(self.max_time):
-            #    for i in range(nchns):
-            #        savedEDF.writePhysicalSamples(dataToSave[i,j:j+fs])
             savedEDF.writeSamples(dataToSave)
 
             # write annotations
@@ -410,6 +422,7 @@ class MainPage(QMainWindow):
 
 
             self.data = loader.load_buffers(self.edf_info)
+            data_for_preds = self.data
             self.data = np.array(self.data)
             if self.data.ndim == 1:
                 data_temp = np.zeros((self.data.shape[0],self.data[0].shape[0]))
@@ -438,6 +451,7 @@ class MainPage(QMainWindow):
 
             edf_montages = EdfMontage(self.edf_info)
             self.montage = edf_montages.reorder_data(self.data)
+            self.predicted = edf_montages.get_predictions(data_for_preds, self.pi)
             if self.montage.shape[0] == 19:
                 self.montage_bipolar = edf_montages.get_bipolar_from_ar(self.montage)
                 self.buttonChgMont.show()
@@ -569,10 +583,7 @@ class MainPage(QMainWindow):
                 self.ax.set_ylim([-y_lim, y_lim*19])
                 self.ax.set_yticks(np.arange(0,20*y_lim,step=y_lim))
                 self.ax.set_yticklabels(self.labels, fontdict=None, minor=False)
-                #if self.predicted == 1:
-                #    for k in range(self.window_size):
-                #        if self.pi.preds[self.count + k]:
-                #            self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
+
             else:
                 col = ['b','r','g','g','g','b','r','b','r','b','r','b','r','b',
                         'r','b','r','b','r','b']

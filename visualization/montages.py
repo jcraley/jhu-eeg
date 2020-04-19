@@ -133,3 +133,19 @@ class EdfMontage():
             idx1 = bip_idx[k,1]
             montage_bip[k,:] = ar_data[int(idx0),:] - ar_data[int(idx1),:]
         return montage_bip
+
+    def get_predictions(self, data, pi):
+        """
+        Loads in predictions if they were previously saved.
+
+        params:
+            data - the edf data
+            pi - the prediction info object which will hold the predictions
+        returns:
+            1 if predictions are found, 0 otherwise
+        """
+        if "PREDICTIONS" in self.eeg_info.labels2chns:
+            pred_chn = self.eeg_info.labels2chns["PREDICTIONS"]
+            pi.preds = data[pred_chn]
+            return 1
+        return 0
