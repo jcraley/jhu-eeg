@@ -6,70 +6,61 @@ def _check_label(label, label_list):
     """
     Checks if a label is in the label list
     """
-    # If the label is not present, try splitting it
-
-    if label not in label_list:
-        label_CAPS = {k.upper(): v for k, v in label_list.items()}
-        if label in label_CAPS:
-            return label_CAPS[label]
-
-    labels_noEEG = {}
-    labels_noRef = {}
-    if label not in label_list:
-        for k,v in label_list.items():
+    label_CAPS = {k.upper(): v for k, v in label_list.items()}
+    ret = _check_label_helper(label, label_CAPS)
+    if ret == -1:
+        labels_noEEG = {}
+        labels_noRef = {}
+        for k,v in label_CAPS.items():
             loc = k.find("EEG ")
             if loc != -1:
                 k2 = k[loc+4:]
-                labels_noEEG[k2] = label_list[k]
-        if label in labels_noEEG:
-            return labels_noEEG[label]
+                labels_noEEG[k2] = label_CAPS[k]
+            else:
+                labels_noEEG[k] = label_CAPS[k]
+        ret = _check_label_helper(label, labels_noEEG)
+        if ret == -1:
+            for k,v in labels_noEEG.items():
+                loc = k.find("-REF")
+                if loc != -1:
+                    k2 = k[0:loc]
+                    labels_noRef[k2] = labels_noEEG[k]
+                else:
+                    labels_noRef[k] = labels_noEEG[k]
+            ret = _check_label_helper(label, labels_noRef)
+            if ret == -1:
+                label2 = ""
+                if label == "T7":
+                    label2 = "T3"
+                if label == "P7":
+                    label2 = "T5"
+                if label == "T8":
+                    label2 = "T4"
+                if label == "P8":
+                    label2 = "T6"
+                ret = _check_label_helper(label2, label_CAPS)
+                if ret == -1:
+                    ret = _check_label_helper(label2, labels_noEEG)
+                    if ret == -1:
+                        ret = _check_label_helper(label2, labels_noRef)
+    return ret
 
-        for k,v in labels_noEEG.items():
-            loc = k.find("-REF")
-            if loc != -1:
-                k2 = k[0:loc]
-                labels_noRef[k2] = labels_noEEG[k]
-
-        if label in labels_noRef:
-            return labels_noRef[label]
-
-        if label not in labels_noRef:
-            label_CAPS_noRef = {k.upper(): v for k, v in labels_noRef.items()}
-            if label in label_CAPS_noRef:
-                return label_CAPS_noRef[label]
-
-    if label not in label_list:
-        label = label[4:].split('-')[0].upper()
-
-
-    # return label
+def _check_label_helper(label, label_list):
     if label in label_list:
         return label_list[label]
+    return -1
 
-    # check for alternate labels
-    if label == "T7":
-        label = "T3"
-    if label == "P7":
-        label = "T5"
-    if label == "T8":
-        label = "T4"
-    if label == "P8":
-        label = "T6"
-
-    if label in label_list:
-        return label_list[label]
-    else:
-        return -1
-
-def _check_montage(label):
+def _check_montage(label, label_list):
     """
     Checks if we are in ref montage or normal montage
     returns:
         0 for normal, 1 for ref
     """
-    if label[len(label)-3:].upper() == "REF":
-        return 1
-    return 0
+    ret = 1
+    for i in range(len(label_list)):
+        if label.upper().find(label_list[i]) != -1:
+            ret = 0
+    return ret
 
 
 class EdfMontage():
@@ -97,7 +88,7 @@ class EdfMontage():
             montage_data - a EdfMontage object with the correctly ordered channels
         """
         # print(self.eeg_info.labels2chns)
-        mont = _check_montage(list(self.eeg_info.labels2chns.keys())[0])
+        mont = _check_montage(list(self.eeg_info.labels2chns.keys())[0],self.labels)
         if mont == 1:
             self.nchns = 19
             self.montage_data = self.ar(data)

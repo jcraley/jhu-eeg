@@ -83,55 +83,63 @@ class MainPage(QMainWindow):
         buttonLoadModel.setToolTip("Click to load model")
         grid_lt.addWidget(buttonLoadModel,4,0)
 
-        self.labelLoadModel= QLabel("No model loaded.",self)
+        self.labelLoadModel = QLabel("No model loaded.",self)
         grid_lt.addWidget(self.labelLoadModel,4,1)
+
+        buttonLoadPreds = QPushButton("Load predictions",self)
+        buttonLoadPreds.clicked.connect(self.loadPreds)
+        buttonLoadPreds.setToolTip("Click to load predictions")
+        grid_lt.addWidget(buttonLoadPreds,5,0)
+
+        self.labelLoadPreds = QLabel("No predictions loaded.", self)
+        grid_lt.addWidget(self.labelLoadPreds,5,1)
 
         buttonPredict = QPushButton("Predict",self)
         buttonPredict.clicked.connect(self.predict)
         buttonPredict.setToolTip("Click to run data through model")
-        grid_lt.addWidget(buttonPredict,5,1,1,1)
+        grid_lt.addWidget(buttonPredict,6,1,1,1)
 
         self.predLabel = QLabel("",self)
-        grid_lt.addWidget(self.predLabel,5,0)
+        grid_lt.addWidget(self.predLabel,6,0)
 
         test= QLabel("",self)
-        grid_lt.addWidget(test,6,0)
+        grid_lt.addWidget(test,7,0)
 
         labelAmp = QLabel("Change amplitude:",self)
-        grid_lt.addWidget(labelAmp,7,0)
+        grid_lt.addWidget(labelAmp,8,0)
 
         buttonAmpInc = QPushButton("+",self)
         buttonAmpInc.clicked.connect(self.incAmp)
         buttonAmpInc.setToolTip("Click to increase signal amplitude")
-        grid_lt.addWidget(buttonAmpInc,7,1)
+        grid_lt.addWidget(buttonAmpInc,8,1)
 
         buttonAmpDec = QPushButton("-",self)
         buttonAmpDec.clicked.connect(self.decAmp)
         buttonAmpDec.setToolTip("Click to decrease signal amplitude")
-        grid_lt.addWidget(buttonAmpDec,8,1)
+        grid_lt.addWidget(buttonAmpDec,9,1)
 
         labelWS = QLabel("Change window size:",self)
-        grid_lt.addWidget(labelWS,9,0)
+        grid_lt.addWidget(labelWS,10,0)
 
         buttonWSInc = QPushButton("+",self)
         buttonWSInc.clicked.connect(self.incWindow_size)
         buttonWSInc.setToolTip("Click to increase amount of seconds plotted")
-        grid_lt.addWidget(buttonWSInc,9,1)
+        grid_lt.addWidget(buttonWSInc,10,1)
 
         buttonWSDec = QPushButton("-",self)
         buttonWSDec.clicked.connect(self.decWindow_size)
         buttonWSDec.setToolTip("Click to decrease amount of seconds plotted")
-        grid_lt.addWidget(buttonWSDec,10,1)
+        grid_lt.addWidget(buttonWSDec,11,1)
 
         buttonPrint = QPushButton("Print",self)
         buttonPrint.clicked.connect(self.print_graph)
         buttonPrint.setToolTip("Click to print a copy of the graph")
-        grid_lt.addWidget(buttonPrint,11,0)
+        grid_lt.addWidget(buttonPrint,12,0)
 
-        #buttonSaveEDF = QPushButton("Save to .edf",self)
-        #buttonSaveEDF.clicked.connect(self.save_to_edf)
-        #buttonSaveEDF.setToolTip("Click to save current signals to an .edf file")
-        #grid_lt.addWidget(buttonSaveEDF,12,0)
+        buttonSaveEDF = QPushButton("Save to .edf",self)
+        buttonSaveEDF.clicked.connect(self.save_to_edf)
+        buttonSaveEDF.setToolTip("Click to save current signals to an .edf file")
+        grid_lt.addWidget(buttonSaveEDF,13,0)
 
 
         # Right side of the screen
@@ -235,9 +243,32 @@ class MainPage(QMainWindow):
         is loaded.
         """
         #self.init = 1 # set in load_data to prevent issues with slider
+        self.fi = FilterInfo() # holds data needed to filter
         self.filter_checked = 0 # whether or not filter checkbox is checked
         self.cbox_filter.setChecked(False)
-        self.ylim = [150,3] # reset scale of axis
+
+        # check if this file is already filtered
+        ann = self.edf_info.annotations
+        if len(ann[0]) > 0 and ann[2][0] == "filtered":
+            self.filter_checked = 1 # whether or not filter checkbox is checked
+            strFilt = ann[2][1].split("Hz")
+            strLP = strFilt[0][4:]
+            strHP = strFilt[1][5:]
+            strN = strFilt[2][4:]
+            if int(strLP):
+                self.fi.lp = int(strLP)
+            else:
+                self.fi.do_lp = 0
+            if int(strHP):
+                self.fi.hp = int(strHP)
+            else:
+                self.fi.do_hp = 0
+            if int(strN):
+                self.fi.notch = int(strN)
+            else:
+                self.fi.do_notch = 0
+
+        self.ylim = [150, 100]# [150,3] # reset scale of axis
         self.predicted = 0 # whether or not predictions have been made
         self.max_time = 0 # number of seconds in the recording
         self.window_size = 10 # number of seconds displayed at once
@@ -245,12 +276,12 @@ class MainPage(QMainWindow):
         self.ann_list = [] # list of annotations
         self.aspan_list = [] # list of lines on the axis from preds
         self.pi = PredsInfo() # holds data needed to predict
-        self.fi = FilterInfo() # holds data needed to filter
         self.ann_qlist.clear() # Clear annotations
         self.populateAnnDock() # Add annotations if they exist
         self.predLabel.setText("") # reset text of predictions
         self.labelLoadPtFile.setText("No data loaded.") # no data label reset
         self.labelLoadModel.setText("No model loaded.") # no data model reset
+        self.labelLoadPreds.setText("No predictions loaded.") # no preds reset
         self.buttonChgMont.hide()
         self.plot_bipolar = 0
 
@@ -308,10 +339,50 @@ class MainPage(QMainWindow):
                     dataToSave = self.montage
             file = QFileDialog.getSaveFileName(self, 'Save File')
             nchns = dataToSave.shape[0]
+            if nchns == 19:
+                labels = self.labelsAR
+            else:
+                labels = self.labels
             savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns)
-            savedEDF.blockWritePhysicalSamples(dataToSave[1,:])
+
+            # Set fs and physical min/max
+            fs = self.edf_info.fs
+            for i in range(nchns):
+                savedEDF.setPhysicalMaximum(i, np.max(dataToSave[i]))
+                savedEDF.setPhysicalMinimum(i, np.min(dataToSave[i]))
+                savedEDF.setSamplefrequency(i, fs)
+                savedEDF.setLabel(i, labels[i + 1])
+
+            # Write samples
+            #for j in range(self.max_time):
+            #    for i in range(nchns):
+            #        savedEDF.writePhysicalSamples(dataToSave[i,j:j+fs])
+            savedEDF.writeSamples(dataToSave)
+
+            # write annotations
             ann = self.edf_info.annotations
-            savedEDF.writeAnnotation(ann[1][0], 1, ann[2][0])
+            if len(ann[0]) > 0 and ann[2][0] == "filtered":
+                ann = np.delete(ann, 0, axis = 1)
+                ann = np.delete(ann, 0, axis = 1)
+            if self.filter_checked == 1:
+                ann = np.insert(ann, 0,[0.0,-1.0,"filtered"], axis=1)
+                strFilt = ""
+                if self.fi.do_lp == 1:
+                    strFilt += "LP: " + str(self.fi.lp) + "Hz"
+                else:
+                    strFilt += "LP: 0Hz"
+                if self.fi.do_hp == 1:
+                    strFilt += " HP: " + str(self.fi.hp) + "Hz"
+                else:
+                    strFilt += " HP: 0Hz"
+                if self.fi.do_notch == 1:
+                    strFilt += " N: " + str(self.fi.hp) + "Hz"
+                else:
+                    strFilt += " N: 0Hz"
+                ann = np.insert(ann, 1,[0.0,-1.0,strFilt], axis=1)
+            for i in range(len(ann[0])):
+                savedEDF.writeAnnotation(float(ann[0][i]), float((ann[1][i])), ann[2][i])
+
             savedEDF.close()
 
     def load_data(self):
@@ -376,6 +447,10 @@ class MainPage(QMainWindow):
 
             self.movePlot(1,0,self.ylim[0],0,0)
             self.init = 1
+            ann = self.edf_info.annotations
+            if len(ann[0]) > 0 and ann[2][0] == "filtered":
+                self.cbox_filter.setChecked(True)
+
 
     def rightPlot1s(self):
         self.callmovePlot(1,1)
@@ -393,14 +468,14 @@ class MainPage(QMainWindow):
         if self.init == 1:
             if self.ylim[0] > 50:
                 self.ylim[0] = self.ylim[0] - 15
-                self.ylim[1] = self.ylim[1] - 0.3
+                self.ylim[1] = self.ylim[1] - 10
                 self.callmovePlot(0,0)
 
     def decAmp(self):
         if self.init == 1:
             if self.ylim[0] < 250:
                 self.ylim[0] = self.ylim[0] + 15
-                self.ylim[1] = self.ylim[1] + 0.3
+                self.ylim[1] = self.ylim[1] + 10
                 self.callmovePlot(0,0)
 
     def incWindow_size(self):
@@ -494,10 +569,10 @@ class MainPage(QMainWindow):
                 self.ax.set_ylim([-y_lim, y_lim*19])
                 self.ax.set_yticks(np.arange(0,20*y_lim,step=y_lim))
                 self.ax.set_yticklabels(self.labels, fontdict=None, minor=False)
-                if self.predicted == 1:
-                    for k in range(self.window_size):
-                        if self.preds[self.count + k]:
-                            self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
+                #if self.predicted == 1:
+                #    for k in range(self.window_size):
+                #        if self.pi.preds[self.count + k]:
+                #            self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
             else:
                 col = ['b','r','g','g','g','b','r','b','r','b','r','b','r','b',
                         'r','b','r','b','r','b']
@@ -509,7 +584,7 @@ class MainPage(QMainWindow):
 
             if self.predicted == 1:
                 for k in range(self.window_size):
-                    if self.preds[self.count + k]:
+                    if self.pi.preds[self.count + k] > 0.5:
                         # ax.axvspan(k * fs, (k + 1) * fs, ymin=0,ymax=0.5,color='paleturquoise', alpha=0.5)
                         self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
 
@@ -528,8 +603,8 @@ class MainPage(QMainWindow):
 
         ann, idx_w_ann = checkAnnotations(self.count,self.window_size,self.edf_info)
         font_size = 10 - self.window_size / 5
-        if font_size < 6:
-            font_size = 6
+        if font_size < 7:
+            font_size = 7
         # Add in annotations
         if len(ann) != 0:
             ann = np.array(ann).T
@@ -575,6 +650,11 @@ class MainPage(QMainWindow):
                 self.filter_checked = 1
             else:
                 self.filter_checked = 0
+            # if data was already filtered it cannot be unfiltered
+            ann = self.edf_info.annotations
+            if len(ann[0]) > 0 and ann[2][0] == "filtered":
+                self.filter_checked = 1
+                cbox.setChecked(True)
             self.callmovePlot(1,0)
         elif self.init == 0 and cbox.isChecked():
             cbox.setChecked(False)
@@ -627,8 +707,10 @@ class MainPage(QMainWindow):
         """
         if self.init == 1:
             model_fn = QFileDialog.getOpenFileName(self, 'Open model')
+            if model_fn[0] == None:
+                return
             model_fn_len = len(model_fn[0])
-            if model_fn[0] == None or model_fn_len == 0:
+            if model_fn_len == 0:
                 return
             elif model_fn[0][model_fn_len-3:] != ".pt":
                 self.throwAlert('Please select a .pt file')
@@ -642,6 +724,32 @@ class MainPage(QMainWindow):
                 self.predLabel.setText("")
                 self.callmovePlot(0,0,0)
 
+    def loadPreds(self):
+        """
+        Loads predictions
+        """
+        if self.init == 1:
+            preds_fn = QFileDialog.getOpenFileName(self, 'Open predictions')
+            if preds_fn[0] == None:
+                return
+            preds_fn_len = len(preds_fn[0])
+            if preds_fn_len == 0:
+                return
+            elif preds_fn[0][preds_fn_len-3:] != ".pt":
+                self.throwAlert('Please select a .pt file')
+            else:
+                if len(preds_fn[0].split('/')[-1]) < 18:
+                    self.labelLoadPreds.setText(preds_fn[0].split('/')[-1])
+                else:
+                    self.labelLoadPreds.setText(preds_fn[0].split('/')[-1][0:15] + "...")
+                if self.pi.set_preds(preds_fn[0], self.max_time) == -1:
+                    self.throwAlert("Predictions are not the same amount of seconds as the .edf" +
+                                    "file you loaded or are the incorrect shape. Please check your file.")
+                else:
+                    self.predicted = 1
+                    self.predLabel.setText("Predictions plotted.")
+                    self.callmovePlot(0,0,0)
+
     def predict(self):
         """
         Take loaded model and data and compute predictions
@@ -649,11 +757,13 @@ class MainPage(QMainWindow):
         if self.init == 0:
             return
         if self.pi.ready:
-            self.preds = predict(self.pi.data,self.pi.model,self)
+            preds = predict(self.pi.data,self.pi.model,self)
             if self.predicted == 1:
-                if self.max_time != self.preds.shape[0]:
-                    self.throwAlert('Predictions are not the same amount of seconds as the .edf file you loaded. Please check your file.')
+                if self.max_time != preds.shape[0]:
+                    self.throwAlert("Predictions are not the same amount of seconds as the .edf" +
+                                    "file you loaded. Please check your file.")
                 else:
+                    self.pi.preds = preds
                     self.predLabel.setText("Predictions plotted.")
                     self.callmovePlot(0,0,0)
         elif not self.pi.data_loaded:

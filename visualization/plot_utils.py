@@ -88,7 +88,7 @@ def filterData(data, fs, fi):
         # HPF
         if hp > 0:
             filt_bufs[chn] = dsp.applyHighPass(filt_bufs[chn], fs, hp)
-        filt_bufs[chn] = dsp.scale(filt_bufs[chn])
+        # filt_bufs[chn] = dsp.scale(filt_bufs[chn])
 
     return filt_bufs
 

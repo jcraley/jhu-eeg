@@ -8,4 +8,4 @@ class FilterInfo():
         self.notch = 60
         self.do_lp = 1
         self.do_hp = 1
-        self.do_notch = 1
+        self.do_notch = 0
