@@ -35,6 +35,7 @@ class PredsInfo():
 
         returns:
             0 for sucess, -1 if predictions are not the right length
+            predictions must be for every second of the edf file
         """
         self.preds = torch.load(preds_fn)
         self.preds = self.preds.detach()
@@ -49,8 +50,7 @@ class PredsInfo():
                 self.preds = self.preds.T
             if max_time == self.preds.shape[0]:
                 if self.preds.shape[1] == 2:
-                    temp = np.zeros((self.preds.shape[0],1))
-                    temp = self.preds[:,0] <= 0.5
+                    temp = self.preds[:,1]
                     self.preds_loaded = 1
                     self.preds = temp
                     return 0

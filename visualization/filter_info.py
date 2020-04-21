@@ -9,3 +9,4 @@ class FilterInfo():
         self.do_lp = 1
         self.do_hp = 1
         self.do_notch = 0
+        self.filter_canceled = 0

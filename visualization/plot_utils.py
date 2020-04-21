@@ -4,6 +4,8 @@ import torch
 import scipy.signal
 from copy import deepcopy
 from models.basemodel import BaseModel
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QProgressDialog
 
 def checkAnnotations(t_start,window_size,edf_info):
     """
@@ -58,6 +60,7 @@ def checkAnnotations(t_start,window_size,edf_info):
 def filterData(data, fs, fi):
     """
     Calls dsp.prefilter to filter the data
+    Progress bar is created if the process is estimated to take > 4s
 
     inputs:
         data - the data to filter
@@ -78,16 +81,35 @@ def filterData(data, fs, fi):
 
     nchns = len(data)
     filt_bufs = deepcopy(data)
+    progress = QProgressDialog("Filtering...", "Cancel", 0, nchns * 3)
+    progress.setWindowModality(Qt.WindowModal)
+
+    i = 0
     for chn in range(nchns):
         # Notch
         if fi.notch > 0:
             filt_bufs[chn] = applyNotch(filt_bufs[chn], fs,fi.notch)
+        i += 1
+        progress.setValue(i)
+        if progress.wasCanceled():
+            fi.filter_canceled = 1
+            break
         # LPF
         if lp > 0:
             filt_bufs[chn] = dsp.applyLowPass(filt_bufs[chn], fs, lp)
+        i += 1
+        progress.setValue(i)
+        if progress.wasCanceled():
+            fi.filter_canceled = 1
+            break
         # HPF
         if hp > 0:
             filt_bufs[chn] = dsp.applyHighPass(filt_bufs[chn], fs, hp)
+        i += 1
+        progress.setValue(i)
+        if progress.wasCanceled():
+            fi.filter_canceled = 1
+            break
         # filt_bufs[chn] = dsp.scale(filt_bufs[chn])
 
     return filt_bufs
@@ -115,6 +137,14 @@ def predict(data,model,parent):
     return preds
 
 def getTime(count):
+    """
+    Creates a string for the time in seconds.
+
+    inputs:
+        count - the current value of the plot in seconds
+    returns:
+        t_str - a string of the seconds in the form hrs:min:sec
+    """
     t_str = ""
     t = count
     hrs = 0
@@ -141,7 +171,7 @@ def getTime(count):
 
 
 def applyNotch(x, fs, fc=60, Q=20.0):
-    """Apply a notch filter at 60 Hz
+    """Apply a notch filter at fc Hz
     """
     w60Hz = fc / (fs / 2)
     b, a = scipy.signal.iirnotch(w60Hz, Q)

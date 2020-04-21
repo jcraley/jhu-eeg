@@ -86,9 +86,11 @@ class EdfMontage():
 
         returns:
             montage_data - a EdfMontage object with the correctly ordered channels
+            idx_0 - the index of the first channel to get the fs in the main window
         """
         # print(self.eeg_info.labels2chns)
         mont = _check_montage(list(self.eeg_info.labels2chns.keys())[0],self.labels)
+        idx_0 = 0
         if mont == 1:
             self.nchns = 19
             self.montage_data = self.ar(data)
@@ -99,7 +101,8 @@ class EdfMontage():
                 edf_chn = _check_label(self.labels[chn],self.eeg_info.labels2chns)
                 if edf_chn != -1:
                     self.montage_data[chn,:] = data[edf_chn,:]
-        return self.montage_data
+                    idx_0 = edf_chn
+        return self.montage_data, idx_0
 
     def ar(self, data):
         """
@@ -119,6 +122,9 @@ class EdfMontage():
         return montage_ar
 
     def get_bipolar_from_ar(self,ar_data):
+        """
+        Produces bipolar data from average reference
+        """
         montage_bip = np.zeros((18,ar_data.shape[1]))
         bip_idx = np.zeros((18,2))
         for k in range(18):

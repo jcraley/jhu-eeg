@@ -107,7 +107,8 @@ class FilterOptions(QWidget):
                 self.data.lp = self.btnGetLP.value()
                 self.data.hp = self.btnGetHP.value()
         if self.btnGetNotch.value() > 0 and self.btnGetNotch.value() < self.data.fs / 2:
-            self.data.notch = self.btnGetNotch.value()
+            if self.btnGetNotch.value() < self.data.lp and self.btnGetNotch.value() > self.data.hp:
+                self.data.notch = self.btnGetNotch.value()
         self.parent.callmovePlot(0,0,0)
         self.closeWindow()
 

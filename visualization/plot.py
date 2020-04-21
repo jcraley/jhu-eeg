@@ -19,6 +19,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import time
 
 from preprocessing.edf_loader import *
 from montages import *
@@ -72,30 +73,6 @@ class MainPage(QMainWindow):
         test0= QLabel("",self)
         grid_lt.addWidget(test0,2,0)
 
-        """buttonLoadPtFile = QPushButton("Load preprocessed data",self)
-        buttonLoadPtFile.clicked.connect(self.loadPtData)
-        buttonLoadPtFile.setToolTip("Click to load preprocessed data (as a torch tensor)")
-        grid_lt.addWidget(buttonLoadPtFile,3,0)
-
-        self.labelLoadPtFile = QLabel("No data loaded.",self)
-        grid_lt.addWidget(self.labelLoadPtFile,3,1)
-
-        buttonLoadModel = QPushButton("Load model",self)
-        buttonLoadModel.clicked.connect(self.loadModel)
-        buttonLoadModel.setToolTip("Click to load model")
-        grid_lt.addWidget(buttonLoadModel,4,0)
-
-        self.labelLoadModel = QLabel("No model loaded.",self)
-        grid_lt.addWidget(self.labelLoadModel,4,1)
-
-        buttonLoadPreds = QPushButton("Load predictions",self)
-        buttonLoadPreds.clicked.connect(self.loadPreds)
-        buttonLoadPreds.setToolTip("Click to load predictions")
-        grid_lt.addWidget(buttonLoadPreds,5,0)
-
-        self.labelLoadPreds = QLabel("No predictions loaded.", self)
-        grid_lt.addWidget(self.labelLoadPreds,5,1)"""
-
         buttonPredict = QPushButton("Load model / predictions",self)
         buttonPredict.clicked.connect(self.predict)
         buttonPredict.setToolTip("Click to run data through model")
@@ -104,44 +81,59 @@ class MainPage(QMainWindow):
         self.predLabel = QLabel("",self)
         grid_lt.addWidget(self.predLabel,5,1,1,1)
 
+        threshLbl = QLabel("Change threshold of prediction:",self)
+        grid_lt.addWidget(threshLbl,6,0)
+
+        self.threshLblVal = QLabel("(threshold = 0.5)",self)
+        grid_lt.addWidget(self.threshLblVal,6,1)
+
+        self.threshSlider = QSlider(Qt.Horizontal,self)
+        self.threshSlider.setMinimum(0)
+        self.threshSlider.setMaximum(100)
+        self.threshSlider.setValue(50)
+        self.threshSlider.setTickPosition(QSlider.TicksBelow)
+        self.threshSlider.setTickInterval(5)
+        self.threshSlider.sliderReleased.connect(self.changeThreshSlider)
+        grid_lt.addWidget(self.threshSlider, 7,0,1,2)
+
         test= QLabel("",self)
-        grid_lt.addWidget(test,7,0)
+        grid_lt.addWidget(test,8,0)
 
         labelAmp = QLabel("Change amplitude:",self)
-        grid_lt.addWidget(labelAmp,8,0)
+        grid_lt.addWidget(labelAmp,9,0)
 
         buttonAmpInc = QPushButton("+",self)
         buttonAmpInc.clicked.connect(self.incAmp)
         buttonAmpInc.setToolTip("Click to increase signal amplitude")
-        grid_lt.addWidget(buttonAmpInc,8,1)
+        grid_lt.addWidget(buttonAmpInc,9,1)
 
         buttonAmpDec = QPushButton("-",self)
         buttonAmpDec.clicked.connect(self.decAmp)
         buttonAmpDec.setToolTip("Click to decrease signal amplitude")
-        grid_lt.addWidget(buttonAmpDec,9,1)
+        grid_lt.addWidget(buttonAmpDec,10,1)
 
         labelWS = QLabel("Change window size:",self)
-        grid_lt.addWidget(labelWS,10,0)
+        grid_lt.addWidget(labelWS,11,0)
 
         buttonWSInc = QPushButton("+",self)
         buttonWSInc.clicked.connect(self.incWindow_size)
         buttonWSInc.setToolTip("Click to increase amount of seconds plotted")
-        grid_lt.addWidget(buttonWSInc,10,1)
+        grid_lt.addWidget(buttonWSInc,11,1)
 
         buttonWSDec = QPushButton("-",self)
         buttonWSDec.clicked.connect(self.decWindow_size)
         buttonWSDec.setToolTip("Click to decrease amount of seconds plotted")
-        grid_lt.addWidget(buttonWSDec,11,1)
+        grid_lt.addWidget(buttonWSDec,12,1)
 
         buttonPrint = QPushButton("Print",self)
         buttonPrint.clicked.connect(self.print_graph)
         buttonPrint.setToolTip("Click to print a copy of the graph")
-        grid_lt.addWidget(buttonPrint,12,0)
+        grid_lt.addWidget(buttonPrint,13,0)
 
         buttonSaveEDF = QPushButton("Save to .edf",self)
         buttonSaveEDF.clicked.connect(self.save_to_edf)
         buttonSaveEDF.setToolTip("Click to save current signals to an .edf file")
-        grid_lt.addWidget(buttonSaveEDF,13,0)
+        grid_lt.addWidget(buttonSaveEDF,14,0)
 
 
         # Right side of the screen
@@ -284,11 +276,9 @@ class MainPage(QMainWindow):
         self.ann_qlist.clear() # Clear annotations
         self.populateAnnDock() # Add annotations if they exist
         self.predLabel.setText("") # reset text of predictions
-        # self.labelLoadPtFile.setText("No data loaded.") # no data label reset
-        # self.labelLoadModel.setText("No model loaded.") # no data model reset
-        # self.labelLoadPreds.setText("No predictions loaded.") # no preds reset
         self.buttonChgMont.hide()
         self.plot_bipolar = 0
+        self.thresh = 0.5 # threshold for plotting
 
     def ann_clicked(self,item):
         """
@@ -320,6 +310,16 @@ class MainPage(QMainWindow):
                 self.count = self.max_time - self.window_size
             self.callmovePlot(0,1)
 
+    def changeThreshSlider(self):
+        """
+        Updates the value of the threshold when the slider is changed.
+        """
+        if self.init == 1:
+            val = self.threshSlider.value()
+            self.thresh = val / 100
+            self.threshLblVal.setText("(threshold = " + str(self.thresh) + ")")
+            self.callmovePlot(0,0)
+
     def chgMont(self):
         """
         Funtion to change between bipolar and average reference.
@@ -337,6 +337,9 @@ class MainPage(QMainWindow):
                     dataToSave = filterData(self.montage_bipolar, self.edf_info.fs, self.fi)
                 else:
                     dataToSave = filterData(self.montage, self.edf_info.fs, self.fi)
+                if self.fi.filter_canceled == 1:
+                    self.fi.filter_canceled = 0
+                    return
             else:
                 if self.plot_bipolar == 1:
                     dataToSave = self.montage_bipolar
@@ -388,18 +391,9 @@ class MainPage(QMainWindow):
                 else:
                     ann = np.insert(ann, 0,[0.0,-1.0,"filtered"], axis=1)
                 strFilt = ""
-                if self.fi.do_lp == 1:
-                    strFilt += "LP: " + str(self.fi.lp) + "Hz"
-                else:
-                    strFilt += "LP: 0Hz"
-                if self.fi.do_hp == 1:
-                    strFilt += " HP: " + str(self.fi.hp) + "Hz"
-                else:
-                    strFilt += " HP: 0Hz"
-                if self.fi.do_notch == 1:
-                    strFilt += " N: " + str(self.fi.hp) + "Hz"
-                else:
-                    strFilt += " N: 0Hz"
+                strFilt += "LP: " + str(self.fi.do_lp * self.fi.lp) + "Hz"
+                strFilt += " HP: " + str(self.fi.do_hp * self.fi.hp) + "Hz"
+                strFilt += " N: " + str(self.fi.do_notch * self.fi.hp) + "Hz"
                 ann = np.insert(ann, 1,[0.0,-1.0,strFilt], axis=1)
             for i in range(len(ann[0])):
                 savedEDF.writeAnnotation(float(ann[0][i]), float((ann[1][i])), ann[2][i])
@@ -415,10 +409,10 @@ class MainPage(QMainWindow):
         """
         name = QFileDialog.getOpenFileName(self, 'Open File')
 
-        name_len = len(name[0])
-        if name[0] == None or name_len == 0:
+        if name[0] == None or len(name[0]) == 0:
             return
-        elif name[0][name_len-4:] != ".edf":
+        name_len = len(name[0])
+        if name[0][name_len-4:] != ".edf":
             self.throwAlert('Please select an .edf file')
         else:
             loader = EdfLoader()
@@ -443,9 +437,11 @@ class MainPage(QMainWindow):
                 self.data = data_temp
 
             self.data = np.array(self.data)
+            edf_montages = EdfMontage(self.edf_info)
+            self.montage, fs_idx = edf_montages.reorder_data(self.data)
             fs = self.edf_info.fs
             try:
-                fs = fs[0]
+                fs = fs[fs_idx]
                 self.edf_info.fs = fs
             except:
                 pass
@@ -455,10 +451,8 @@ class MainPage(QMainWindow):
             self.fi.fs = fs
             self.max_time = int(self.data.shape[1] / fs)
             self.slider.setMaximum(self.max_time - self.window_size)
+            self.threshSlider.setValue(self.thresh * 100)
 
-
-            edf_montages = EdfMontage(self.edf_info)
-            self.montage = edf_montages.reorder_data(self.data)
             self.predicted = edf_montages.get_predictions(data_for_preds, self.pi)
 
             if self.predicted == 1:
@@ -474,10 +468,7 @@ class MainPage(QMainWindow):
             self.m.fig.clf()
             self.ax = self.m.fig.add_subplot(self.m.gs[0])
 
-            if self.filter_checked == 1:
-                self.movePlot(1,0,self.ylim[1],0,0)
-            else:
-                self.movePlot(1,0,self.ylim[0],0,0)
+            self.callmovePlot(1,0)
             self.init = 1
             ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
@@ -531,8 +522,8 @@ class MainPage(QMainWindow):
             num,ok = QInputDialog.getInt(self,"integer input","enter a number",
                                             0,0,self.max_time - self.window_size)
             if ok:
-                self.count = num + 1
-                self.callmovePlot(0,1)
+                self.count = num
+                self.callmovePlot(0,0)
 
     def print_graph(self):
         self.callmovePlot(0,0,1)
@@ -567,11 +558,7 @@ class MainPage(QMainWindow):
             aspan.remove()
         self.aspan_list[:] = []
 
-        #self.m.fig.cla()
-
         fs = self.edf_info.fs
-
-        # self.ax = self.m.fig.add_subplot(self.m.gs[0])
 
         if right == 0 and self.count - num_move >= 0:
             self.count = self.count - num_move
@@ -588,6 +575,8 @@ class MainPage(QMainWindow):
             plotData = self.montage
         else:
             plotData = self.montage_bipolar
+
+        plotData[np.abs(plotData) > 2 * y_lim] = 0 # clip amplitude
 
         for i in range(plotData.shape[0]):
             if plotData.shape[0] == 18:
@@ -613,7 +602,7 @@ class MainPage(QMainWindow):
 
             if self.predicted == 1:
                 for k in range(self.window_size):
-                    if self.pi.preds_to_plot[self.count + k] > 0.5:
+                    if self.pi.preds_to_plot[self.count + k] > self.thresh:
                         # ax.axvspan(k * fs, (k + 1) * fs, ymin=0,ymax=0.5,color='paleturquoise', alpha=0.5)
                         self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
 
@@ -708,99 +697,19 @@ class MainPage(QMainWindow):
             self.filter_ops = FilterOptions(self.fi,self)
             self.filter_ops.show()
 
-
-    """def loadPtData(self):
-        # Load data for prediction
-        if self.init == 1:
-            ptfile_fn = QFileDialog.getOpenFileName(self, 'Open torch file')
-            ptfile_len = len(ptfile_fn[0])
-            if ptfile_fn[0] == None or ptfile_len == 0:
-                return
-            elif ptfile_fn[0][ptfile_len-3:] != ".pt":
-                self.throwAlert('Please select a .pt file')
-            else:
-                if len(ptfile_fn[0].split('/')[-1]) < 18:
-                    self.labelLoadPtFile.setText(ptfile_fn[0].split('/')[-1])
-                else:
-                    self.labelLoadPtFile.setText(ptfile_fn[0].split('/')[-1][0:15] + "...")
-                self.pi.set_data(ptfile_fn[0])
-                self.predicted = 0
-                self.predLabel.setText("")
-                self.callmovePlot(0,0,0)"""
-
-    """def loadModel(self):
-        # Load model for prediction
-        if self.init == 1:
-            model_fn = QFileDialog.getOpenFileName(self, 'Open model')
-            if model_fn[0] == None:
-                return
-            model_fn_len = len(model_fn[0])
-            if model_fn_len == 0:
-                return
-            elif model_fn[0][model_fn_len-3:] != ".pt":
-                self.throwAlert('Please select a .pt file')
-            else:
-                if len(model_fn[0].split('/')[-1]) < 18:
-                    self.labelLoadModel.setText(model_fn[0].split('/')[-1])
-                else:
-                    self.labelLoadModel.setText(model_fn[0].split('/')[-1][0:15] + "...")
-                self.pi.set_model(model_fn[0])
-                self.predicted = 0
-                self.predLabel.setText("")
-                self.callmovePlot(0,0,0)"""
-
-    """def loadPreds(self):
-        # Loads predictions
-        if self.init == 1:
-            preds_fn = QFileDialog.getOpenFileName(self, 'Open predictions')
-            if preds_fn[0] == None:
-                return
-            preds_fn_len = len(preds_fn[0])
-            if preds_fn_len == 0:
-                return
-            elif preds_fn[0][preds_fn_len-3:] != ".pt":
-                self.throwAlert('Please select a .pt file')
-            else:
-                if len(preds_fn[0].split('/')[-1]) < 18:
-                    self.labelLoadPreds.setText(preds_fn[0].split('/')[-1])
-                else:
-                    self.labelLoadPreds.setText(preds_fn[0].split('/')[-1][0:15] + "...")
-                if self.pi.set_preds(preds_fn[0], self.max_time) == -1:
-                    self.throwAlert("Predictions are not the same amount of seconds as the .edf" +
-                                    "file you loaded or are the incorrect shape. Please check your file.")
-                else:
-                    self.predicted = 1
-                    self.predLabel.setText("Predictions plotted.")
-                    self.callmovePlot(0,0,0)"""
-
     def predict(self):
         """
         Take loaded model and data and compute predictions
         """
-        if self.init == 0:
-            return
-        ### preds window code
         if self.init == 1:
             self.preds_win_open = 1
             self.pred_ops = PredictionOptions(self.pi,self)
             self.pred_ops.show()
-        ### -----------
-        """if self.pi.ready:
-            preds = predict(self.pi.data,self.pi.model,self)
-            if self.predicted == 1:
-                if self.max_time != preds.shape[0]:
-                    self.throwAlert("Predictions are not the same amount of seconds as the .edf" +
-                                    "file you loaded. Please check your file.")
-                else:
-                    self.pi.preds = preds
-                    self.predLabel.setText("Predictions plotted.")
-                    self.callmovePlot(0,0,0)
-        elif not self.pi.data_loaded:
-            self.throwAlert('Please load data')
-        else:
-            self.throwAlert('Please load a model')"""
 
     def throwAlert(self, msg):
+        """
+        Throws an alert to the user.
+        """
         alert = QMessageBox()
         alert.setText(msg)
         alert.setIcon(QMessageBox.Information)
