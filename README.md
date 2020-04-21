@@ -26,3 +26,7 @@ You can then run the visualizer from the main folder using
 If you get the error "ModuleNotFoundError: No module named 'preprocessing'
 this is likely a path issue with python, and can be fixed by doing
     ```export PYTHONPATH=$(pwd)```
+    
+EDF files:
+-----
+Average reference and longitudinal bipolar montages with the typical channel naming conventions are supported. Other channels in the edf file will not be plotted. 
