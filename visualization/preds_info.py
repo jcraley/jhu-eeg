@@ -9,6 +9,7 @@ class PredsInfo():
         self.model = []
         self.data = []
         self.preds = []
+        self.preds_to_plot = []
         self.model_fn = ""
         self.data_fn = ""
         self.preds_fn = ""

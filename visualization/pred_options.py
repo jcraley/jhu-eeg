@@ -177,11 +177,14 @@ class PredictionOptions(QWidget):
         Take loaded model and data and compute predictions
         """
         if self.data.plot_preds_preds == 0 and self.data.plot_model_preds == 0:
+            self.parent.predicted = 0
             self.closeWindow()
             self.parent.throwAlert("You have not chosen to plot any predictions.")
+            self.parent.callmovePlot(0,0,0)
         elif self.data.plot_preds_preds:
             if len(self.data.preds) > 0:
                 self.parent.predicted = 1
+                self.data.preds_to_plot = self.data.preds
                 self.parent.predLabel.setText("Predictions plotted.")
                 self.parent.callmovePlot(0,0,0)
                 self.closeWindow()
@@ -195,7 +198,7 @@ class PredictionOptions(QWidget):
                         self.parent.throwAlert("Predictions are not the same amount of seconds as the .edf " +
                                         "file you loaded. Please check your file.")
                     else:
-                        self.data.preds = preds
+                        self.data.preds_to_plot = preds
                         self.parent.predLabel.setText("Predictions plotted.")
                         self.parent.callmovePlot(0,0,0)
                         self.closeWindow()

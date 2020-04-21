@@ -147,5 +147,7 @@ class EdfMontage():
         if "PREDICTIONS" in self.eeg_info.labels2chns:
             pred_chn = self.eeg_info.labels2chns["PREDICTIONS"]
             pi.preds = data[pred_chn]
+            pi.preds_to_plot = pi.preds
+            pi.preds_loaded = 1
             return 1
         return 0

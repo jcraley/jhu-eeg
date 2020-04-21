@@ -371,7 +371,7 @@ class MainPage(QMainWindow):
                 temp = []
                 for i in range(nchns):
                     temp.append(dataToSave[i])
-                temp.append(self.pi.preds)
+                temp.append(self.pi.preds_to_plot)
                 dataToSave = temp
 
             savedEDF.writeSamples(dataToSave)
@@ -474,16 +474,14 @@ class MainPage(QMainWindow):
             self.m.fig.clf()
             self.ax = self.m.fig.add_subplot(self.m.gs[0])
 
-            ann = self.edf_info.annotations
-            if len(ann[0]) > 0 and ann[2][0] == "filtered":
-                self.cbox_filter.setChecked(True)
-                self.filtered = 1
-
             if self.filter_checked == 1:
                 self.movePlot(1,0,self.ylim[1],0,0)
             else:
                 self.movePlot(1,0,self.ylim[0],0,0)
             self.init = 1
+            ann = self.edf_info.annotations
+            if len(ann[0]) > 0 and ann[2][0] == "filtered":
+                 self.cbox_filter.setChecked(True) # must be set after init = 1
 
 
     def rightPlot1s(self):
@@ -615,7 +613,7 @@ class MainPage(QMainWindow):
 
             if self.predicted == 1:
                 for k in range(self.window_size):
-                    if self.pi.preds[self.count + k] > 0.5:
+                    if self.pi.preds_to_plot[self.count + k] > 0.5:
                         # ax.axvspan(k * fs, (k + 1) * fs, ymin=0,ymax=0.5,color='paleturquoise', alpha=0.5)
                         self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
 
