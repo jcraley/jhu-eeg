@@ -5,7 +5,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog,QMenu,
                                 QVBoxLayout,QSizePolicy, QMessageBox, QWidget,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
-                                QSlider, QGridLayout, QDockWidget, QListWidget)
+                                QSlider, QGridLayout, QDockWidget, QListWidget,
+                                QStatusBar)
 from PyQt5.QtGui import QIcon
 import matplotlib
 matplotlib.use("Qt5Agg")
@@ -25,6 +26,7 @@ from plot_utils import *
 import pyedflib
 
 from preds_info import PredsInfo
+from pred_options import PredictionOptions
 from filter_info import FilterInfo
 from filter_options import FilterOptions
 
@@ -70,7 +72,7 @@ class MainPage(QMainWindow):
         test0= QLabel("",self)
         grid_lt.addWidget(test0,2,0)
 
-        buttonLoadPtFile = QPushButton("Load preprocessed data",self)
+        """buttonLoadPtFile = QPushButton("Load preprocessed data",self)
         buttonLoadPtFile.clicked.connect(self.loadPtData)
         buttonLoadPtFile.setToolTip("Click to load preprocessed data (as a torch tensor)")
         grid_lt.addWidget(buttonLoadPtFile,3,0)
@@ -92,15 +94,15 @@ class MainPage(QMainWindow):
         grid_lt.addWidget(buttonLoadPreds,5,0)
 
         self.labelLoadPreds = QLabel("No predictions loaded.", self)
-        grid_lt.addWidget(self.labelLoadPreds,5,1)
+        grid_lt.addWidget(self.labelLoadPreds,5,1)"""
 
-        buttonPredict = QPushButton("Predict",self)
+        buttonPredict = QPushButton("Load model / predictions",self)
         buttonPredict.clicked.connect(self.predict)
         buttonPredict.setToolTip("Click to run data through model")
-        grid_lt.addWidget(buttonPredict,6,1,1,1)
+        grid_lt.addWidget(buttonPredict,5,0,1,1)
 
         self.predLabel = QLabel("",self)
-        grid_lt.addWidget(self.predLabel,6,0)
+        grid_lt.addWidget(self.predLabel,5,1,1,1)
 
         test= QLabel("",self)
         grid_lt.addWidget(test,7,0)
@@ -212,9 +214,10 @@ class MainPage(QMainWindow):
         self.init = 0 # if any data has been loaded in yet
         self.window_size = 10 # number of seconds to display at a time
         self.filter_checked = 0 # whether or not to plot filtered data
-        self.ylim = [150,3] # ylim for unfiltered and filtered data
+        self.ylim = [150,100] # ylim for unfiltered and filtered data
         self.predicted = 0 # whether or not predictions have been made
-        self.filter_win_open = 0
+        self.filter_win_open = 0 # whether or not filter options window is open
+        self.preds_win_open = 0 # whether or not the predictions window is open
 
         # Labels for both types of montages
         self.labels = ["Notes","CZ-PZ","FZ-CZ","P4-O2","C4-P4","F4-C4","FP2-F4",
@@ -235,6 +238,8 @@ class MainPage(QMainWindow):
 
         if self.filter_win_open:
             self.filter_ops.closeWindow()
+        if self.preds_win_open:
+            self.pred_ops.closeWindow()
         event.accept()
 
     def initGraph(self):
@@ -279,9 +284,9 @@ class MainPage(QMainWindow):
         self.ann_qlist.clear() # Clear annotations
         self.populateAnnDock() # Add annotations if they exist
         self.predLabel.setText("") # reset text of predictions
-        self.labelLoadPtFile.setText("No data loaded.") # no data label reset
-        self.labelLoadModel.setText("No model loaded.") # no data model reset
-        self.labelLoadPreds.setText("No predictions loaded.") # no preds reset
+        # self.labelLoadPtFile.setText("No data loaded.") # no data label reset
+        # self.labelLoadModel.setText("No model loaded.") # no data model reset
+        # self.labelLoadPreds.setText("No predictions loaded.") # no preds reset
         self.buttonChgMont.hide()
         self.plot_bipolar = 0
 
@@ -377,7 +382,11 @@ class MainPage(QMainWindow):
                 ann = np.delete(ann, 0, axis = 1)
                 ann = np.delete(ann, 0, axis = 1)
             if self.filter_checked == 1:
-                ann = np.insert(ann, 0,[0.0,-1.0,"filtered"], axis=1)
+                if len(ann[0]) == 0:
+                    ann = np.array([0.0,-1.0,"filtered"])
+                    ann = ann[...,np.newaxis]
+                else:
+                    ann = np.insert(ann, 0,[0.0,-1.0,"filtered"], axis=1)
                 strFilt = ""
                 if self.fi.do_lp == 1:
                     strFilt += "LP: " + str(self.fi.lp) + "Hz"
@@ -420,7 +429,6 @@ class MainPage(QMainWindow):
                 return
             self.edf_info.annotations = np.array(self.edf_info.annotations)
 
-
             self.data = loader.load_buffers(self.edf_info)
             data_for_preds = self.data
             self.data = np.array(self.data)
@@ -452,6 +460,13 @@ class MainPage(QMainWindow):
             edf_montages = EdfMontage(self.edf_info)
             self.montage = edf_montages.reorder_data(self.data)
             self.predicted = edf_montages.get_predictions(data_for_preds, self.pi)
+
+            if self.predicted == 1:
+                self.predLabel.setText("Predictions plotted.")
+                self.pi.plot_preds_preds = 1
+                self.pi.preds_loaded = 1
+                self.pi.preds_fn = "loaded from edf file"
+
             if self.montage.shape[0] == 19:
                 self.montage_bipolar = edf_montages.get_bipolar_from_ar(self.montage)
                 self.buttonChgMont.show()
@@ -459,11 +474,16 @@ class MainPage(QMainWindow):
             self.m.fig.clf()
             self.ax = self.m.fig.add_subplot(self.m.gs[0])
 
-            self.movePlot(1,0,self.ylim[0],0,0)
-            self.init = 1
             ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
                 self.cbox_filter.setChecked(True)
+                self.filtered = 1
+
+            if self.filter_checked == 1:
+                self.movePlot(1,0,self.ylim[1],0,0)
+            else:
+                self.movePlot(1,0,self.ylim[0],0,0)
+            self.init = 1
 
 
     def rightPlot1s(self):
@@ -691,10 +711,8 @@ class MainPage(QMainWindow):
             self.filter_ops.show()
 
 
-    def loadPtData(self):
-        """
-        Load data for prediction
-        """
+    """def loadPtData(self):
+        # Load data for prediction
         if self.init == 1:
             ptfile_fn = QFileDialog.getOpenFileName(self, 'Open torch file')
             ptfile_len = len(ptfile_fn[0])
@@ -710,12 +728,10 @@ class MainPage(QMainWindow):
                 self.pi.set_data(ptfile_fn[0])
                 self.predicted = 0
                 self.predLabel.setText("")
-                self.callmovePlot(0,0,0)
+                self.callmovePlot(0,0,0)"""
 
-    def loadModel(self):
-        """
-        Load model for prediction
-        """
+    """def loadModel(self):
+        # Load model for prediction
         if self.init == 1:
             model_fn = QFileDialog.getOpenFileName(self, 'Open model')
             if model_fn[0] == None:
@@ -733,12 +749,10 @@ class MainPage(QMainWindow):
                 self.pi.set_model(model_fn[0])
                 self.predicted = 0
                 self.predLabel.setText("")
-                self.callmovePlot(0,0,0)
+                self.callmovePlot(0,0,0)"""
 
-    def loadPreds(self):
-        """
-        Loads predictions
-        """
+    """def loadPreds(self):
+        # Loads predictions
         if self.init == 1:
             preds_fn = QFileDialog.getOpenFileName(self, 'Open predictions')
             if preds_fn[0] == None:
@@ -759,7 +773,7 @@ class MainPage(QMainWindow):
                 else:
                     self.predicted = 1
                     self.predLabel.setText("Predictions plotted.")
-                    self.callmovePlot(0,0,0)
+                    self.callmovePlot(0,0,0)"""
 
     def predict(self):
         """
@@ -767,7 +781,13 @@ class MainPage(QMainWindow):
         """
         if self.init == 0:
             return
-        if self.pi.ready:
+        ### preds window code
+        if self.init == 1:
+            self.preds_win_open = 1
+            self.pred_ops = PredictionOptions(self.pi,self)
+            self.pred_ops.show()
+        ### -----------
+        """if self.pi.ready:
             preds = predict(self.pi.data,self.pi.model,self)
             if self.predicted == 1:
                 if self.max_time != preds.shape[0]:
@@ -780,7 +800,7 @@ class MainPage(QMainWindow):
         elif not self.pi.data_loaded:
             self.throwAlert('Please load data')
         else:
-            self.throwAlert('Please load a model')
+            self.throwAlert('Please load a model')"""
 
     def throwAlert(self, msg):
         alert = QMessageBox()

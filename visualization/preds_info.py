@@ -9,9 +9,14 @@ class PredsInfo():
         self.model = []
         self.data = []
         self.preds = []
+        self.model_fn = ""
+        self.data_fn = ""
+        self.preds_fn = ""
         self.model_loaded = 0
         self.data_loaded = 0
         self.preds_loaded = 0
+        self.plot_model_preds = 0
+        self.plot_preds_preds = 0
 
     def set_data(self, data_fn):
         self.data = torch.load(data_fn)
