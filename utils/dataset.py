@@ -75,22 +75,19 @@ class EpilepsyDataset(Dataset):
         self.window_samples = int(window_length * self.fs)
         self.advance_samples = int(self.advance_seconds * self.fs)
 
-        # Get the number of windows for the entire dataset
-        self.nwindows = 0
-        for file in self.manifest_files:
-            duration = float(file['duration'])
-            self.nwindows += compute_nwindows(duration,
-                                              window_length,
-                                              overlap)
-
         # Create the labels for the dataset
         self.labels = []
+        self.start_windows = []
+        window_idx = 0
         for file in self.manifest_files:
             self.labels.append(
                 create_label(float(file['duration']),
                              json.loads(file['sz_starts']),
                              json.loads(file['sz_ends']), self.window_length,
                              self.overlap))
+            self.start_windows.append(window_idx)
+            window_idx += len(self.labels[-1])
+        self.nwindows = window_idx
 
         # Load features
         if self.features:
@@ -106,10 +103,8 @@ class EpilepsyDataset(Dataset):
         start = time.time()
         self.buffer_list = []
         self.filenames = []
-        self.start_windows = []
         self.buffer_windows = []
 
-        window_idx = 0
         for file in self.manifest_files:
             # Load the relevant file
             fn = file['fn'].split('.')[0] + '.pt'
@@ -119,13 +114,11 @@ class EpilepsyDataset(Dataset):
             # Store the current buffer in the list of buffers
             self.filenames.append(fn)
             self.buffer_list.append(curr_file)
-            self.start_windows.append(window_idx)
 
             # Keep track of what window index starts with each file
             nwindows = compute_nwindows(int(file['duration']),
                                         self.window_length,
                                         self.overlap)
-            window_idx += nwindows
             self.buffer_windows.append(nwindows)
 
         end = time.time()
@@ -198,43 +191,39 @@ class EpilepsyDataset(Dataset):
             return self.nwindows
 
     def __getitem__(self, idx):
-        if self.features:
-            if self.as_sequences:
+        # Get the label
+        sample = {}
+        if self.as_sequences:
+            sample['labels'] = self.labels[idx]
+            sample['filename'] = self.filenames[idx]
+            if self.features:
                 start_idx, end_idx = self.sequence_indices[idx]
-                return {'buffers': self.data[start_idx:end_idx],
-                        'labels': self.labels[idx],
-                        'filename': self.filenames[idx]}
+                sample['buffers'] = self.data[start_idx:end_idx]
             else:
-                return {'buffers': self.data[idx], 'labels': self.labels[idx]}
-        else:
-            if self.as_sequences:
                 windowed_buffer = torch.zeros((self.buffer_windows[idx],
                                                self.nchns, self.window_samples))
-                sequence_idx = 0
                 for ii in range(self.buffer_windows[idx]):
                     start = ii * self.advance_samples
                     end = ii * self.advance_samples + self.window_samples
-                    windowed_buffer[sequence_idx, :, :] = torch.transpose(
+                    windowed_buffer[ii, :, :] = torch.transpose(
                         self.buffer_list[idx][start:end, :], 0, 1)
-                    sequence_idx += 1
-                return {'buffers': windowed_buffer,
-                        'labels': self.labels[idx],
-                        'filename': self.filenames[idx]}
+                sample['buffers'] = windowed_buffer
+        else:
+            # Find the buffer containing the window
+            for buffer_idx, start_window in enumerate(self.start_windows):
+                if start_window > idx:
+                    buffer_idx -= 1
+                    break
+            # Calculate the indexes of the start and end of the window
+            window_number = idx - self.start_windows[buffer_idx]
+            sample['labels'] = self.labels[buffer_idx][window_number]
+            if self.features:
+                sample['buffers'] = self.data[idx]
             else:
-                # Find the buffer containing the window
-                for buffer_idx, start_window in enumerate(self.start_windows):
-                    if start_window > idx:
-                        buffer_idx -= 1
-                        break
-                # Calculate the indexes of the start and end of the window
-                window_number = idx - self.start_windows[buffer_idx]
                 sample_start = window_number * self.advance_samples
-                return {
-                    'buffers': torch.transpose(self.buffer_list[buffer_idx][
-                        sample_start:sample_start + self.window_samples], 0, 1),
-                    'labels': self.labels[buffer_idx][window_number],
-                    'filename': self.filenames[buffer_idx]
-                }
+                sample['buffers'] = torch.transpose(self.buffer_list[buffer_idx][
+                    sample_start:sample_start + self.window_samples], 0, 1),
+        return sample
 
     def get_all_data(self):
         if self.features:
