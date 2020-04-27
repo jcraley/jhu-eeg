@@ -1,99 +1,145 @@
 import os
 import time
+import json
 
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from utils.read_files import *
+import utils.read_files as read
 
 
 def compute_nwindows(duration, window_length, overlap):
-    """Compute the number of windows in a file"""
+    """Compute the number of windows for a recording
+
+    Args:
+        duration (float): Length of recording in seconds
+        window_length (float): Length of the window in seconds
+        overlap (float): Window overlap in seconds
+
+    Returns:
+        int: Length of the recording in windows
+    """
     advance = window_length * (1 - overlap)
     return int(np.floor((duration - window_length) / advance)) + 1
 
 
-def load_labels(total_windows, manifest_files, labels_dir):
-    # Load the labels
-    labels = torch.zeros(total_windows, dtype=torch.long)
-    idx = 0
-    for file in manifest_files:
-        fn = file['fn'].split('.')[0] + '.pt'
-        next_labels = torch.load(os.path.join(labels_dir, fn))
-        nsamples = next_labels.size(0)
-        labels[idx:idx + nsamples] = next_labels
-        idx += nsamples
-    return labels
+def create_label(duration, sz_starts, sz_ends, window_length, overlap):
+    """Create a tensor of labels
+
+    Arguments:
+        duration {float} -- Length of file in seconds
+        sz_starts {list} -- Seizure starts in seconds
+        sz_ends {list} -- Seizure ends in seconds
+        window_length {float} -- Length of a window in seconds
+        overlap {float} -- Window overlap in seconds
+
+    Returns:
+        torch.tensor -- Long tensor of labels
+    """
+    nwindows = compute_nwindows(duration, window_length, overlap)
+    # Initialize all labels to 0
+    label = torch.zeros(nwindows, dtype=torch.long)
+    window_time = (window_length - overlap) * np.arange(nwindows)
+    # Set any labels between starts to 1
+    for start, end in zip(sz_starts, sz_ends):
+        label[np.where((window_time >= start) * (window_time <= end))] = 1
+    return label
 
 
 class EpilepsyDataset(Dataset):
     """Load pre-windowed and pre-processed EDFs into a dataset
     """
 
-    def __init__(self, manifest_fn, data_dir, labels_dir,
+    def __init__(self, manifest_fn, data_dir,
                  window_length, overlap, device='cpu', features_dir='',
                  features=[]):
         self.as_sequences = False
         self.data_dir = data_dir
-        self.labels_dir = labels_dir
-        self.window_length = window_length
-        self.overlap = overlap
+
         self.device = device
         self.features_dir = features_dir
         self.features = features
 
         # Read manifest, get number of channels and sample frequency
-        self.manifest_files = read_manifest(manifest_fn)
+        self.manifest_files = read.read_manifest(manifest_fn)
         self.nchns = int(self.manifest_files[0]['nchns'])
         self.fs = int(self.manifest_files[0]['fs'])
         self.nfiles = len(self.manifest_files)
+
+        # Set window parameters and compute window sample lengths
+        assert overlap < window_length, "Overlap is longer than window"
+        self.window_length = window_length
+        self.overlap = overlap
+        self.advance_seconds = window_length - overlap
+        self.window_samples = int(window_length * self.fs)
+        self.advance_samples = int(self.advance_seconds * self.fs)
 
         # Get the number of windows for the entire dataset
         self.nwindows = 0
         for file in self.manifest_files:
             duration = float(file['duration'])
-            self.nwindows += compute_nwindows(duration, window_length, overlap)
-        self.labels = load_labels(self.nwindows, self.manifest_files,
-                                  self.labels_dir)
+            self.nwindows += compute_nwindows(duration,
+                                              window_length,
+                                              overlap)
+
+        # Create the labels for the dataset
+        self.labels = []
+        for file in self.manifest_files:
+            self.labels.append(
+                create_label(float(file['duration']),
+                             json.loads(file['sz_starts']),
+                             json.loads(file['sz_ends']), self.window_length,
+                             self.overlap))
 
         # Load features
-        if features:
-            self.load_features()
+        if self.features:
+            self._load_features()
         else:
-            self.load_windowed_buffers()
+            self._load_buffers()
 
-    def load_windowed_buffers(self):
-        # Initialize the data tensors
-        window_length_samples = int(self.fs * self.window_length)
-        self.data = torch.zeros(
-            (self.nwindows, self.nchns, window_length_samples),
-            dtype=torch.float32, device=self.device)
-        self.filenames = []
-        self.sequence_indices = []
-
-        # Load files into the data tensors
+    def _load_buffers(self):
+        """Load buffers into a list of buffers
+        """
+        # Load all files into a list
         print('Loading files', flush=True)
         start = time.time()
-        idx = 0
+        self.buffer_list = []
+        self.filenames = []
+        self.start_windows = []
+        self.buffer_windows = []
+
+        window_idx = 0
         for file in self.manifest_files:
+            # Load the relevant file
             fn = file['fn'].split('.')[0] + '.pt'
-            self.filenames.append(fn)
             curr_file = torch.load(os.path.join(self.data_dir, fn),
                                    map_location=self.device)
-            nsamples = curr_file.size(0)
-            self.data[idx:idx + nsamples, :, :] = curr_file
-            # store the indices for each recording
-            self.sequence_indices.append([idx, idx + nsamples])
-            idx += nsamples
-        end = time.time()
 
-        self.d_out = [self.data.size(1), self.data.size(2)]
+            # Store the current buffer in the list of buffers
+            self.filenames.append(fn)
+            self.buffer_list.append(curr_file)
+            self.start_windows.append(window_idx)
+
+            # Keep track of what window index starts with each file
+            nwindows = compute_nwindows(int(file['duration']),
+                                        self.window_length,
+                                        self.overlap)
+            window_idx += nwindows
+            self.buffer_windows.append(nwindows)
+
+        end = time.time()
         print('Loaded in {} seconds'.format(end - start), flush=True)
 
-    def load_features(self):
-        # Load the features
+        # Set the length of the output
+        self.d_out = [self.nchns, self.window_samples]
 
+    def _load_features(self):
+        """Load features
+
+        Features are loaded into a single tensor self.data. This tensor is
+        of dimensions (nsamples, nchns, feature lengths).
+        """
         start = time.time()
 
         # Load the first files
@@ -152,13 +198,63 @@ class EpilepsyDataset(Dataset):
             return self.nwindows
 
     def __getitem__(self, idx):
-        if self.as_sequences:
-            start_idx, end_idx = self.sequence_indices[idx]
-            return {'buffers': self.data[start_idx:end_idx],
-                    'labels': self.labels[start_idx:end_idx],
-                    'filename': self.filenames[idx]}
+        if self.features:
+            if self.as_sequences:
+                start_idx, end_idx = self.sequence_indices[idx]
+                return {'buffers': self.data[start_idx:end_idx],
+                        'labels': self.labels[idx],
+                        'filename': self.filenames[idx]}
+            else:
+                return {'buffers': self.data[idx], 'labels': self.labels[idx]}
         else:
-            return {'buffers': self.data[idx], 'labels': self.labels[idx]}
+            if self.as_sequences:
+                windowed_buffer = torch.zeros((self.buffer_windows[idx],
+                                               self.nchns, self.window_samples))
+                sequence_idx = 0
+                for ii in range(self.buffer_windows[idx]):
+                    start = ii * self.advance_samples
+                    end = ii * self.advance_samples + self.window_samples
+                    windowed_buffer[sequence_idx, :, :] = torch.transpose(
+                        self.buffer_list[idx][start:end, :], 0, 1)
+                    sequence_idx += 1
+                return {'buffers': windowed_buffer,
+                        'labels': self.labels[idx],
+                        'filename': self.filenames[idx]}
+            else:
+                # Find the buffer containing the window
+                for buffer_idx, start_window in enumerate(self.start_windows):
+                    if start_window > idx:
+                        buffer_idx -= 1
+                        break
+                # Calculate the indexes of the start and end of the window
+                window_number = idx - self.start_windows[buffer_idx]
+                sample_start = window_number * self.advance_samples
+                return {
+                    'buffers': torch.transpose(self.buffer_list[buffer_idx][
+                        sample_start:sample_start + self.window_samples], 0, 1),
+                    'labels': self.labels[buffer_idx][window_number],
+                    'filename': self.filenames[buffer_idx]
+                }
+
+    def get_all_data(self):
+        if self.features:
+            return self.data
+        else:
+            all_data = torch.zeros(
+                (self.start_windows[-1] + self.buffer_windows[-1],
+                 self.nchns, self.window_samples))
+            idx = 0
+            for buffer, nwindows in zip(self.buffer_list, self.buffer_windows):
+                for ii in range(nwindows):
+                    start = ii * self.advance_samples
+                    end = ii * self.advance_samples + self.window_samples
+                    all_data[idx, :, :] = torch.transpose(
+                        buffer[start:end, :], 0, 1)
+                    idx += 1
+            return all_data
+
+    def get_all_labels(self):
+        return torch.cat(self.labels)
 
     def class_counts(self):
-        return torch.bincount(self.labels)
+        return sum([torch.bincount(label) for label in self.labels])

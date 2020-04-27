@@ -11,9 +11,10 @@ class SklearnMixin():
     """
 
     def fit(self, dataset):
-        X = dataset.data.numpy()
+        X = dataset.get_all_data()
+        X = X.numpy()
         X = X.reshape(X.shape[0], -1)
-        y = dataset.labels.numpy()
+        y = dataset.get_all_labels().numpy()
         self.model = self.model.fit(X, y)
 
     def predict_proba(self, X):

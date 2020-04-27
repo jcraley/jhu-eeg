@@ -1,18 +1,11 @@
-import csv
 import json
 import os
-import pickle
 
-import numpy as np
 import torch
 
 import utils.evaluation as evaluation
-import utils.output_tools as out
-import utils.pathmanager as pm
 import utils.read_files as read
-import utils.testconfiguration as tc
 import utils.visualization as viz
-from models.sklearnmodels import LogisticRegression
 from utils.dataset import EpilepsyDataset
 
 
@@ -43,8 +36,7 @@ class Pipeline():
             device = 'cpu'
         self.train_dataset = EpilepsyDataset(
             self.params['train manifest'],
-            self.paths['data'],
-            self.paths['labels'],
+            self.paths['buffers'],
             self.params['window length'],
             self.params['overlap'],
             device=device,
@@ -61,8 +53,7 @@ class Pipeline():
             device = 'cpu'
         self.val_dataset = EpilepsyDataset(
             self.params['val manifest'],
-            self.paths['data'],
-            self.paths['labels'],
+            self.paths['buffers'],
             self.params['window length'],
             self.params['overlap'],
             device=device,
@@ -128,12 +119,12 @@ class Pipeline():
 
         print("Unsmoothed results")
         # Compute windowise statistics and write out
-        evaluation.iid_window_report(all_preds, all_labels, self.paths['results'],
-                                     prefix, '')
+        evaluation.iid_window_report(all_preds, all_labels,
+                                     self.paths['results'], prefix, '')
 
         # Score based on sequences
-        evaluation.sequence_report(all_fns, all_preds, all_labels, self.paths['results'],
-                                   prefix, '')
+        evaluation.sequence_report(all_fns, all_preds, all_labels,
+                                   self.paths['results'], prefix, '')
 
         # Check for smoothing and run if so
         if self.params['smoothing'] > 0:
@@ -146,9 +137,11 @@ class Pipeline():
                                 self.paths['figures'], prefix, '_smoothed')
 
             # Compute windowise statistics and write out
-            evaluation.iid_window_report(smoothed_preds, all_labels, self.paths['results'],
+            evaluation.iid_window_report(smoothed_preds, all_labels,
+                                         self.paths['results'],
                                          prefix, '_smoothed')
 
             # Score based on sequences
             evaluation.sequence_report(all_fns, smoothed_preds, all_labels,
-                                       self.paths['results'], prefix, '_smoothed')
+                                       self.paths['results'], prefix,
+                                       '_smoothed')
