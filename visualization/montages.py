@@ -140,7 +140,7 @@ class EdfMontage():
             montage_bip[k,:] = ar_data[int(idx0),:] - ar_data[int(idx1),:]
         return montage_bip
 
-    def get_predictions(self, data, pi):
+    def get_predictions(self, data, pi, max_time, fs):
         """
         Loads in predictions if they were previously saved.
 
@@ -153,7 +153,23 @@ class EdfMontage():
         if "PREDICTIONS" in self.eeg_info.labels2chns:
             pred_chn = self.eeg_info.labels2chns["PREDICTIONS"]
             pi.preds = data[pred_chn]
+            pi.preds = np.array(pi.preds)
             pi.preds_to_plot = pi.preds
             pi.preds_loaded = 1
+            pi.pred_width = (fs * max_time) / pi.preds.shape[0]
+            return 1
+        elif "PREDICTIONS_0" in self.eeg_info.labels2chns:
+            i = 0
+            pi.preds = []
+            while "PREDICTIONS_" + str(i) in self.eeg_info.labels2chns:
+                pred_chn = self.eeg_info.labels2chns["PREDICTIONS_" + str(i)]
+                pi.preds.append(data[pred_chn])
+                i += 1
+            pi.preds = np.array(pi.preds)
+            pi.preds = pi.preds.T
+            pi.preds_to_plot = pi.preds
+            pi.preds_loaded = 1
+            pi.pred_by_chn = 1
+            pi.pred_width = (fs * max_time) / pi.preds.shape[0]
             return 1
         return 0

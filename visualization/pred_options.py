@@ -4,8 +4,6 @@ from PyQt5.QtWidgets import (QFileDialog, QVBoxLayout, QMessageBox, QWidget,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
                                 QSlider, QGridLayout, QSpinBox)
 
-from plot_utils import predict
-
 
 class PredictionOptions(QWidget):
     def __init__(self,pi,parent):
@@ -17,6 +15,10 @@ class PredictionOptions(QWidget):
         self.height = 200
         self.data = pi
         self.parent = parent
+        if self.parent.plot_bipolar == 0:
+            self.nchns = self.parent.montage.shape[0]
+        else:
+            self.nchns = self.parent.montage_bipolar.shape[0]
         self.setupUI()
 
     def setupUI(self):
@@ -158,8 +160,8 @@ class PredictionOptions(QWidget):
         elif preds_fn[0][preds_fn_len-3:] != ".pt":
             self.parent.throwAlert('Please select a .pt file')
         else:
-            if self.data.set_preds(preds_fn[0], self.parent.max_time) == -1:
-                self.parent.throwAlert("Predictions are not the same amount of seconds as the .edf" +
+            if self.data.set_preds(preds_fn[0], self.parent.max_time,self.parent.edf_info.fs,self.nchns) == -1:
+                self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
                                 "file you loaded or are the incorrect shape. Please check your file.")
             else:
                 if len(preds_fn[0].split('/')[-1]) < 18:
@@ -182,7 +184,7 @@ class PredictionOptions(QWidget):
             self.parent.throwAlert("You have not chosen to plot any predictions.")
             self.parent.callmovePlot(0,0,0)
         elif self.data.plot_preds_preds:
-            if len(self.data.preds) > 0:
+            if self.data.preds_loaded:
                 self.parent.predicted = 1
                 self.data.preds_to_plot = self.data.preds
                 self.parent.predLabel.setText("Predictions plotted.")
@@ -192,16 +194,19 @@ class PredictionOptions(QWidget):
                 self.parent.throwAlert("Please load predictions.")
         else:
             if self.data.ready:
-                preds = predict(self.data.data,self.data.model,self.parent)
-                if self.parent.predicted == 1:
-                    if self.parent.max_time != preds.shape[0]:
-                        self.parent.throwAlert("Predictions are not the same amount of seconds as the .edf " +
-                                        "file you loaded. Please check your file.")
-                    else:
-                        self.data.preds_to_plot = preds
-                        self.parent.predLabel.setText("Predictions plotted.")
-                        self.parent.callmovePlot(0,0,0)
-                        self.closeWindow()
+                preds_ret = self.data.predict(self.parent.max_time,self.parent.edf_info.fs,self.nchns)
+                if preds_ret == -2:
+                    self.parent.throwAlert("An error occured when trying to call the predict() " +
+                                "function using your model. Please check your model and data.")
+                elif preds_ret == -1:
+                    self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
+                                    "file you loaded or are the incorrect shape. Please check your file.")
+                else:
+                    self.parent.predicted = 1
+                    self.data.preds_to_plot = self.data.model_preds
+                    self.parent.predLabel.setText("Predictions plotted.")
+                    self.parent.callmovePlot(0,0,0)
+                    self.closeWindow()
             elif not self.data.data_loaded:
                 self.parent.throwAlert('Please load data.')
             else:

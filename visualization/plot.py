@@ -279,6 +279,7 @@ class MainPage(QMainWindow):
         self.buttonChgMont.hide()
         self.plot_bipolar = 0
         self.thresh = 0.5 # threshold for plotting
+        self.threshLblVal.setText("(threshold = " + str(self.thresh) + ")") # reset label
 
     def ann_clicked(self,item):
         """
@@ -314,10 +315,10 @@ class MainPage(QMainWindow):
         """
         Updates the value of the threshold when the slider is changed.
         """
-        if self.init == 1:
-            val = self.threshSlider.value()
-            self.thresh = val / 100
-            self.threshLblVal.setText("(threshold = " + str(self.thresh) + ")")
+        val = self.threshSlider.value()
+        self.thresh = val / 100
+        self.threshLblVal.setText("(threshold = " + str(self.thresh) + ")")
+        if self.predicted == 1:
             self.callmovePlot(0,0)
 
     def chgMont(self):
@@ -354,7 +355,10 @@ class MainPage(QMainWindow):
 
             # if predictions, save them as well
             if self.predicted == 1:
-                savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns + 1)
+                if self.pi.pred_by_chn:
+                    savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns * 2)
+                else:
+                    savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns + 1)
             else:
                 savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns)
 
@@ -367,14 +371,23 @@ class MainPage(QMainWindow):
                 savedEDF.setLabel(i, labels[i + 1])
             # if predictions, save them as well
             if self.predicted == 1:
-                savedEDF.setPhysicalMaximum(nchns, 1)
-                savedEDF.setPhysicalMinimum(nchns, 0)
-                savedEDF.setSamplefrequency(nchns, 1)
-                savedEDF.setLabel(nchns, "PREDICTIONS")
                 temp = []
                 for i in range(nchns):
                     temp.append(dataToSave[i])
-                temp.append(self.pi.preds_to_plot)
+                if self.pi.pred_by_chn:
+                    for i in range(nchns):
+                        savedEDF.setPhysicalMaximum(nchns + i, 1)
+                        savedEDF.setPhysicalMinimum(nchns + i, 0)
+                        savedEDF.setSamplefrequency(nchns + i, fs / self.pi.pred_width)
+                        savedEDF.setLabel(nchns + i, "PREDICTIONS_" + str(i))
+                    for i in range(nchns):
+                        temp.append(self.pi.preds_to_plot[:,i])
+                else:
+                    savedEDF.setPhysicalMaximum(nchns, 1)
+                    savedEDF.setPhysicalMinimum(nchns, 0)
+                    savedEDF.setSamplefrequency(nchns, fs / self.pi.pred_width)
+                    savedEDF.setLabel(nchns, "PREDICTIONS")
+                    temp.append(self.pi.preds_to_plot)
                 dataToSave = temp
 
             savedEDF.writeSamples(dataToSave)
@@ -453,7 +466,8 @@ class MainPage(QMainWindow):
             self.slider.setMaximum(self.max_time - self.window_size)
             self.threshSlider.setValue(self.thresh * 100)
 
-            self.predicted = edf_montages.get_predictions(data_for_preds, self.pi)
+
+            self.predicted = edf_montages.get_predictions(data_for_preds, self.pi, self.max_time, fs)
 
             if self.predicted == 1:
                 self.predLabel.setText("Predictions plotted.")
@@ -468,12 +482,15 @@ class MainPage(QMainWindow):
             self.m.fig.clf()
             self.ax = self.m.fig.add_subplot(self.m.gs[0])
 
+            if self.filter_checked == 1:
+                self.movePlot(0,0,self.ylim[1],0,0)
+            else:
+                self.movePlot(0,0,self.ylim[0],0,0)
             self.callmovePlot(1,0)
             self.init = 1
             ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
                  self.cbox_filter.setChecked(True) # must be set after init = 1
-
 
     def rightPlot1s(self):
         self.callmovePlot(1,1)
@@ -548,15 +565,6 @@ class MainPage(QMainWindow):
             y_lim - the values for the y_limits of the plot
 
         """
-        nchns = self.data.shape[0]
-        # Clear plot
-        del(self.ax.lines[0:nchns])
-        for i, a in enumerate(self.ann_list):
-            a.remove()
-        self.ann_list[:] = []
-        for aspan in self.aspan_list:
-            aspan.remove()
-        self.aspan_list[:] = []
 
         fs = self.edf_info.fs
 
@@ -570,13 +578,26 @@ class MainPage(QMainWindow):
 
         if self.filter_checked == 1:
             self.prep_filter_ws()
-            plotData = self.filteredData
+            plotData = np.zeros(self.filteredData.shape)
+            plotData += self.filteredData
         elif use_mont2 == 0:
-            plotData = self.montage
+            plotData = np.zeros(self.montage.shape)
+            plotData += self.montage
         else:
-            plotData = self.montage_bipolar
+            plotData = np.zeros(self.montage_bipolar.shape)
+            plotData += self.montage_bipolar
 
-        plotData[np.abs(plotData) > 2 * y_lim] = 0 # clip amplitude
+        nchns = plotData.shape[0]
+        # Clear plot
+        del(self.ax.lines[0:nchns])
+        for i, a in enumerate(self.ann_list):
+            a.remove()
+        self.ann_list[:] = []
+        for aspan in self.aspan_list:
+            aspan.remove()
+        self.aspan_list[:] = []
+
+        plotData[np.abs(plotData) > 2 * y_lim] = 2 * y_lim # float('nan') # clip amplitude
 
         for i in range(plotData.shape[0]):
             if plotData.shape[0] == 18:
@@ -586,7 +607,7 @@ class MainPage(QMainWindow):
                     col = 'b'
                 else:
                     col = 'r'
-                self.ax.plot(plotData[i,self.count * fs:(self.count + 1) * fs*self.window_size] + i*y_lim + y_lim,'-',linewidth=0.5,color=col)
+                self.ax.plot(plotData[i,self.count * fs:(self.count + 1) * fs*self.window_size] + (i + 1) * y_lim,'-',linewidth=0.5,color=col)
                 self.ax.set_ylim([-y_lim, y_lim*19])
                 self.ax.set_yticks(np.arange(0,20*y_lim,step=y_lim))
                 self.ax.set_yticklabels(self.labels, fontdict=None, minor=False)
@@ -600,11 +621,22 @@ class MainPage(QMainWindow):
                 self.ax.set_yticks(np.arange(0,21*y_lim,step=y_lim))
                 self.ax.set_yticklabels(self.labelsAR, fontdict=None, minor=False)
 
+            width = 1 / (plotData.shape[0] + 2)
             if self.predicted == 1:
-                for k in range(self.window_size):
-                    if self.pi.preds_to_plot[self.count + k] > self.thresh:
+                starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh, self.count, self.window_size, fs, nchns)
+                for k in range(len(starts)):
+                    if self.pi.pred_by_chn:
+                        if chns[k][i]:
+                            if i == plotData.shape[0] - 1:
+                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,ymin=width*(i+1.5),ymax=1,color='paleturquoise', alpha=1))
+                            else:
+                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,ymin=width*(i+1.5),ymax=width*(i+2.5),color='paleturquoise', alpha=1))
+                    else:
+                        self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,color='paleturquoise', alpha=0.5))
+                #for k in range(self.window_size):
+                #    if self.pi.preds_to_plot[self.count + k] > self.thresh:
                         # ax.axvspan(k * fs, (k + 1) * fs, ymin=0,ymax=0.5,color='paleturquoise', alpha=0.5)
-                        self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,color='paleturquoise', alpha=0.5))
+                #        self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,ymin=0.5,ymax=1,color='red', alpha=0.5))
 
         self.ax.set_xlim([0,self.edf_info.fs*self.window_size])
         step_size = self.edf_info.fs # Updating the x labels with scaling

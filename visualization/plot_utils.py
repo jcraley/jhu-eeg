@@ -114,28 +114,6 @@ def filterData(data, fs, fi):
 
     return filt_bufs
 
-def predict(data,model,parent):
-    """
-    Loads model, passes data through the model to get binary seizure predictions
-
-    inputs:
-        data - the pytorch tensor, fully preprocessed
-        model_fn - filename of the model to load
-
-    returns:
-        preds - a numpy array of binary predictions
-    """
-    try:
-        preds = model.predict(data)
-        preds = np.array(preds)
-    except:
-        parent.throwAlert("An error occured when trying to call the predict() " +
-                    "function using your model. Please check your model and data.")
-        return
-
-    parent.predicted = 1
-    return preds
-
 def getTime(count):
     """
     Creates a string for the time in seconds.
