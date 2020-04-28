@@ -20,7 +20,7 @@ def compute_nwindows(duration, window_length, overlap):
     Returns:
         int: Length of the recording in windows
     """
-    advance = window_length * (1 - overlap)
+    advance = window_length - overlap
     return int(np.floor((duration - window_length) / advance)) + 1
 
 
@@ -222,7 +222,7 @@ class EpilepsyDataset(Dataset):
             else:
                 sample_start = window_number * self.advance_samples
                 sample['buffers'] = torch.transpose(self.buffer_list[buffer_idx][
-                    sample_start:sample_start + self.window_samples], 0, 1),
+                    sample_start:sample_start + self.window_samples, :], 0, 1)
         return sample
 
     def get_all_data(self):
