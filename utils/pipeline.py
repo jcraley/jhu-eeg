@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import torch
 
@@ -7,6 +8,8 @@ import utils.evaluation as evaluation
 import utils.read_files as read
 import utils.visualization as viz
 from utils.dataset import EpilepsyDataset
+
+from models.sklearnmodels import *
 
 
 class Pipeline():
@@ -70,9 +73,13 @@ class Pipeline():
 
     def train(self):
         # Train the model
+        print('Training')
+        start = time.time()
         self.model.fit(self.train_dataset)
         model_fn = os.path.join(self.paths['models'], 'model.pt')
         torch.save(self.model, model_fn)
+        end = time.time()
+        print('Training complete in {} seconds'.format(end-start))
 
     def load_model(self):
         self.model = torch.load(self.params['load model fn'])

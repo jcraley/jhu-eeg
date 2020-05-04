@@ -6,10 +6,11 @@ from sklearn import metrics
 from collections import OrderedDict
 
 
-def compute_metrics(labels, preds):
+def compute_metrics(labels, preds, threshold=0.5):
     """Compute the statistics for a set of labels and predictions"""
     # Compute stats
-    y_hat = np.argmax(preds, axis=1)
+    y_hat = np.zeros(preds.shape[0])
+    y_hat[np.where(preds[:, 1] >= threshold)] = 1
     tp = float(np.sum((y_hat == 1) * (labels == 1)))
     fp = float(np.sum((y_hat == 1) * (labels == 0)))
     tn = float(np.sum((y_hat == 0) * (labels == 0)))
@@ -104,10 +105,11 @@ def score_recording(labels, preds, threshold=0.5):
         'ncorrect': ncorrect
     }
 
+
 def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix):
     # Compute window based statistics and write out
     stats = compute_metrics(np.concatenate(all_labels),
-                                       np.concatenate(all_preds))
+                            np.concatenate(all_preds))
     stats_fn = os.path.join(report_folder,
                             '{}stats{}.pkl'.format(prefix, suffix))
     pr_fn = os.path.join(report_folder,

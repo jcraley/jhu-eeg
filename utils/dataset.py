@@ -53,7 +53,7 @@ class EpilepsyDataset(Dataset):
 
     def __init__(self, manifest_fn, data_dir,
                  window_length, overlap, device='cpu', features_dir='',
-                 features=[]):
+                 features=[], no_load=False):
         self.as_sequences = False
         self.data_dir = data_dir
 
@@ -90,6 +90,13 @@ class EpilepsyDataset(Dataset):
         self.nwindows = window_idx
 
         # Load features
+        if not no_load:
+            if self.features:
+                self._load_features()
+            else:
+                self._load_buffers()
+
+    def load_data(self):
         if self.features:
             self._load_features()
         else:
