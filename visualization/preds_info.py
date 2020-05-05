@@ -94,6 +94,8 @@ class PredsInfo():
         elif dim == 2:
             if preds.shape[0] == nchns:
                 preds = preds.T
+            elif preds.shape[0] < preds.shape[1]:
+                preds = preds.T
             if (fs * max_time) % preds.shape[0] == 0:
                 if preds.shape[1] == 1:
                     ret = 0

@@ -537,8 +537,10 @@ class MainPage(QMainWindow):
     def getCount(self):
         if self.init == 1:
             num,ok = QInputDialog.getInt(self,"integer input","enter a number",
-                                            0,0,self.max_time - self.window_size)
+                                            0,0,self.max_time)
             if ok:
+                if num > self.max_time - self.window_size:
+                    num = self.max_time - self.window_size
                 self.count = num
                 self.callmovePlot(0,0)
 
@@ -591,8 +593,9 @@ class MainPage(QMainWindow):
             plotData += self.montage_bipolar
 
         nchns = plotData.shape[0]
-        if len(self.pi.preds_to_plot.shape) > 1 and self.pi.preds_to_plot.shape[1] != nchns:
-            self.predLabel.setText("")
+        if self.predicted == 1:
+            if len(self.pi.preds_to_plot.shape) > 1 and self.pi.preds_to_plot.shape[1] != nchns:
+                self.predLabel.setText("")
         elif self.predicted == 1:
             self.predLabel.setText("Predictions plotted.")
         # Clear plot
