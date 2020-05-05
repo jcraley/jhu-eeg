@@ -1,15 +1,21 @@
 # jhu-eeg
 JHU EEG
 
-Installing required packages for the visualizer:
+Installation:
 -----
-There are several libraries that are needed, they should all be able to be installed using pip3. You will need python >= 3.5. Packages can be installed by creating a virtual environment and using the provided requirements.txt file.
+Clone the repository using ```$ git clone https://github.com/jcraley/jhu-eeg.git```  
+
+Python >= 3.5 is required. Other packages can be installed by creating a virtual environment and using the provided requirements.txt file.
 
 To create the virtual environment:  
-```$ python3 -m venv eeg-gui-venv``` 
+```
+$ python3 -m venv eeg-gui-venv
+``` 
 
 Activate the environment:  
-```$ source eeg-gui-venv/bin/activate```  
+```
+$ source eeg-gui-venv/bin/activate
+```  
 
 Install required packages:  
 ```
@@ -23,10 +29,17 @@ Running the visualizer:
 You can then run the visualizer from the main folder using  
     ```python visualization/plot.py```
 
-If you get the error "ModuleNotFoundError: No module named 'preprocessing'
-this is likely a path issue with python, and can be fixed by doing
+If you get the error "ModuleNotFoundError: No module named 'preprocessing' "
+this is likely a path issue with python, and can be fixed using
     ```export PYTHONPATH=$(pwd)```
     
-EDF files:
+Features:
 -----
+***EDF files:***  
 Average reference and longitudinal bipolar montages with the typical channel naming conventions are supported. Other channels in the edf file will not be plotted. 
+
+***Loading predictions:***  
+Predictions can be loaded as .pt files or using preprocessed data and a model (also saved as .pt files). In both cases, the output is expected to be of length (k * number of samples in the edf file). The second dimension can be either 1 or 2 if predictions are for all channels, or the number of channels for channel-wise predictions. For channel-wise predictions, it will be assumed that the channels are in the same order as are plotted in the visualizer. 
+
+***Saving to .edf:***  
+This will save the signals that are currently being plotted. If the signals are filtered and predictions are plotted, filtered signals will be saved and predictions will be saved as well.
