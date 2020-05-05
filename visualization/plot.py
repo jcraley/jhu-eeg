@@ -580,6 +580,9 @@ class MainPage(QMainWindow):
             self.prep_filter_ws()
             plotData = np.zeros(self.filteredData.shape)
             plotData += self.filteredData
+            stddev = np.std(plotData[:,self.count * fs:(self.count + 10) * fs])
+            plotData[plotData > 3 * stddev] = 3 * stddev # float('nan') # clip amplitude
+            plotData[plotData < -3 * stddev] = -3 * stddev
         elif use_mont2 == 0:
             plotData = np.zeros(self.montage.shape)
             plotData += self.montage
@@ -588,16 +591,18 @@ class MainPage(QMainWindow):
             plotData += self.montage_bipolar
 
         nchns = plotData.shape[0]
+        if len(self.pi.preds_to_plot.shape) > 1 and self.pi.preds_to_plot.shape[1] != nchns:
+            self.predLabel.setText("")
+        elif self.predicted == 1:
+            self.predLabel.setText("Predictions plotted.")
         # Clear plot
-        del(self.ax.lines[0:nchns])
+        del(self.ax.lines[:])
         for i, a in enumerate(self.ann_list):
             a.remove()
         self.ann_list[:] = []
         for aspan in self.aspan_list:
             aspan.remove()
         self.aspan_list[:] = []
-
-        plotData[np.abs(plotData) > 2 * y_lim] = 2 * y_lim # float('nan') # clip amplitude
 
         for i in range(plotData.shape[0]):
             if plotData.shape[0] == 18:
@@ -628,9 +633,19 @@ class MainPage(QMainWindow):
                     if self.pi.pred_by_chn:
                         if chns[k][i]:
                             if i == plotData.shape[0] - 1:
-                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,ymin=width*(i+1.5),ymax=1,color='paleturquoise', alpha=1))
+                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,
+                                                        ymin=width*(i+1.5),ymax=1,color='paleturquoise', alpha=1))
                             else:
-                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,ymin=width*(i+1.5),ymax=width*(i+2.5),color='paleturquoise', alpha=1))
+                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,
+                                                        ymin=width*(i+1.5),ymax=width*(i+2.5),color='paleturquoise', alpha=1))
+                                x_vals = range(int(starts[k]) - self.count * fs,int(ends[k]) - self.count * fs)
+                                if plotData.shape[0] == 18:
+                                    self.ax.plot(x_vals,plotData[i,int(starts[k]):int(ends[k])] + i*y_lim + y_lim,
+                                                '-',linewidth=1,color=col)
+                                else:
+                                    self.ax.plot(x_vals,plotData[i,int(starts[k]):int(ends[k])] + i*y_lim + y_lim,
+                                                '-',linewidth=1,color=col[i])
+
                     else:
                         self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,color='paleturquoise', alpha=0.5))
                 #for k in range(self.window_size):

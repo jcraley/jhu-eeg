@@ -87,11 +87,12 @@ class PredsInfo():
         # check size
         dim = len(preds.shape)
         ret = -1
+        self.pred_by_chn = 0 # reset
         if dim == 1:
             if (fs * max_time) % preds.shape[0] == 0:
                 ret = 0
         elif dim == 2:
-            if np.argmax(preds.shape) == 1:
+            if preds.shape[0] == nchns:
                 preds = preds.T
             if (fs * max_time) % preds.shape[0] == 0:
                 if preds.shape[1] == 1:
@@ -140,7 +141,7 @@ class PredsInfo():
         if len(self.preds_to_plot.shape) > 1 and self.preds_to_plot.shape[1] != nchns:
             return starts, ends, chns
         i = 0
-        while i * pw < start_t:
+        while i * pw < start_t: # find starting value
             i += 1
         i -= 1
         if i * pw < start_t and (i + 1) * pw > start_t:
@@ -150,6 +151,8 @@ class PredsInfo():
                 if self.pred_by_chn:
                     chn_i = self.preds_to_plot[i] > thresh
                     chns.append(chn_i)
+            i += 1
+        while i * pw < start_t: # find starting value
             i += 1
         while i * pw < end_t:
             if (i + 1) * pw > end_t:
@@ -168,5 +171,4 @@ class PredsInfo():
                     chn_i = self.preds_to_plot[i] > thresh
                     chns.append(chn_i)
             i += 1
-
         return starts, ends, chns
