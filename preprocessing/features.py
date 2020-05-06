@@ -42,7 +42,7 @@ def fft(windowed_buffers, fs=200, fs_max=30):
     idx = np.where((0 <= freq) * (freq <= fs_max))
     f = np.fft.fft(windowed_buffers.numpy()
                    * window[np.newaxis, np.newaxis, :])[:, :, idx]
-    return torch.tensor(np.absolute(f), dtype=torch.float32)
+    return torch.tensor(np.absolute(f[:, :, 0, :]), dtype=torch.float32)
 
 
 def linelength(windowed_buffers, fs=200):
