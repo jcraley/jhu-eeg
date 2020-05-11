@@ -103,6 +103,13 @@ class Pipeline():
                       figures_folder, results_folder):
         dataset.set_as_sequences(True)
 
+        # Check if model can score by channel
+        has_predict_by_channel = False
+        channel_wise_method = getattr(
+            self.model, "predict_channel_proba", None)
+        if callable(channel_wise_method):
+            has_predict_by_channel = True
+
         # Loop over dataset and score all
         all_preds = []
         all_labels = []
@@ -114,6 +121,13 @@ class Pipeline():
             pred = self.model.predict_proba(X)
             pred_fn = os.path.join(self.paths['predictions'], fn + '.pt')
             torch.save(pred, pred_fn)
+
+            # Save channel predictions
+            if has_predict_by_channel:
+                channel_pred = self.model.predict_channel_proba(X)
+                pred_fn = os.path.join(
+                    self.paths['predictions'], fn + '_channel.pt')
+                torch.save(channel_pred, pred_fn)
 
             # Save prediction information
             all_fns.append(fn)

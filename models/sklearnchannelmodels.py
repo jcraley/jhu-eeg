@@ -38,11 +38,10 @@ class SklearnChannelMixin():
         return pred
 
     def predict(self, X):
-        X = X.to('cpu').numpy()
         T, C, F = X.shape
+        X = X.to('cpu').numpy()
         # Reshape as (TxC, F)
-        X = dataset.data.numpy()
-        X = X.reshape(-1, X.shape[2])
+        X = X.reshape(T*C, F)
         # Predict and reshape
         pred = self.model.predict(X)
         pred = pred.reshape(T, C, 2)
@@ -57,22 +56,20 @@ class SklearnChannelMixin():
         """Predict the channel based classifications
         """
         X = X.to('cpu').numpy()
-        T, C, F = X.shape()
+        T, C, F = X.shape
         # Reshape as (TxC, F)
-        X = dataset.data.numpy()
         X = X.reshape(-1, X.shape[2])
         # Predict and reshape
         pred = self.model.predict(X)
-        pred = pred.reshape(T, C)
+        pred = pred.reshape(T, C, 2)
         return pred
 
     def predict_channel_proba(self, X):
         """Predict the channel based classifications
         """
         X = X.to('cpu').numpy()
-        T, C, F = X.shape()
+        T, C, F = X.shape
         # Reshape as (TxC, F)
-        X = dataset.data.numpy()
         X = X.reshape(-1, X.shape[2])
         # Predict and reshape
         pred = self.model.predict_proba(X)
