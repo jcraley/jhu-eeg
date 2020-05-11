@@ -1,7 +1,7 @@
 import os
 import utils.output_tools as out
 import matplotlib
-matplotlib.use('Agg')
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
@@ -51,6 +51,7 @@ def visualize_history(history, fn):
 
     plt.savefig(fn)
 
+
 def plot_curves(xs, ys, labels, xlabel, ylabel, fn=None,
                 labelsize=16, legendsize=16, legend=True):
     """Plot curves"""
@@ -65,4 +66,3 @@ def plot_curves(xs, ys, labels, xlabel, ylabel, fn=None,
         plt.close()
     else:
         plt.show()
-    

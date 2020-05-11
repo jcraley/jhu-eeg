@@ -10,6 +10,7 @@ import utils.visualization as viz
 from utils.dataset import EpilepsyDataset
 
 from models.sklearnmodels import *
+from models.sklearnchannelmodels import *
 
 
 class Pipeline():
