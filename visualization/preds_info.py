@@ -3,7 +3,6 @@ import numpy as np
 
 class PredsInfo():
     """ Data structure for holding model and preprocessed data for prediction """
-
     def __init__(self):
         self.ready = 0
         self.model = []
@@ -21,6 +20,27 @@ class PredsInfo():
         self.plot_preds_preds = 0
         self.pred_width = 0 # width in samples of each prediction, must be an int
         self.pred_by_chn = 0
+
+    def write_data(self, pi2):
+        """
+        Writes data from pi2 into self.
+        """
+        self.ready = pi2.ready
+        self.model = pi2.model
+        self.data = pi2.data
+        self.model_preds = pi2.model_preds
+        self.preds = pi2.preds
+        self.preds_to_plot = pi2.preds_to_plot
+        self.model_fn = pi2.model_fn
+        self.data_fn = pi2.data_fn
+        self.preds_fn = pi2.preds_fn
+        self.model_loaded = pi2.model_loaded
+        self.data_loaded = pi2.data_loaded
+        self.preds_loaded = pi2.preds_loaded
+        self.plot_model_preds = pi2.plot_model_preds
+        self.plot_preds_preds = pi2.plot_preds_preds
+        self.pred_width = pi2.pred_width
+        self.pred_by_chn = pi2.pred_by_chn
 
     def set_data(self, data_fn):
         self.data = torch.load(data_fn)
@@ -46,7 +66,7 @@ class PredsInfo():
         except:
             pass
         preds = np.array(preds)
-        ret = self._check_preds_shape(preds,0, max_time, fs, nchns)
+        ret = self.check_preds_shape(preds, 0, max_time, fs, nchns)
         return ret
 
     def predict(self, max_time, fs, nchns):
@@ -67,10 +87,10 @@ class PredsInfo():
         except:
             return -2
 
-        ret = self._check_preds_shape(preds,1, max_time, fs, nchns)
+        ret = self.check_preds_shape(preds, 1, max_time, fs, nchns)
         return ret
 
-    def _check_preds_shape(self, preds, model_or_preds, max_time, fs, nchns):
+    def check_preds_shape(self, preds, model_or_preds, max_time, fs, nchns):
         """
         Checks whether the predictions are the proper size.
         Samples in the file must be an integer multiple of length.

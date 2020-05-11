@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog,QMenu,
                                 QVBoxLayout,QSizePolicy, QMessageBox, QWidget,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
                                 QSlider, QGridLayout, QDockWidget, QListWidget,
-                                QStatusBar)
+                                QStatusBar, QListWidgetItem)
 from PyQt5.QtGui import QIcon
 import matplotlib
 matplotlib.use("Qt5Agg")
@@ -18,8 +18,6 @@ from matplotlib.figure import Figure
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
-import time
 
 from preprocessing.edf_loader import *
 from montages import *
@@ -30,6 +28,8 @@ from preds_info import PredsInfo
 from pred_options import PredictionOptions
 from filter_info import FilterInfo
 from filter_options import FilterOptions
+from channel_options import ChannelOptions
+from channel_info import ChannelInfo
 
 class MainPage(QMainWindow):
 
@@ -46,7 +46,6 @@ class MainPage(QMainWindow):
         """
         Setup the UI
         """
-        #layout = QHBoxLayout()
         layout = QGridLayout()
         layout.setSpacing(10)
         grid_lt = QGridLayout()
@@ -54,28 +53,33 @@ class MainPage(QMainWindow):
         grid_lt.setSpacing(12)
         grid_rt.setSpacing(8)
 
-
+        # left side of the screen
         button = QPushButton('Select file', self)
         button.clicked.connect(self.load_data)
         button.setToolTip('Click to select EDF file')
         grid_lt.addWidget(button, 0, 0,1,2)
 
+        self.buttonChgSig = QPushButton("Change signals",self)
+        self.buttonChgSig.clicked.connect(self.chgSig)
+        self.buttonChgSig.setToolTip("Click to change signals")
+        grid_lt.addWidget(self.buttonChgSig, 1,1)
+
         self.cbox_filter = QCheckBox("Filter signals",self)
         self.cbox_filter.toggled.connect(self.filterChecked)
         self.cbox_filter.setToolTip("Click to filter")
-        grid_lt.addWidget(self.cbox_filter,1,0)
+        grid_lt.addWidget(self.cbox_filter,2,0)
 
         buttonChgFilt = QPushButton("Change Filter",self)
         buttonChgFilt.clicked.connect(self.changeFilter)
         buttonChgFilt.setToolTip("Click to change filter")
-        grid_lt.addWidget(buttonChgFilt,1,1)
+        grid_lt.addWidget(buttonChgFilt,2,1)
 
         test0= QLabel("",self)
-        grid_lt.addWidget(test0,2,0)
+        grid_lt.addWidget(test0,3,0)
 
         buttonPredict = QPushButton("Load model / predictions",self)
-        buttonPredict.clicked.connect(self.predict)
-        buttonPredict.setToolTip("Click to run data through model")
+        buttonPredict.clicked.connect(self.changePredictions)
+        buttonPredict.setToolTip("Click load data, models, and predictions")
         grid_lt.addWidget(buttonPredict,5,0,1,1)
 
         self.predLabel = QLabel("",self)
@@ -91,12 +95,12 @@ class MainPage(QMainWindow):
         self.threshSlider.setMinimum(0)
         self.threshSlider.setMaximum(100)
         self.threshSlider.setValue(50)
-        self.threshSlider.setTickPosition(QSlider.TicksBelow)
-        self.threshSlider.setTickInterval(5)
+        #self.threshSlider.setTickPosition(QSlider.TicksBelow)
+        #self.threshSlider.setTickInterval(5)
         self.threshSlider.sliderReleased.connect(self.changeThreshSlider)
         grid_lt.addWidget(self.threshSlider, 7,0,1,2)
 
-        test= QLabel("",self)
+        test = QLabel("",self)
         grid_lt.addWidget(test,8,0)
 
         labelAmp = QLabel("Change amplitude:",self)
@@ -135,7 +139,6 @@ class MainPage(QMainWindow):
         buttonSaveEDF.setToolTip("Click to save current signals to an .edf file")
         grid_lt.addWidget(buttonSaveEDF,14,0)
 
-
         # Right side of the screen
         self.m = PlotCanvas(self, width=5, height=5)
         grid_rt.addWidget(self.m,0,0,6,8)
@@ -144,16 +147,10 @@ class MainPage(QMainWindow):
         self.slider.setMinimum(0)
         self.slider.setMaximum(3000)
         self.slider.setValue(0)
-        self.slider.setTickPosition(QSlider.TicksBelow)
-        self.slider.setTickInterval(100)
+        # self.slider.setTickPosition(QSlider.TicksBelow)
+        # self.slider.setTickInterval(100)
         self.slider.sliderReleased.connect(self.valuechange)
         grid_rt.addWidget(self.slider, 6,0,1,8)
-
-        self.buttonChgMont = QPushButton("Change montage",self)
-        self.buttonChgMont.clicked.connect(self.chgMont)
-        self.buttonChgMont.setToolTip("Click to change montage")
-        self.buttonChgMont.hide()
-        grid_rt.addWidget(self.buttonChgMont, 7,0)
 
         buttonLt10s = QPushButton("<10",self)
         buttonLt10s.clicked.connect(self.leftPlot10s)
@@ -185,13 +182,14 @@ class MainPage(QMainWindow):
 
         # Annotation dock
         self.scroll = QDockWidget()
+        ann_title = QLabel("Annotations")
+        self.scroll.setTitleBarWidget(ann_title)
         self.ann_qlist = QListWidget()
         self.scroll.setWidget(self.ann_qlist)
         self.scroll.setFloating(False)
         self.addDockWidget(Qt.RightDockWidgetArea, self.scroll)
         self.scroll.hide()
         self.ann_qlist.itemClicked.connect(self.ann_clicked)
-
 
         wid = QWidget(self)
         self.setCentralWidget(wid)
@@ -210,15 +208,10 @@ class MainPage(QMainWindow):
         self.predicted = 0 # whether or not predictions have been made
         self.filter_win_open = 0 # whether or not filter options window is open
         self.preds_win_open = 0 # whether or not the predictions window is open
-
-        # Labels for both types of montages
-        self.labels = ["Notes","CZ-PZ","FZ-CZ","P4-O2","C4-P4","F4-C4","FP2-F4",
-                       "P3-O1","C3-P3","F3-C3","FP1-F3","P8-O2","T8-P8",
-                       "F8-T8","FP2-F8","P7-O1","T7-P7","F7-T7","FP1-F7",""]
-        self.labelsAR = ["Notes","O2","O1","PZ","CZ","FZ","P8","P7","T8","T7","F8",
-                        "F7","P4","P3","C4","C3","F4","F3","FP2","FP1"]
-
-        self.fi = FilterInfo()
+        self.chn_win_open = 0 # whether or not the channel selection window is open
+        self.max_time = 0 # number of seconds in the recording
+        self.pi = PredsInfo() # holds data needed to predict
+        self.ci = ChannelInfo() # holds channel information
 
         self.show()
 
@@ -227,11 +220,12 @@ class MainPage(QMainWindow):
         Called when the main window is closed to act as a destructor and close
         any window that is still open.
         """
-
         if self.filter_win_open:
             self.filter_ops.closeWindow()
         if self.preds_win_open:
             self.pred_ops.closeWindow()
+        if self.chn_win_open:
+            self.chn_ops.closeWindow()
         event.accept()
 
     def initGraph(self):
@@ -266,20 +260,14 @@ class MainPage(QMainWindow):
                 self.fi.do_notch = 0
 
         self.ylim = [150, 100]# [150,3] # reset scale of axis
-        self.predicted = 0 # whether or not predictions have been made
-        self.max_time = 0 # number of seconds in the recording
         self.window_size = 10 # number of seconds displayed at once
         self.count = 0 # current location in time
         self.ann_list = [] # list of annotations
         self.aspan_list = [] # list of lines on the axis from preds
-        self.pi = PredsInfo() # holds data needed to predict
-        self.ann_qlist.clear() # Clear annotations
-        self.populateAnnDock() # Add annotations if they exist
         self.predLabel.setText("") # reset text of predictions
-        self.buttonChgMont.hide()
-        self.plot_bipolar = 0
         self.thresh = 0.5 # threshold for plotting
         self.threshLblVal.setText("(threshold = " + str(self.thresh) + ")") # reset label
+        self.filteredData = [] # set filteredData
 
     def ann_clicked(self,item):
         """
@@ -321,12 +309,15 @@ class MainPage(QMainWindow):
         if self.predicted == 1:
             self.callmovePlot(0,0)
 
-    def chgMont(self):
+    def chgSig(self):
         """
-        Funtion to change between bipolar and average reference.
+        Funtion to open channel_options so users can change the signals being
+        plotted.
         """
-        self.plot_bipolar = not(self.plot_bipolar)
-        self.callmovePlot(0,0)
+        if self.init and not self.chn_win_open:
+            self.chn_win_open = 1
+            self.chn_ops = ChannelOptions(self.ci,self)
+            self.chn_ops.show()
 
     def save_to_edf(self):
         """
@@ -334,26 +325,21 @@ class MainPage(QMainWindow):
         """
         if self.init == 1:
             if self.filter_checked == 1:
-                if self.plot_bipolar == 1:
-                    dataToSave = filterData(self.montage_bipolar, self.edf_info.fs, self.fi)
-                else:
-                    dataToSave = filterData(self.montage, self.edf_info.fs, self.fi)
+                dataToSave = filterData(self.ci.data_to_plot, self.edf_info.fs, self.fi)
                 if self.fi.filter_canceled == 1:
                     self.fi.filter_canceled = 0
                     return
             else:
-                if self.plot_bipolar == 1:
-                    dataToSave = self.montage_bipolar
-                else:
-                    dataToSave = self.montage
+                dataToSave = self.ci.data_to_plot
             file = QFileDialog.getSaveFileName(self, 'Save File')
-            nchns = dataToSave.shape[0]
-            if nchns == 19:
-                labels = self.labelsAR
-            else:
-                labels = self.labels
+            nchns = self.ci.nchns_to_plot
+            labels = self.ci.labels_to_plot
 
             # if predictions, save them as well
+            if (self.predicted == 1 and len(self.pi.preds_to_plot.shape) > 1
+                    and self.pi.preds_to_plot.shape[1] != nchns):
+                self.predicted = 0
+
             if self.predicted == 1:
                 if self.pi.pred_by_chn:
                     savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns * 2)
@@ -420,77 +406,82 @@ class MainPage(QMainWindow):
         loads selected .edf file into edf_info and data
         data is initially unfiltered
         """
-        name = QFileDialog.getOpenFileName(self, 'Open File')
+        name = QFileDialog.getOpenFileName(self, 'Open file','.','EDF files (*.edf)')
 
         if name[0] == None or len(name[0]) == 0:
             return
-        name_len = len(name[0])
-        if name[0][name_len-4:] != ".edf":
-            self.throwAlert('Please select an .edf file')
         else:
             loader = EdfLoader()
             try:
-                self.edf_info = loader.load_metadata(name[0])
+                self.edf_info_temp = loader.load_metadata(name[0])
             except:
                 self.throwAlert("The .edf file is invalid.")
                 return
-            self.edf_info.annotations = np.array(self.edf_info.annotations)
+            self.edf_info_temp.annotations = np.array(self.edf_info_temp.annotations)
 
-            self.data = loader.load_buffers(self.edf_info)
-            data_for_preds = self.data
-            self.data = np.array(self.data)
-            if self.data.ndim == 1:
-                data_temp = np.zeros((self.data.shape[0],self.data[0].shape[0]))
-                for i in range(self.data.shape[0]):
+            self.data_temp = loader.load_buffers(self.edf_info_temp)
+            data_for_preds = self.data_temp
+            self.data_temp = np.array(self.data_temp)
+            if self.data_temp.ndim == 1:
+                data_temp = np.zeros((self.data_temp.shape[0],self.data_temp[0].shape[0]))
+                for i in range(self.data_temp.shape[0]):
                     try:
-                        if self.data[i].shape == self.data[0].shape:
-                            data_temp[i,:] = self.data[i]
+                        if self.data_temp[i].shape == self.data_temp[0].shape:
+                            data_temp[i,:] = self.data_temp[i]
                     except:
                         pass
-                self.data = data_temp
+                self.data_temp = data_temp
 
-            self.data = np.array(self.data)
-            edf_montages = EdfMontage(self.edf_info)
-            self.montage, fs_idx = edf_montages.reorder_data(self.data)
-            fs = self.edf_info.fs
+            self.data_temp = np.array(self.data_temp)
+            edf_montages = EdfMontage(self.edf_info_temp)
+            fs_idx = edf_montages.getIndexForFs(self.edf_info_temp.labels2chns)
+            fs = self.edf_info_temp.fs
             try:
                 fs = fs[fs_idx]
-                self.edf_info.fs = fs
+                self.edf_info_temp.fs = fs
             except:
                 pass
 
-            self.initGraph()
+            # setting temporary variables that will be overwritten if
+            # the user selects signals to plot
+            self.max_time_temp = int(self.data_temp.shape[1] / fs)
+            self.ci_temp = ChannelInfo() # holds channel information
+            self.ci_temp.chns2labels = self.edf_info_temp.chns2labels
+            self.ci_temp.labels2chns = self.edf_info_temp.labels2chns
+            self.ci_temp.fs = self.edf_info_temp.fs
+            self.ci_temp.max_time = self.max_time_temp
 
-            self.fi.fs = fs
-            self.max_time = int(self.data.shape[1] / fs)
-            self.slider.setMaximum(self.max_time - self.window_size)
-            self.threshSlider.setValue(self.thresh * 100)
+            self.chn_win_open = 1
+            self.chn_ops = ChannelOptions(self.ci_temp,self,data_for_preds)
+            self.chn_ops.show()
 
+    def callInitialMovePlot(self):
+        self.initGraph()
 
-            self.predicted = edf_montages.get_predictions(data_for_preds, self.pi, self.max_time, fs)
+        self.fi.fs = self.ci.fs
+        self.slider.setMaximum(self.max_time - self.window_size)
+        self.threshSlider.setValue(self.thresh * 100)
 
-            if self.predicted == 1:
-                self.predLabel.setText("Predictions plotted.")
-                self.pi.plot_preds_preds = 1
-                self.pi.preds_loaded = 1
-                self.pi.preds_fn = "loaded from edf file"
+        self.ann_qlist.clear() # Clear annotations
+        self.populateAnnDock() # Add annotations if they exist
 
-            if self.montage.shape[0] == 19:
-                self.montage_bipolar = edf_montages.get_bipolar_from_ar(self.montage)
-                self.buttonChgMont.show()
+        self.m.fig.clf()
+        self.ax = self.m.fig.add_subplot(self.m.gs[0])
 
-            self.m.fig.clf()
-            self.ax = self.m.fig.add_subplot(self.m.gs[0])
+        if self.filter_checked == 1:
+            self.movePlot(0,0,self.ylim[1],0)
+        else:
+            self.movePlot(0,0,self.ylim[0],0)
+        self.callmovePlot(1,0)
+        self.init = 1
+        ann = self.edf_info.annotations
+        if len(ann[0]) > 0 and ann[2][0] == "filtered":
+             self.cbox_filter.setChecked(True) # must be set after init = 1
 
-            if self.filter_checked == 1:
-                self.movePlot(0,0,self.ylim[1],0,0)
-            else:
-                self.movePlot(0,0,self.ylim[0],0,0)
-            self.callmovePlot(1,0)
-            self.init = 1
-            ann = self.edf_info.annotations
-            if len(ann[0]) > 0 and ann[2][0] == "filtered":
-                 self.cbox_filter.setChecked(True) # must be set after init = 1
+        if self.predicted == 1:
+            self.pi.plot_preds_preds = 1
+            self.pi.preds_loaded = 1
+            self.pi.preds_fn = "loaded from edf file"
 
     def rightPlot1s(self):
         self.callmovePlot(1,1)
@@ -553,11 +544,11 @@ class MainPage(QMainWindow):
         """
         if self.init == 1:
             if self.filter_checked == 1:
-                self.movePlot(right,num_move,self.ylim[1],print_graph,self.plot_bipolar)
+                self.movePlot(right,num_move,self.ylim[1],print_graph)
             else:
-                self.movePlot(right,num_move,self.ylim[0],print_graph,self.plot_bipolar)
+                self.movePlot(right,num_move,self.ylim[0],print_graph)
 
-    def movePlot(self, right, num_move, y_lim, print_graph, use_mont2):
+    def movePlot(self, right, num_move, y_lim, print_graph):
         """
         Function to shift the plot left and right
 
@@ -585,19 +576,18 @@ class MainPage(QMainWindow):
             stddev = np.std(plotData[:,self.count * fs:(self.count + 10) * fs])
             plotData[plotData > 3 * stddev] = 3 * stddev # float('nan') # clip amplitude
             plotData[plotData < -3 * stddev] = -3 * stddev
-        elif use_mont2 == 0:
-            plotData = np.zeros(self.montage.shape)
-            plotData += self.montage
         else:
-            plotData = np.zeros(self.montage_bipolar.shape)
-            plotData += self.montage_bipolar
+            plotData = np.zeros(self.ci.data_to_plot.shape)
+            plotData += self.ci.data_to_plot
 
-        nchns = plotData.shape[0]
+        nchns = self.ci.nchns_to_plot
         if self.predicted == 1:
             if len(self.pi.preds_to_plot.shape) > 1 and self.pi.preds_to_plot.shape[1] != nchns:
                 self.predLabel.setText("")
-        elif self.predicted == 1:
-            self.predLabel.setText("Predictions plotted.")
+            else:
+                self.predLabel.setText("Predictions plotted.")
+        else:
+            self.predLabel.setText("")
         # Clear plot
         del(self.ax.lines[:])
         for i, a in enumerate(self.ann_list):
@@ -607,29 +597,14 @@ class MainPage(QMainWindow):
             aspan.remove()
         self.aspan_list[:] = []
 
-        for i in range(plotData.shape[0]):
-            if plotData.shape[0] == 18:
-                if i < 2:
-                    col = 'g'
-                elif i < 6 or (i < 14 and i >= 10):
-                    col = 'b'
-                else:
-                    col = 'r'
-                self.ax.plot(plotData[i,self.count * fs:(self.count + 1) * fs*self.window_size] + (i + 1) * y_lim,'-',linewidth=0.5,color=col)
-                self.ax.set_ylim([-y_lim, y_lim*19])
-                self.ax.set_yticks(np.arange(0,20*y_lim,step=y_lim))
-                self.ax.set_yticklabels(self.labels, fontdict=None, minor=False)
+        for i in range(nchns):
+            self.ax.plot(plotData[i,self.count * fs:(self.count + 1) * fs*self.window_size]
+                            + (i + 1) * y_lim,'-',linewidth=0.5,color=self.ci.colors[i])
+            self.ax.set_ylim([-y_lim, y_lim * (nchns + 1)])
+            self.ax.set_yticks(np.arange(0,(nchns + 2)*y_lim,step=y_lim))
+            self.ax.set_yticklabels(self.ci.labels_to_plot, fontdict=None, minor=False)
 
-            else:
-                col = ['b','r','g','g','g','b','r','b','r','b','r','b','r','b',
-                        'r','b','r','b','r','b']
-                # average reference
-                self.ax.plot(plotData[i,self.count * fs:(self.count + 1) * fs*self.window_size] + i*y_lim + y_lim,'-',linewidth=0.5,color=col[i])
-                self.ax.set_ylim([-y_lim, y_lim*20])
-                self.ax.set_yticks(np.arange(0,21*y_lim,step=y_lim))
-                self.ax.set_yticklabels(self.labelsAR, fontdict=None, minor=False)
-
-            width = 1 / (plotData.shape[0] + 2)
+            width = 1 / (nchns + 2)
             if self.predicted == 1:
                 starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh, self.count, self.window_size, fs, nchns)
                 for k in range(len(starts)):
@@ -641,20 +616,11 @@ class MainPage(QMainWindow):
                             else:
                                 self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,
                                                         ymin=width*(i+1.5),ymax=width*(i+2.5),color='paleturquoise', alpha=1))
-                                x_vals = range(int(starts[k]) - self.count * fs,int(ends[k]) - self.count * fs)
-                                if plotData.shape[0] == 18:
-                                    self.ax.plot(x_vals,plotData[i,int(starts[k]):int(ends[k])] + i*y_lim + y_lim,
-                                                '-',linewidth=1,color=col)
-                                else:
-                                    self.ax.plot(x_vals,plotData[i,int(starts[k]):int(ends[k])] + i*y_lim + y_lim,
-                                                '-',linewidth=1,color=col[i])
-
+                            x_vals = range(int(starts[k]) - self.count * fs,int(ends[k]) - self.count * fs)
+                            self.ax.plot(x_vals,plotData[i,int(starts[k]):int(ends[k])] + i*y_lim + y_lim,
+                                            '-',linewidth=1,color=self.ci.colors[i])
                     else:
                         self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs,ends[k] - self.count * fs,color='paleturquoise', alpha=0.5))
-                #for k in range(self.window_size):
-                #    if self.pi.preds_to_plot[self.count + k] > self.thresh:
-                        # ax.axvspan(k * fs, (k + 1) * fs, ymin=0,ymax=0.5,color='paleturquoise', alpha=0.5)
-                #        self.aspan_list.append(self.ax.axvspan(k * fs, (k + 1) * fs,ymin=0.5,ymax=1,color='red', alpha=0.5))
 
         self.ax.set_xlim([0,self.edf_info.fs*self.window_size])
         step_size = self.edf_info.fs # Updating the x labels with scaling
@@ -718,7 +684,7 @@ class MainPage(QMainWindow):
                 self.filter_checked = 1
             else:
                 self.filter_checked = 0
-            # if data was already filtered it cannot be unfiltered
+            # if data was already filtered do not uncheck box
             ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
                 self.filter_checked = 1
@@ -732,12 +698,11 @@ class MainPage(QMainWindow):
         Does filtering for one window of size window_size
         """
         fs = self.edf_info.fs
-        if self.plot_bipolar == 0:
-            self.filteredData = np.zeros(self.montage.shape)
-            filt_window_size = filterData(self.montage[:,self.count * fs:(self.count + self.window_size)*fs],fs,self.fi)
-        else:
-            self.filteredData = np.zeros(self.montage_bipolar.shape)
-            filt_window_size = filterData(self.montage_bipolar[:,self.count * fs:(self.count + self.window_size)*fs],fs,self.fi)
+        if len(self.filteredData) == 0:
+            self.filteredData = np.zeros(self.ci.data_to_plot.shape)
+        elif self.filteredData.shape != self.ci.data_to_plot.shape:
+            self.filteredData = np.zeros(self.ci.data_to_plot.shape)
+        filt_window_size = filterData(self.ci.data_to_plot[:,self.count * fs:(self.count + self.window_size)*fs],fs,self.fi)
         filt_window_size = np.array(filt_window_size)
         self.filteredData[:,self.count * fs:(self.count + self.window_size)*fs] = filt_window_size
 
@@ -747,7 +712,7 @@ class MainPage(QMainWindow):
             self.filter_ops = FilterOptions(self.fi,self)
             self.filter_ops.show()
 
-    def predict(self):
+    def changePredictions(self):
         """
         Take loaded model and data and compute predictions
         """
@@ -761,9 +726,11 @@ class MainPage(QMainWindow):
         Throws an alert to the user.
         """
         alert = QMessageBox()
-        alert.setText(msg)
         alert.setIcon(QMessageBox.Information)
-        retval = alert.exec_()
+        alert.setText(msg)
+        # alert.setInformativeText(msg)
+        alert.setWindowTitle("Warning")
+        alert.exec_()
 
 class PlotCanvas(FigureCanvas):
 

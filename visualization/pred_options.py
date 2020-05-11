@@ -15,10 +15,7 @@ class PredictionOptions(QWidget):
         self.height = 200
         self.data = pi
         self.parent = parent
-        if self.parent.plot_bipolar == 0:
-            self.nchns = self.parent.montage.shape[0]
-        else:
-            self.nchns = self.parent.montage_bipolar.shape[0]
+        self.nchns = self.parent.ci.nchns_to_plot
         self.setupUI()
 
     def setupUI(self):
@@ -38,8 +35,16 @@ class PredictionOptions(QWidget):
         self.cbox_model = QCheckBox("Plot model predictions",self)
         self.cbox_model.toggled.connect(self.model_filterChecked)
         self.cbox_model.setToolTip("Click to plot model predictions")
+        model_preds_valid = 0
         if self.data.plot_model_preds == 1:
+            model_preds_valid = self.data.check_preds_shape(self.data.model_preds, 1,
+                                self.parent.max_time, self.parent.edf_info.fs, self.nchns)
+        if not model_preds_valid and self.data.plot_model_preds == 1:
             self.cbox_model.setChecked(True)
+        elif self.data.plot_model_preds == 1:
+            self.cbox_model.setChecked(False)
+            self.data.plot_model_preds = 0
+
         layout.addWidget(self.cbox_model,0,0)
 
         buttonLoadPtFile = QPushButton("Load preprocessed data",self)
@@ -64,8 +69,16 @@ class PredictionOptions(QWidget):
 
         self.cbox_preds.toggled.connect(self.preds_filterChecked)
         self.cbox_preds.setToolTip("Click to plot predictions from file")
+        preds_preds_valid = 0
         if self.data.plot_preds_preds == 1:
+            preds_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
+                                self.parent.max_time, self.parent.edf_info.fs, self.nchns)
+        if not preds_preds_valid and self.data.plot_preds_preds == 1:
             self.cbox_preds.setChecked(True)
+        elif self.data.plot_preds_preds == 1:
+            self.cbox_preds.setChecked(False)
+            self.data.plot_preds_preds = 0
+
         layout.addWidget(self.cbox_preds,2,0)
 
         buttonLoadPreds = QPushButton("Load predictions",self)
@@ -77,7 +90,6 @@ class PredictionOptions(QWidget):
         if self.data.preds_loaded == 1:
             self.labelLoadPreds.setText(self.data.preds_fn)
         layout.addWidget(self.labelLoadPreds,2,2)
-
 
         self.setLayout(layout)
 
@@ -98,7 +110,7 @@ class PredictionOptions(QWidget):
         if c.isChecked():
             if self.cbox_model.isChecked():
                 self.cbox_model.setChecked(False)
-                self.data.plot_model_preds = 1
+                self.data.plot_model_preds = 0
             self.data.plot_preds_preds = 1
         else:
             self.data.plot_preds_preds = 0
@@ -107,12 +119,9 @@ class PredictionOptions(QWidget):
         """
         Load data for prediction
         """
-        ptfile_fn = QFileDialog.getOpenFileName(self, 'Open torch file')
-        ptfile_len = len(ptfile_fn[0])
+        ptfile_fn = QFileDialog.getOpenFileName(self, 'Open file','.','Pytorch files (*.pt)')
         if ptfile_fn[0] == None or ptfile_len == 0:
             return
-        elif ptfile_fn[0][ptfile_len-3:] != ".pt":
-            self.parent.throwAlert('Please select a .pt file')
         else:
             if len(ptfile_fn[0].split('/')[-1]) < 18:
                 self.labelLoadPtFile.setText(ptfile_fn[0].split('/')[-1])
@@ -128,14 +137,9 @@ class PredictionOptions(QWidget):
         """
         Load model for prediction
         """
-        model_fn = QFileDialog.getOpenFileName(self, 'Open model')
-        if model_fn[0] == None:
+        model_fn = QFileDialog.getOpenFileName(self, 'Open model','.','Pytorch files (*.pt)')
+        if model_fn[0] == None or len(model_fn[0]) == 0:
             return
-        model_fn_len = len(model_fn[0])
-        if model_fn_len == 0:
-            return
-        elif model_fn[0][model_fn_len-3:] != ".pt":
-            self.parent.throwAlert('Please select a .pt file')
         else:
             if len(model_fn[0].split('/')[-1]) < 18:
                 self.labelLoadModel.setText(model_fn[0].split('/')[-1])
@@ -151,14 +155,9 @@ class PredictionOptions(QWidget):
         """
         Loads predictions
         """
-        preds_fn = QFileDialog.getOpenFileName(self, 'Open predictions')
-        if preds_fn[0] == None:
+        preds_fn = QFileDialog.getOpenFileName(self, 'Open predictions','.','Pytorch files (*.pt)')
+        if preds_fn[0] == None or len(preds_fn[0]) == 0:
             return
-        preds_fn_len = len(preds_fn[0])
-        if preds_fn_len == 0:
-            return
-        elif preds_fn[0][preds_fn_len-3:] != ".pt":
-            self.parent.throwAlert('Please select a .pt file')
         else:
             if self.data.set_preds(preds_fn[0], self.parent.max_time,self.parent.edf_info.fs,self.nchns) == -1:
                 self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
@@ -184,12 +183,17 @@ class PredictionOptions(QWidget):
             self.parent.throwAlert("You have not chosen to plot any predictions.")
             self.parent.callmovePlot(0,0,0)
         elif self.data.plot_preds_preds:
-            if self.data.preds_loaded:
+            preds_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
+                                    self.parent.max_time, self.parent.edf_info.fs, self.nchns)
+            if not preds_preds_valid and self.data.preds_loaded:
                 self.parent.predicted = 1
                 self.data.preds_to_plot = self.data.preds
                 self.parent.predLabel.setText("Predictions plotted.")
                 self.parent.callmovePlot(0,0,0)
                 self.closeWindow()
+            elif preds_preds_valid == -1:
+                self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
+                                "file you loaded or are the incorrect shape. Please check your file.")
             else:
                 self.parent.throwAlert("Please load predictions.")
         else:

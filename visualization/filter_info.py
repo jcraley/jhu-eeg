@@ -1,5 +1,5 @@
 class FilterInfo():
-    """ Data structure for holding model and preprocessed data for prediction """
+    """ Data structure for holding information for filtering """
 
     def __init__(self):
         self.fs = 0

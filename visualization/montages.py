@@ -90,7 +90,6 @@ class EdfMontage():
         """
         # print(self.eeg_info.labels2chns)
         mont = _check_montage(list(self.eeg_info.labels2chns.keys())[0],self.labels)
-        idx_0 = 0
         if mont == 1:
             self.nchns = 19
             self.montage_data = self.ar(data)
@@ -101,8 +100,7 @@ class EdfMontage():
                 edf_chn = _check_label(self.labels[chn],self.eeg_info.labels2chns)
                 if edf_chn != -1:
                     self.montage_data[chn,:] = data[edf_chn,:]
-                    idx_0 = edf_chn
-        return self.montage_data, idx_0
+        return self.montage_data
 
     def ar(self, data):
         """
@@ -139,6 +137,14 @@ class EdfMontage():
             idx1 = bip_idx[k,1]
             montage_bip[k,:] = ar_data[int(idx0),:] - ar_data[int(idx1),:]
         return montage_bip
+
+    def getIndexForFs(self, label_names):
+        idx = 0
+        for i in range(len(self.labelsAR)):
+            for k, v in label_names.items():
+                if k.find(self.labelsAR[i]) != -1:
+                    idx = v
+        return idx
 
     def get_predictions(self, data, pi, max_time, fs):
         """
