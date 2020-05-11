@@ -36,10 +36,10 @@ this is likely a path issue with python, and can be fixed using
 Features:
 -----
 ***EDF files:***  
-Average reference and longitudinal bipolar montages with the typical channel naming conventions are supported. Other channels in the edf file will not be plotted. 
+Average reference and longitudinal bipolar montages with the typical channel naming conventions are supported. Other channels can be plotted but will not be part of the montage. 
 
 ***Loading predictions:***  
-Predictions can be loaded as .pt files or using preprocessed data and a model (also saved as .pt files). In both cases, the output is expected to be of length (k * number of samples in the edf file). The second dimension can be either 1 or 2 if predictions are for all channels, or the number of channels for channel-wise predictions. For channel-wise predictions, it will be assumed that the channels are in the same order as are plotted in the visualizer. 
+Predictions can be loaded as pytorch (.pt) files or using preprocessed data and a model (also saved as .pt files). In both cases, the output is expected to be of length (k * number of samples in the edf file). The second dimension can be either 1 or 2 if predictions are for all channels, or the number of channels for channel-wise predictions. For channel-wise predictions, it will be assumed that the channels are in the same order as are plotted in the visualizer. 
 
 ***Saving to .edf:***  
-This will save the signals that are currently being plotted. If the signals are filtered and predictions are plotted, filtered signals will be saved and predictions will be saved as well.
+This will save the signals that are currently being plotted. If the signals are filtered and predictions are plotted, filtered signals will be saved and predictions will be saved as well. 
