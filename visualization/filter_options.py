@@ -100,6 +100,9 @@ class FilterOptions(QWidget):
             self.data.do_notch = 0
 
     def change(self):
+        """
+        Checks to make sure values are legal and updates the PredsInfo object
+        """
         hp = self.btnGetHP.value()
         lp = self.btnGetLP.value()
         if (lp > 0 and lp < self.data.fs / 2 and hp > 0 and hp < self.data.fs / 2):

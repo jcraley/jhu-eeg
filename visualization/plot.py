@@ -336,9 +336,9 @@ class MainPage(QMainWindow):
             labels = self.ci.labels_to_plot
 
             # if predictions, save them as well
-            if (self.predicted == 1 and len(self.pi.preds_to_plot.shape) > 1
+            """if (self.predicted == 1 and len(self.pi.preds_to_plot.shape) > 1
                     and self.pi.preds_to_plot.shape[1] != nchns):
-                self.predicted = 0
+                self.predicted = 0"""
 
             if self.predicted == 1:
                 if self.pi.pred_by_chn:
@@ -456,6 +456,9 @@ class MainPage(QMainWindow):
             self.chn_ops.show()
 
     def callInitialMovePlot(self):
+        """
+        Function called by channel_options when channels are loaded
+        """
         self.initGraph()
 
         self.fi.fs = self.ci.fs
@@ -526,6 +529,9 @@ class MainPage(QMainWindow):
                 self.callmovePlot(0,0)
 
     def getCount(self):
+        """
+        Used for the "jump to" button to update self.count to the user's input
+        """
         if self.init == 1:
             num,ok = QInputDialog.getInt(self,"integer input","enter a number",
                                             0,0,self.max_time)
@@ -556,7 +562,7 @@ class MainPage(QMainWindow):
             right -  0 for left, 1 for right
             num_move - integer in seconds to move by
             y_lim - the values for the y_limits of the plot
-
+            print_graph - whether or not to print a copy of the graph
         """
 
         fs = self.edf_info.fs
@@ -582,10 +588,10 @@ class MainPage(QMainWindow):
 
         nchns = self.ci.nchns_to_plot
         if self.predicted == 1:
-            if len(self.pi.preds_to_plot.shape) > 1 and self.pi.preds_to_plot.shape[1] != nchns:
+            """if len(self.pi.preds_to_plot.shape) > 1 and self.pi.preds_to_plot.shape[1] != nchns:
                 self.predLabel.setText("")
-            else:
-                self.predLabel.setText("Predictions plotted.")
+            else:"""
+            self.predLabel.setText("Predictions plotted.")
         else:
             self.predLabel.setText("")
         # Clear plot
@@ -707,6 +713,9 @@ class MainPage(QMainWindow):
         self.filteredData[:,self.count * fs:(self.count + self.window_size)*fs] = filt_window_size
 
     def changeFilter(self):
+        """
+        Opens the FilterOptions window
+        """
         if self.init == 1:
             self.filter_win_open = 1
             self.filter_ops = FilterOptions(self.fi,self)

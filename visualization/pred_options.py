@@ -35,11 +35,11 @@ class PredictionOptions(QWidget):
         self.cbox_model = QCheckBox("Plot model predictions",self)
         self.cbox_model.toggled.connect(self.model_filterChecked)
         self.cbox_model.setToolTip("Click to plot model predictions")
-        model_preds_valid = 0
+        #model_preds_valid = 0
+        #if self.data.plot_model_preds == 1:
+        #    model_preds_valid = self.data.check_preds_shape(self.data.model_preds, 1,
+        #                        self.parent.max_time, self.parent.edf_info.fs, self.nchns)
         if self.data.plot_model_preds == 1:
-            model_preds_valid = self.data.check_preds_shape(self.data.model_preds, 1,
-                                self.parent.max_time, self.parent.edf_info.fs, self.nchns)
-        if not model_preds_valid and self.data.plot_model_preds == 1:
             self.cbox_model.setChecked(True)
         elif self.data.plot_model_preds == 1:
             self.cbox_model.setChecked(False)
@@ -69,15 +69,15 @@ class PredictionOptions(QWidget):
 
         self.cbox_preds.toggled.connect(self.preds_filterChecked)
         self.cbox_preds.setToolTip("Click to plot predictions from file")
-        preds_preds_valid = 0
-        if self.data.plot_preds_preds == 1:
-            preds_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
-                                self.parent.max_time, self.parent.edf_info.fs, self.nchns)
-        if not preds_preds_valid and self.data.plot_preds_preds == 1:
+        #loaded_preds_valid = 0
+        #if self.data.plot_loaded_preds == 1:
+        #    loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
+        #                        self.parent.max_time, self.parent.edf_info.fs, self.nchns)
+        if self.data.plot_loaded_preds == 1:
             self.cbox_preds.setChecked(True)
-        elif self.data.plot_preds_preds == 1:
+        elif self.data.plot_loaded_preds == 1:
             self.cbox_preds.setChecked(False)
-            self.data.plot_preds_preds = 0
+            self.data.plot_loaded_preds = 0
 
         layout.addWidget(self.cbox_preds,2,0)
 
@@ -100,7 +100,7 @@ class PredictionOptions(QWidget):
         if c.isChecked():
             if self.cbox_preds.isChecked():
                 self.cbox_preds.setChecked(False)
-                self.data.plot_preds_preds = 0
+                self.data.plot_loaded_preds = 0
             self.data.plot_model_preds = 1
         else:
             self.data.plot_model_preds = 0
@@ -111,9 +111,9 @@ class PredictionOptions(QWidget):
             if self.cbox_model.isChecked():
                 self.cbox_model.setChecked(False)
                 self.data.plot_model_preds = 0
-            self.data.plot_preds_preds = 1
+            self.data.plot_loaded_preds = 1
         else:
-            self.data.plot_preds_preds = 0
+            self.data.plot_loaded_preds = 0
 
     def loadPtData(self):
         """
@@ -177,21 +177,21 @@ class PredictionOptions(QWidget):
         """
         Take loaded model and data and compute predictions
         """
-        if self.data.plot_preds_preds == 0 and self.data.plot_model_preds == 0:
+        if self.data.plot_loaded_preds == 0 and self.data.plot_model_preds == 0:
             self.parent.predicted = 0
             self.closeWindow()
             self.parent.throwAlert("You have not chosen to plot any predictions.")
             self.parent.callmovePlot(0,0,0)
-        elif self.data.plot_preds_preds:
-            preds_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
+        elif self.data.plot_loaded_preds:
+            loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
                                     self.parent.max_time, self.parent.edf_info.fs, self.nchns)
-            if not preds_preds_valid and self.data.preds_loaded:
+            if not loaded_preds_valid and self.data.preds_loaded:
                 self.parent.predicted = 1
                 self.data.preds_to_plot = self.data.preds
                 self.parent.predLabel.setText("Predictions plotted.")
                 self.parent.callmovePlot(0,0,0)
                 self.closeWindow()
-            elif preds_preds_valid == -1:
+            elif loaded_preds_valid == -1:
                 self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
                                 "file you loaded or are the incorrect shape. Please check your file.")
             else:

@@ -73,6 +73,9 @@ class ChannelInfo():
         self.pred_chn_data = []
 
     def write_data(self, ci2):
+        """
+        Writes data from ci2 into self
+        """
         self.chns2labels = ci2.chns2labels
         self.labels2chns = ci2.labels2chns
         self.fs = ci2.fs
@@ -240,7 +243,6 @@ class ChannelInfo():
                     self.data_to_plot[k,:] = data[int(idx0),:] - data[int(idx1),:]
                     self.labels_to_plot.append(self.labelsBIP[k])
                     self.colors.append(self.colorsBIP[k])
-                    # montage_bip[k,:] = ar_data[int(idx0),:] - ar_data[int(idx1),:]
                     c += 1
 
                 ar_idxs = self.getARchns() # clear these from the list
@@ -252,13 +254,6 @@ class ChannelInfo():
                         k += 1
                 self.nchns_to_plot = 18 + len(idxs)
 
-        # If nchns != len(predictions) do not plot predictions
-        if len(self.pred_chn_data) > 0:
-            if len(self.pred_chn_data.shape) > 1 and self.nchns_to_plot != self.pred_chn_data.shape[1]:
-                parent.predicted = 0
-            else:
-                parent.predicted = 1
-
         # Check for average reference / bipolar
         ar = 0
         for i in range(len(idxs)):
@@ -267,25 +262,19 @@ class ChannelInfo():
             elif self.convertedChnNames[idxs[i]] in self.labelsBIP:
                 bip = 1
         if bip:
-            for i in range(len(self.labelsBIP)):
-                k = 0
-                while k < len(idxs):
-                    if self.convertedChnNames[idxs[k]] == self.labelsBIP[i]:
-                        self.labels_to_plot.append(self.labelsBIP[i])
-                        self.colors.append(self.colorsBIP[i])
-                        self.data_to_plot[c,:] = data[idxs[k],:]
-                        c += 1
-                        idxs.pop(k)
-                        k = len(idxs)
-                    else:
-                        k += 1
+            labels = self.labelsBIP
+            colors = self.colorsBIP
         elif ar:
-            for i in range(len(self.labelsAR)):
+            labels = self.labelsAR
+            colors = self.colorsAR
+        # insert any data for the given montages
+        if bip or ar:
+            for i in range(len(labels)):
                 k = 0
                 while k < len(idxs):
-                    if self.convertedChnNames[idxs[k]] == self.labelsAR[i]:
-                        self.labels_to_plot.append(self.labelsAR[i])
-                        self.colors.append(self.colorsAR[i])
+                    if self.convertedChnNames[idxs[k]] == labels[i]:
+                        self.labels_to_plot.append(labels[i])
+                        self.colors.append(colors[i])
                         self.data_to_plot[c,:] = data[idxs[k],:]
                         c += 1
                         idxs.pop(k)
@@ -303,3 +292,7 @@ class ChannelInfo():
                 self.colors.insert(0,'g')
                 self.data_to_plot[c,:] = data[idxs[k],:]
                 c -= 1
+
+        # If nchns != len(predictions) do not plot predictions
+        set_predicted = parent.pi.updatePredicted(self.data_to_plot, parent.max_time, parent.predicted)
+        parent.predicted = set_predicted

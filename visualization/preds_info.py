@@ -4,22 +4,22 @@ import numpy as np
 class PredsInfo():
     """ Data structure for holding model and preprocessed data for prediction """
     def __init__(self):
-        self.ready = 0
-        self.model = []
-        self.data = []
-        self.model_preds = []
-        self.preds = []
-        self.preds_to_plot = []
-        self.model_fn = ""
-        self.data_fn = ""
-        self.preds_fn = ""
-        self.model_loaded = 0
-        self.data_loaded = 0
-        self.preds_loaded = 0
-        self.plot_model_preds = 0
-        self.plot_preds_preds = 0
+        self.ready = 0 # whether both model and data have been loaded
+        self.model = [] # loaded model
+        self.data = [] # loaded data for model
+        self.model_preds = [] # predictions from model/data
+        self.preds = [] # loaded predictions
+        self.preds_to_plot = [] # predictions that are to be plotted
+        self.model_fn = "" # name of the model file
+        self.data_fn = "" # name of the data file
+        self.preds_fn = "" # name of the loaded predictions file
+        self.model_loaded = 0 # if the model has been loaded
+        self.data_loaded = 0 # if the data has been loaded
+        self.preds_loaded = 0 # if the predictions have been loaded
+        self.plot_model_preds = 0 # whether or not to load model_preds into preds_to_plot
+        self.plot_loaded_preds = 0 # whether or not to load preds into preds_to_plot
         self.pred_width = 0 # width in samples of each prediction, must be an int
-        self.pred_by_chn = 0
+        self.pred_by_chn = 0 # whether or not we are predicting by channel
 
     def write_data(self, pi2):
         """
@@ -38,7 +38,7 @@ class PredsInfo():
         self.data_loaded = pi2.data_loaded
         self.preds_loaded = pi2.preds_loaded
         self.plot_model_preds = pi2.plot_model_preds
-        self.plot_preds_preds = pi2.plot_preds_preds
+        self.plot_loaded_preds = pi2.plot_loaded_preds
         self.pred_width = pi2.pred_width
         self.pred_by_chn = pi2.pred_by_chn
 
@@ -105,9 +105,18 @@ class PredsInfo():
             0 for sucess, -1 for incorrect length
         """
         # check size
-        dim = len(preds.shape)
         ret = -1
         self.pred_by_chn = 0 # reset
+        if len(preds.shape) == 3:
+            if preds.shape[0] == 2:
+                preds = preds[1,:,:]
+            elif preds.shape[1] == 2:
+                preds = preds[:,1,:]
+            elif preds.shape[2] == 2:
+                preds = preds[:,:,1]
+            if preds.shape[0] == 1 or preds.shape[1] == 1 or preds.shape[2] == 1:
+                preds = np.squeeze(preds)
+        dim = len(preds.shape)
         if dim == 1:
             if (fs * max_time) % preds.shape[0] == 0:
                 ret = 0
@@ -125,6 +134,11 @@ class PredsInfo():
                 elif preds.shape[1] == nchns:
                     self.pred_by_chn = 1
                     ret = 0
+            elif dim == 3:
+                if preds.shape[0] == nchns:
+                    preds = np.moveaxis(preds, (0,1),(1,0))
+                elif preds.shape[2] == nchns:
+                    pre
         if ret == 0:
             self.pred_width = fs * max_time / preds.shape[0]
             if model_or_preds: # model
@@ -194,3 +208,37 @@ class PredsInfo():
                     chns.append(chn_i)
             i += 1
         return starts, ends, chns
+
+    def updatePredicted(self, data, max_time, predicted):
+        """
+        Function used to update self.predicted from plot whenever new data
+        is loaded.
+
+        inputs:
+            data - the data used for plotting
+            predicted - the current value of predicted
+
+        returns:
+            1 for predicted = 1, 0 for predicted = 0
+        """
+        fs = data.shape[1] / max_time
+        nchns = data.shape[0]
+
+        if predicted:
+            # check if valid and set plot_model/loaded_preds to 0 if not
+            if self.plot_model_preds:
+                if ready:
+                    ret = self.predict(max_time, fs, nchns)
+                    if ret == 0:
+                        return 1
+                    else:
+                        self.plot_model_preds = 0
+                else:
+                    self.plot_model_preds = 0
+            elif self.plot_loaded_preds:
+                ret = self.check_preds_shape(self.preds,0,max_time,fs,nchns)
+                if ret == 0:
+                    return 1
+                else:
+                    self.plot_loaded_preds = 0
+        return 0

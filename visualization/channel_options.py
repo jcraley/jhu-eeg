@@ -89,6 +89,7 @@ class ChannelOptions(QWidget):
     def populateChnList(self):
         """
         Fills the list with all of the channels in the edf file.
+        PREDICTION channels are ignored and saved into self.pi
         """
         chns = self.data.chns2labels
         lbls = self.data.labels2chns
@@ -119,7 +120,10 @@ class ChannelOptions(QWidget):
                     self.pi.preds = self.data.pred_chn_data
                     self.pi.preds_to_plot = self.data.pred_chn_data
                     self.pi.preds_loaded = 1
+                    self.pi.plot_loaded_preds = 1
+                    self.pi.preds_fn = "loaded from .edf file"
                     self.pi.pred_width = (self.data.fs * self.data.max_time) / self.pi.preds.shape[0]
+                    self.parent.predicted = 1
 
             if len(self.data.list_of_chns) != 0:
                 for k in range(len(self.data.list_of_chns)):
@@ -136,15 +140,12 @@ class ChannelOptions(QWidget):
             for k in range(len(chns)):
                 if chns[k]:
                     self.chn_items[k].setSelected(True)
-                    #self.chn_items[k].setCheckState(Qt.Checked)
                 else:
                     self.chn_items[k].setSelected(False)
-                    #self.chn_items[k].setCheckState(Qt.Unchecked)
         else:
             for k in range(len(chns)):
                 if chns[k]:
                     self.chn_items[k].setSelected(False)
-                    #self.chn_items[k].setCheckState(Qt.Unchecked)
 
     def bipChecked(self):
         c = self.sender()
@@ -157,29 +158,23 @@ class ChannelOptions(QWidget):
                 for k in range(len(chns)):
                     if chns[k]:
                         self.chn_items[k].setSelected(True)
-                        #self.chn_items[k].setCheckState(Qt.Checked)
                     else:
                         self.chn_items[k].setSelected(False)
-                        #self.chn_items[k].setCheckState(Qt.Unchecked)
             else:
                 for k in range(len(chns)):
                     if chns[k]:
                         self.chn_items[k].setSelected(False)
-                        #self.chn_items[k].setCheckState(Qt.Unchecked)
         elif c.isChecked():
             # select all bipolar channels, deselect all others
             for k in range(len(chns)):
                 if chns[k]:
                     self.chn_items[k].setSelected(True)
-                    #self.chn_items[k].setCheckState(Qt.Checked)
                 else:
                     self.chn_items[k].setSelected(False)
-                    #self.chn_items[k].setCheckState(Qt.Unchecked)
         else:
             for k in range(len(chns)):
                 if chns[k]:
                     self.chn_items[k].setSelected(True)
-                    #self.chn_items[k].setCheckState(Qt.Unchecked)
 
     def overwriteTempInfo(self):
         """
@@ -200,8 +195,6 @@ class ChannelOptions(QWidget):
         self.parent.pi.write_data(self.pi)
         self.parent.ci.write_data(self.data)
         self.data = self.parent.ci
-        if len(self.parent.pi.preds_to_plot) == 0:
-            self.parent.predicted = 0
 
     def check(self):
         """
