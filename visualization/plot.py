@@ -419,11 +419,15 @@ class MainPage(QMainWindow):
                 return
             self.edf_info_temp.annotations = np.array(self.edf_info_temp.annotations)
 
+            edf_montages = EdfMontage(self.edf_info_temp)
+            fs_idx = edf_montages.getIndexForFs(self.edf_info_temp.labels2chns)
+
             self.data_temp = loader.load_buffers(self.edf_info_temp)
             data_for_preds = self.data_temp
             self.data_temp = np.array(self.data_temp)
+
             if self.data_temp.ndim == 1:
-                data_temp = np.zeros((self.data_temp.shape[0],self.data_temp[0].shape[0]))
+                data_temp = np.zeros((self.data_temp.shape[0],self.data_temp[fs_idx].shape[0]))
                 for i in range(self.data_temp.shape[0]):
                     try:
                         if self.data_temp[i].shape == self.data_temp[0].shape:
@@ -433,8 +437,6 @@ class MainPage(QMainWindow):
                 self.data_temp = data_temp
 
             self.data_temp = np.array(self.data_temp)
-            edf_montages = EdfMontage(self.edf_info_temp)
-            fs_idx = edf_montages.getIndexForFs(self.edf_info_temp.labels2chns)
             fs = self.edf_info_temp.fs
             try:
                 fs = fs[fs_idx]
