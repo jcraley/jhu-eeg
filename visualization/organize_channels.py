@@ -111,5 +111,6 @@ class OrganizeChannels(QWidget):
         """
         Called when the window is closed.
         """
+        self.parent.callInitialMovePlot()
         self.parent.organize_win_open = 0
         event.accept()

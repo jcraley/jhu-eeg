@@ -114,7 +114,7 @@ class PredsInfo():
                 preds = preds[:,1,:]
             elif preds.shape[2] == 2:
                 preds = preds[:,:,1]
-            if len(preds.shape) == 3 and preds.shape[0] == 1 or preds.shape[1] == 1 or preds.shape[2] == 1:
+            if len(preds.shape) == 3 and (preds.shape[0] == 1 or preds.shape[1] == 1 or preds.shape[2] == 1):
                 preds = np.squeeze(preds)
         dim = len(preds.shape)
         if dim == 1:
