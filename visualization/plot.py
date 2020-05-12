@@ -616,7 +616,7 @@ class MainPage(QMainWindow):
                             + (i + 1) * y_lim,'-',linewidth=0.5,color=self.ci.colors[i])
             self.ax.set_ylim([-y_lim, y_lim * (nchns + 1)])
             self.ax.set_yticks(np.arange(0,(nchns + 2)*y_lim,step=y_lim))
-            self.ax.set_yticklabels(self.ci.labels_to_plot, fontdict=None, minor=False)
+            self.ax.set_yticklabels(self.ci.labels_to_plot, fontdict=None, minor=False, fontsize=12)
 
             width = 1 / (nchns + 2)
             if self.predicted == 1:
@@ -646,7 +646,7 @@ class MainPage(QMainWindow):
             step_size = step_size * 3
             step_width = step_width * 3
         self.ax.set_xticks(np.arange(0, self.window_size*self.edf_info.fs + 1, step=step_size))
-        self.ax.set_xticklabels(np.arange(self.count, self.count + self.window_size + 1, step=step_width), fontdict=None, minor=False)
+        self.ax.set_xticklabels(np.arange(self.count, self.count + self.window_size + 1, step=step_width), fontdict=None, minor=False,fontsize=12)
         self.ax.set_xlabel("Time (s)")
 
         ann, idx_w_ann = checkAnnotations(self.count,self.window_size,self.edf_info)
