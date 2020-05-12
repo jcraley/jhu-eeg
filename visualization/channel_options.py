@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (QVBoxLayout, QMessageBox, QWidget, QListWidget,
 import numpy as np
 from preds_info import PredsInfo
 from channel_info import ChannelInfo
+from organize_channels import OrganizeChannels
 
 class ChannelOptions(QWidget):
     def __init__(self,data,parent,data_for_preds = []):
@@ -26,6 +27,7 @@ class ChannelOptions(QWidget):
             self.pi = parent.pi
         self.data = data
         self.parent = parent
+        self.organize_win_open = 0
         self.setupUI()
 
     def setupUI(self):
@@ -74,8 +76,12 @@ class ChannelOptions(QWidget):
         lbl = QLabel("")
         grid_lt.addWidget(lbl, 3,0)
 
+        btnOrganize = QPushButton('Organize', self)
+        btnOrganize.clicked.connect(self.organize)
+        grid_lt.addWidget(btnOrganize,4,0)
+
         btnExit = QPushButton('Ok', self)
-        btnExit.clicked.connect(self.check)
+        btnExit.clicked.connect(self.okayPressed)
         grid_lt.addWidget(btnExit,4,1)
 
         grid_rt.addWidget(self.scroll,0,1)
@@ -196,9 +202,24 @@ class ChannelOptions(QWidget):
         self.parent.ci.write_data(self.data)
         self.data = self.parent.ci
 
+    def organize(self):
+        """
+        Function to open the window to change signal order
+        """
+        if not self.parent.organize_win_open:
+            ret = self.check()
+            if ret == 0:
+                self.parent.organize_win_open = 1
+                self.parent.chn_org = OrganizeChannels(self.data, self.parent)
+                self.parent.chn_org.show()
+                self.closeWindow()
+
     def check(self):
         """
         Function to check the clicked channels and exit.
+
+        returns:
+            -1 if there are no selected channels, 0 otherwise
         """
         selectedListItems = self.chn_qlist.selectedItems()
         idxs = []
@@ -208,6 +229,7 @@ class ChannelOptions(QWidget):
                 idxs.append(self.data.labels2chns[self.data.chns2labels[k]])
         if len(idxs) == 0:
             self.parent.throwAlert("Please select channels to plot.")
+            return -1
         else:
             # Overwrite if needed, and prepare to plot
             if self.new_load:
@@ -217,6 +239,11 @@ class ChannelOptions(QWidget):
             if self.ar and self.cbox_bip.isChecked():
                 plot_bip_from_ar = 1
             self.data.prepareToPlot(idxs, data, self.parent, plot_bip_from_ar)
+        return 0
+
+    def okayPressed(self):
+        ret = self.check()
+        if ret == 0:
             self.parent.callInitialMovePlot()
             self.closeWindow()
 

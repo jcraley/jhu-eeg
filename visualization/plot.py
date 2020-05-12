@@ -209,6 +209,7 @@ class MainPage(QMainWindow):
         self.filter_win_open = 0 # whether or not filter options window is open
         self.preds_win_open = 0 # whether or not the predictions window is open
         self.chn_win_open = 0 # whether or not the channel selection window is open
+        self.organize_win_open = 0 # whether or not the signal organization window is open
         self.max_time = 0 # number of seconds in the recording
         self.pi = PredsInfo() # holds data needed to predict
         self.ci = ChannelInfo() # holds channel information
@@ -226,6 +227,8 @@ class MainPage(QMainWindow):
             self.pred_ops.closeWindow()
         if self.chn_win_open:
             self.chn_ops.closeWindow()
+        if self.organize_win_open:
+            self.chn_org.closeWindow()
         event.accept()
 
     def initGraph(self):

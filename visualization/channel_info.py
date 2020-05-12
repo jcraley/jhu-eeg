@@ -72,6 +72,9 @@ class ChannelInfo():
                             'r','b','r','b','r','b']
         self.pred_chn_data = []
 
+        self.labels_to_plot = []
+        self.nchns_to_plot = 0
+
     def write_data(self, ci2):
         """
         Writes data from ci2 into self
@@ -210,6 +213,29 @@ class ChannelInfo():
                 from average reference data
         """
         # Things needed to plot - reset each time
+        # see if channels are already loaded and ordered
+        ret = 1
+        self.nchns_to_plot = len(idxs)
+        if plot_bip_from_ar:
+            self.nchns_to_plot = len(idxs) - 1
+        if (plot_bip_from_ar and len(self.labels_to_plot) != 0
+                and len(self.labels_to_plot) == self.nchns_to_plot + 1):
+            if self.canDoAR_idx(idxs) and len(idxs) == 18:
+                for k in range(idxs):
+                    if not self.labelsBIP[k] in self.labels_to_plot:
+                        ret = 0
+        elif plot_bip_from_ar:
+            ret = 0
+
+        if (not plot_bip_from_ar and len(self.labels_to_plot) != 0
+                and len(self.labels_to_plot) == self.nchns_to_plot + 1):
+            for k in range(len(idxs)):
+                if not self.convertedChnNames[idxs[k]] in self.labels_to_plot:
+                    ret = 0
+        elif not plot_bip_from_ar:
+            ret = 0
+        if ret == 1: # already organized
+            return
         self.labels_to_plot = ["Notes"]
         self.colors = []
         self.data_to_plot = []
@@ -233,8 +259,11 @@ class ChannelInfo():
                 for k in range(18):
                     str0 = self.labelsBIP[k].split('-')[0]
                     str1 = self.labelsBIP[k].split('-')[1]
-                    idx0 = np.argmax(np.char.find(self.convertedChnNames,str0))
-                    idx1 = np.argmax(np.char.find(self.convertedChnNames,str1))
+                    for i, str in enumerate(self.convertedChnNames):
+                        if str == str0:
+                            idx0 = i
+                        if str == str1:
+                            idx1 = i
                     bip_idx[k,0] = idx0
                     bip_idx[k,1] = idx1
                 for k in range(18):

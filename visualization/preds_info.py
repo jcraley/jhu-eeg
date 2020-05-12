@@ -114,7 +114,7 @@ class PredsInfo():
                 preds = preds[:,1,:]
             elif preds.shape[2] == 2:
                 preds = preds[:,:,1]
-            if preds.shape[0] == 1 or preds.shape[1] == 1 or preds.shape[2] == 1:
+            if len(preds.shape) == 3 and preds.shape[0] == 1 or preds.shape[1] == 1 or preds.shape[2] == 1:
                 preds = np.squeeze(preds)
         dim = len(preds.shape)
         if dim == 1:
@@ -134,11 +134,6 @@ class PredsInfo():
                 elif preds.shape[1] == nchns:
                     self.pred_by_chn = 1
                     ret = 0
-            elif dim == 3:
-                if preds.shape[0] == nchns:
-                    preds = np.moveaxis(preds, (0,1),(1,0))
-                elif preds.shape[2] == nchns:
-                    pre
         if ret == 0:
             self.pred_width = fs * max_time / preds.shape[0]
             if model_or_preds: # model

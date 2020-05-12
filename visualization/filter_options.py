@@ -111,7 +111,7 @@ class FilterOptions(QWidget):
                     self.data.lp = self.btnGetLP.value()
                 if self.data.do_hp:
                     self.data.hp = self.btnGetHP.value()
-        if self.btnGetNotch.value() > self.data.hp and self.btnGetNotch.value() < self.data.lp:
+        if self.btnGetNotch.value() > 0 and self.btnGetNotch.value() < self.data.fs / 2:
             if self.data.do_notch:
                 self.data.notch = self.btnGetNotch.value()
         else:
