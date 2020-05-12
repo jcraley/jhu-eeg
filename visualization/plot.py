@@ -38,14 +38,17 @@ class MainPage(QMainWindow):
         self.left = 10
         self.top = 10
         self.title = 'EEG Visualization'
-        self.width = 1300
-        self.height = 1000
+        sizeObject = QtWidgets.QDesktopWidget().screenGeometry(-1)
+        # print(" Screen size : "  + str(sizeObject.height()) + "x"  + str(sizeObject.width()))
+        self.width = sizeObject.width()
+        self.height = sizeObject.height()
         self.initUI()
 
     def initUI(self):
         """
         Setup the UI
         """
+
         layout = QGridLayout()
         layout.setSpacing(10)
         grid_lt = QGridLayout()

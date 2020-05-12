@@ -11,8 +11,8 @@ class FilterOptions(QWidget):
         self.left = 10
         self.top = 10
         self.title = 'Filter Options'
-        self.width = 300
-        self.height = 300
+        self.width = parent.width / 5
+        self.height = parent.height / 4
         self.data = data
         self.parent = parent
         self.setupUI()

@@ -15,8 +15,8 @@ class ChannelOptions(QWidget):
         self.left = 10
         self.top = 10
         self.title = 'Select signals'
-        self.width = 100
-        self.height = 300
+        self.width = parent.width / 5
+        self.height = parent.height / 2.5
         self.unprocessed_data = data_for_preds
         # if loading new data make copies in case user cancels loading channels
         self.new_load = 0

@@ -13,8 +13,8 @@ class OrganizeChannels(QWidget):
         self.left = 10
         self.top = 10
         self.title = 'Organize signals'
-        self.width = 200
-        self.height = 400
+        self.width = parent.width / 6
+        self.height = parent.height / 2.5
         self.data = data
         self.parent = parent
         self.setupUI()

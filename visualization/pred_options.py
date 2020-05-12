@@ -11,8 +11,8 @@ class PredictionOptions(QWidget):
         self.left = 10
         self.top = 10
         self.title = 'Prediction Options'
-        self.width = 400
-        self.height = 200
+        self.width = parent.width / 3
+        self.height = parent.height / 4
         self.data = pi
         self.parent = parent
         self.nchns = self.parent.ci.nchns_to_plot
