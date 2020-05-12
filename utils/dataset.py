@@ -207,8 +207,8 @@ class EpilepsyDataset(Dataset):
                 start_idx, end_idx = self.sequence_indices[idx]
                 sample['buffers'] = self.data[start_idx:end_idx]
             else:
-                windowed_buffer = torch.zeros((self.buffer_windows[idx],
-                                               self.nchns, self.window_samples))
+                windowed_buffer = self.buffer_list[0].new_zeros(
+                    (self.buffer_windows[idx], self.nchns, self.window_samples))
                 for ii in range(self.buffer_windows[idx]):
                     start = ii * self.advance_samples
                     end = ii * self.advance_samples + self.window_samples

@@ -114,13 +114,19 @@ class Pipeline():
         all_preds = []
         all_labels = []
         all_fns = []
-        for file in dataset:
+        for seq in dataset:
             # Run and save predictions
-            fn = file['filename'].split('.')[0]
-            X = file['buffers']
+            fn = seq['filename'].split('.')[0]
+            X = seq['buffers']
             pred = self.model.predict_proba(X)
             pred_fn = os.path.join(self.paths['predictions'], fn + '.pt')
             torch.save(pred, pred_fn)
+
+            # Save prediction information
+            all_fns.append(fn)
+            all_preds.append(pred)
+            all_labels.append(seq['labels'].detach().cpu().numpy())
+            del pred
 
             # Save channel predictions
             if has_predict_by_channel:
@@ -128,11 +134,6 @@ class Pipeline():
                 pred_fn = os.path.join(
                     self.paths['predictions'], fn + '_channel.pt')
                 torch.save(channel_pred, pred_fn)
-
-            # Save prediction information
-            all_fns.append(fn)
-            all_preds.append(pred)
-            all_labels.append(file['labels'].detach().cpu().numpy())
 
         # If visualize, output pngs for each
         if visualize:
