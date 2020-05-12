@@ -15,8 +15,8 @@ class ChannelOptions(QWidget):
         self.left = 10
         self.top = 10
         self.title = 'Select signals'
-        self.width = 300
-        self.height = 400
+        self.width = 100
+        self.height = 300
         self.unprocessed_data = data_for_preds
         # if loading new data make copies in case user cancels loading channels
         self.new_load = 0
@@ -82,7 +82,7 @@ class ChannelOptions(QWidget):
 
         btnExit = QPushButton('Ok', self)
         btnExit.clicked.connect(self.okayPressed)
-        grid_lt.addWidget(btnExit,4,1)
+        grid_lt.addWidget(btnExit,5,0)
 
         grid_rt.addWidget(self.scroll,0,1)
 
