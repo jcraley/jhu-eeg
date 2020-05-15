@@ -34,14 +34,15 @@ def power(windowed_buffers, fs=200):
     return power_feature
 
 
-def fft(windowed_buffers, fs=200):
+def fft(windowed_buffers, fs=200, fs_max=30):
     """Take the fft"""
     t = windowed_buffers.size(2)
     window = scipy.signal.tukey(t)
-    t = windowed_buffers.size(2) // 2
+    freq = np.fft.fftfreq(t, d=1/fs)
+    idx = np.where((0 <= freq) * (freq <= fs_max))
     f = np.fft.fft(windowed_buffers.numpy()
-                   * window[np.newaxis, np.newaxis, :])[:, :, :t]
-    return torch.tensor(np.absolute(f), dtype=torch.float32)
+                   * window[np.newaxis, np.newaxis, :])[:, :, idx]
+    return torch.tensor(np.absolute(f[:, :, 0, :]), dtype=torch.float32)
 
 
 def linelength(windowed_buffers, fs=200):

@@ -1,19 +1,16 @@
-import csv
 import json
 import os
-import pickle
+import time
 
-import numpy as np
 import torch
 
 import utils.evaluation as evaluation
-import utils.output_tools as out
-import utils.pathmanager as pm
 import utils.read_files as read
-import utils.testconfiguration as tc
 import utils.visualization as viz
-from models.sklearnmodels import LogisticRegression
 from utils.dataset import EpilepsyDataset
+
+from models.sklearnmodels import *
+from models.sklearnchannelmodels import *
 
 
 class Pipeline():
@@ -43,8 +40,7 @@ class Pipeline():
             device = 'cpu'
         self.train_dataset = EpilepsyDataset(
             self.params['train manifest'],
-            self.paths['data'],
-            self.paths['labels'],
+            self.paths['buffers'],
             self.params['window length'],
             self.params['overlap'],
             device=device,
@@ -61,8 +57,7 @@ class Pipeline():
             device = 'cpu'
         self.val_dataset = EpilepsyDataset(
             self.params['val manifest'],
-            self.paths['data'],
-            self.paths['labels'],
+            self.paths['buffers'],
             self.params['window length'],
             self.params['overlap'],
             device=device,
@@ -79,9 +74,13 @@ class Pipeline():
 
     def train(self):
         # Train the model
+        print('Training')
+        start = time.time()
         self.model.fit(self.train_dataset)
         model_fn = os.path.join(self.paths['models'], 'model.pt')
         torch.save(self.model, model_fn)
+        end = time.time()
+        print('Training complete in {} seconds'.format(end-start))
 
     def load_model(self):
         self.model = torch.load(self.params['load model fn'])
@@ -104,14 +103,21 @@ class Pipeline():
                       figures_folder, results_folder):
         dataset.set_as_sequences(True)
 
+        # Check if model can score by channel
+        has_predict_by_channel = False
+        channel_wise_method = getattr(
+            self.model, "predict_channel_proba", None)
+        if callable(channel_wise_method):
+            has_predict_by_channel = True
+
         # Loop over dataset and score all
         all_preds = []
         all_labels = []
         all_fns = []
-        for file in dataset:
+        for seq in dataset:
             # Run and save predictions
-            fn = file['filename'].split('.')[0]
-            X = file['buffers']
+            fn = seq['filename'].split('.')[0]
+            X = seq['buffers']
             pred = self.model.predict_proba(X)
             pred_fn = os.path.join(self.paths['predictions'], fn + '.pt')
             torch.save(pred, pred_fn)
@@ -119,7 +125,15 @@ class Pipeline():
             # Save prediction information
             all_fns.append(fn)
             all_preds.append(pred)
-            all_labels.append(file['labels'].detach().cpu().numpy())
+            all_labels.append(seq['labels'].detach().cpu().numpy())
+            del pred
+
+            # Save channel predictions
+            if has_predict_by_channel:
+                channel_pred = self.model.predict_channel_proba(X)
+                pred_fn = os.path.join(
+                    self.paths['predictions'], fn + '_channel.pt')
+                torch.save(channel_pred, pred_fn)
 
         # If visualize, output pngs for each
         if visualize:
@@ -128,12 +142,12 @@ class Pipeline():
 
         print("Unsmoothed results")
         # Compute windowise statistics and write out
-        evaluation.iid_window_report(all_preds, all_labels, self.paths['results'],
-                                     prefix, '')
+        evaluation.iid_window_report(all_preds, all_labels,
+                                     self.paths['results'], prefix, '')
 
         # Score based on sequences
-        evaluation.sequence_report(all_fns, all_preds, all_labels, self.paths['results'],
-                                   prefix, '')
+        evaluation.sequence_report(all_fns, all_preds, all_labels,
+                                   self.paths['results'], prefix, '')
 
         # Check for smoothing and run if so
         if self.params['smoothing'] > 0:
@@ -146,9 +160,11 @@ class Pipeline():
                                 self.paths['figures'], prefix, '_smoothed')
 
             # Compute windowise statistics and write out
-            evaluation.iid_window_report(smoothed_preds, all_labels, self.paths['results'],
+            evaluation.iid_window_report(smoothed_preds, all_labels,
+                                         self.paths['results'],
                                          prefix, '_smoothed')
 
             # Score based on sequences
             evaluation.sequence_report(all_fns, smoothed_preds, all_labels,
-                                       self.paths['results'], prefix, '_smoothed')
+                                       self.paths['results'], prefix,
+                                       '_smoothed')
