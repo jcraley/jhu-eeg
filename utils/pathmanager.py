@@ -34,11 +34,12 @@ class PathManager():
         }
 
         # Initialize data specific folders
-        self.preprocessing_str = "lpf_fc{}_hpf_fc{}_notch{}_clip{}_normalize{}".format(
-            self.config_dict['lpf fc'], self.config_dict['hpf fc'],
-            self.config_dict['notch'], self.config_dict['clip level'],
-            self.config_dict['normalize']
-        )
+        self.preprocessing_str = (
+            "lpf_fc{}_hpf_fc{}_notch{}_clip{}_normalize{}".format(
+                self.config_dict['lpf fc'], self.config_dict['hpf fc'],
+                self.config_dict['notch'], self.config_dict['clip level'],
+                self.config_dict['normalize']
+            ))
         self.window_str = "window_length{}_overlap{}".format(
             self.config_dict['window length'], self.config_dict['overlap']
         )
