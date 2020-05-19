@@ -112,11 +112,11 @@ class ChannelOptions(QWidget):
         layout.addLayout(grid_rt,0,1)
         self.setLayout(layout)
 
-        if len(self.parent.argv) == 0:
-            self.show()
-        else:
+        if len(self.parent.argv) > 0:
             self.loadTxtFile(self.parent.argv_mont_fn)
             self.okayPressed()
+        #else:
+        #self.show()
 
     def populateChnList(self):
         """

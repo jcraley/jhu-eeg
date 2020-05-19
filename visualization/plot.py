@@ -226,7 +226,8 @@ class MainPage(QMainWindow):
             self.argv_count = self.argv[self.argv.index("-c") + 1]
             self.argv_save_fn = self.argv[self.argv.index("-s") + 1]
             self.load_data(fn)
-        self.show()
+        #else:
+        #self.show()
 
 
 
@@ -243,6 +244,7 @@ class MainPage(QMainWindow):
             self.chn_ops.closeWindow()
         if self.organize_win_open:
             self.chn_org.closeWindow()
+
         event.accept()
 
     def initGraph(self):
@@ -454,9 +456,10 @@ class MainPage(QMainWindow):
             self.ci_temp.fs = self.edf_info_temp.fs
             self.ci_temp.max_time = self.max_time_temp
 
-            self.chn_win_open = 1
             self.chn_ops = ChannelOptions(self.ci_temp,self,data_for_preds)
+            self.chn_win_open = 1
             if len(self.argv) == 0:
+                #self.chn_win_open = 1
                 self.chn_ops.show()
 
 
@@ -579,7 +582,6 @@ class MainPage(QMainWindow):
             self.predicted = 1
             self.pi.set_preds(self.argv_pred_fn, self.max_time, fs, self.ci.nchns_to_plot)
             self.pi.preds_to_plot = self.pi.preds
-            self.thresh = 0.1
 
         if right == 0 and self.count - num_move >= 0:
             self.count = self.count - num_move
@@ -684,6 +686,7 @@ class MainPage(QMainWindow):
             self.ax.figure.savefig(file[0] +".png",bbox_inches='tight')
         elif len(self.argv) > 0:
             self.ax.figure.savefig(print_fn,bbox_inches='tight')
+            self.close()
 
         self.m.draw()
 
