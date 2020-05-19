@@ -71,6 +71,10 @@ class ChannelInfo():
         self.colorsAR = ['b','r','g','g','g','b','r','b','r','b','r','b','r','b',
                             'r','b','r','b','r','b']
         self.pred_chn_data = []
+        self.labelsFromTxtFile = []
+        self.use_loaded_txt_file = 0
+        self.txtFile_fn = ""
+        self.organize = 0
 
         self.labels_to_plot = []
         self.nchns_to_plot = 0
@@ -83,6 +87,11 @@ class ChannelInfo():
         self.labels2chns = ci2.labels2chns
         self.fs = ci2.fs
         self.max_time = ci2.max_time
+
+        self.labelsFromTxtFile = ci2.labelsFromTxtFile
+        self.use_loaded_txt_file = ci2.use_loaded_txt_file
+        self.txtFile_fn = ci2.txtFile_fn
+        self.organize = ci2.organize
 
         self.total_nchns = ci2.total_nchns
         self.list_of_chns = ci2.list_of_chns
@@ -151,16 +160,16 @@ class ChannelInfo():
                 return ret
         return ret
 
-    def getARchns(self):
+    def getChns(self, labels):
         """
         returns:
-            A list of the indices of the average reference channels.
+            A list of the indices of the channels given labels.
             The list is of length total_nchns and has 1 where it is
-            a AR channel and 0 otherwise.
+            a channel in the list and 0 otherwise.
         """
         ret = []
         for i in range(len(self.convertedChnNames)):
-            if self.convertedChnNames[i] in self.labelsAR:
+            if self.convertedChnNames[i] in labels:
                 ret.append(1)
             else:
                 ret.append(0)
@@ -175,13 +184,11 @@ class ChannelInfo():
                             ret[i] = 0
         return ret
 
-    def getBIPchns(self):
-        """
-        returns:
-            A list of the indices of the bipolar channels.
-            The list is of length total_nchns and has 1 where it is
-            a bipolar channel and 0 otherwise.
-        """
+    """def getBIPchns(self):
+        #returns:
+        #    A list of the indices of the bipolar channels.
+        #    The list is of length total_nchns and has 1 where it is
+        #    a bipolar channel and 0 otherwise.
         ret = []
         for i in range(len(self.convertedChnNames)):
             if self.convertedChnNames[i] in self.labelsBIP:
@@ -197,7 +204,7 @@ class ChannelInfo():
                             ret[j] = 0
                         else:
                             ret[i] = 0
-        return ret
+        return ret"""
 
     def prepareToPlot(self, idxs, data, parent, plot_bip_from_ar = 0):
         """
@@ -234,8 +241,11 @@ class ChannelInfo():
                     ret = 0
         elif not plot_bip_from_ar:
             ret = 0
-        if ret == 1: # already organized
+        if ret == 1 and not self.use_loaded_txt_file and self.organize: # already organized
             return
+        if self.use_loaded_txt_file:
+            self.organize = 0
+
         self.labels_to_plot = ["Notes"]
         self.colors = []
         self.data_to_plot = []
@@ -248,7 +258,7 @@ class ChannelInfo():
         bip = 0
         self.nchns_to_plot = len(idxs)
         self.data_to_plot = np.zeros((self.nchns_to_plot, data.shape[1]))
-        if plot_bip_from_ar:
+        if plot_bip_from_ar and self.canDoAR_idx(idxs):
             self.data_to_plot = np.zeros((self.nchns_to_plot - 1, data.shape[1]))
         c = 0
 
@@ -274,7 +284,7 @@ class ChannelInfo():
                     self.colors.append(self.colorsBIP[k])
                     c += 1
 
-                ar_idxs = self.getARchns() # clear these from the list
+                ar_idxs = self.getChns(self.labelsAR) # clear these from the list
                 k = 0
                 while k < len(idxs):
                     if ar_idxs[idxs[k]]:
@@ -290,14 +300,30 @@ class ChannelInfo():
                 ar = 1
             elif self.convertedChnNames[idxs[i]] in self.labelsBIP:
                 bip = 1
-        if bip:
+        if self.use_loaded_txt_file:
+            labels = self.labelsFromTxtFile
+            colors = []
+            for i in range(len(labels)):
+                idx = -1
+                if ar:
+                    idx = self.labelsAR.index(labels[i])
+                    if idx != -1:
+                        colors.append(self.colorsAR[idx])
+                elif bip:
+                    idx = self.labelsBIP.index(labels[i])
+                    if idx != -1:
+                        colors.append(self.colorsBIP[idx])
+                elif idx == -1:
+                    colors.append('g')
+        elif bip:
             labels = self.labelsBIP
             colors = self.colorsBIP
         elif ar:
             labels = self.labelsAR
             colors = self.colorsAR
+
         # insert any data for the given montages
-        if bip or ar:
+        if bip or ar or self.use_loaded_txt_file:
             for i in range(len(labels)):
                 k = 0
                 while k < len(idxs):
@@ -323,5 +349,5 @@ class ChannelInfo():
                 c -= 1
 
         # If nchns != len(predictions) do not plot predictions
-        set_predicted = parent.pi.updatePredicted(self.data_to_plot, parent.max_time, parent.predicted)
-        parent.predicted = set_predicted
+        #set_predicted = parent.pi.updatePredicted(self.data_to_plot, parent.max_time, parent.predicted)
+        #parent.predicted = set_predicted

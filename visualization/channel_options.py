@@ -2,7 +2,8 @@ from PyQt5.QtCore import Qt
 
 from PyQt5.QtWidgets import (QVBoxLayout, QMessageBox, QWidget, QListWidget,
                                 QPushButton, QCheckBox, QLabel, QGridLayout,
-                                QScrollArea, QListWidgetItem, QAbstractItemView)
+                                QScrollArea, QListWidgetItem, QAbstractItemView,
+                                QFileDialog)
 
 import numpy as np
 from preds_info import PredsInfo
@@ -51,7 +52,7 @@ class ChannelOptions(QWidget):
         self.data.convertedChnNames = []
         self.data.convertChnNames()
         self.ar = self.data.canDoAR()
-        bip = self.data.canDoBIP()
+        self.bip = self.data.canDoBIP()
         self.data.total_nchns = len(self.data.chns2labels)
 
         self.setWindowTitle(self.title)
@@ -68,21 +69,42 @@ class ChannelOptions(QWidget):
             self.cbox_bip = QCheckBox("Bipolar",self)
             self.cbox_bip.toggled.connect(self.bipChecked)
             grid_lt.addWidget(self.cbox_bip,2,0)
-        elif bip:
+        elif self.bip:
             self.cbox_bip = QCheckBox("Bipolar",self)
             self.cbox_bip.toggled.connect(self.bipChecked)
-            grid_lt.addWidget(self.cbox_bip,2,0)
+            grid_lt.addWidget(self.cbox_bip,1,0)
+
+        self.cbox_txtfile = QCheckBox("",self)
+        self.cbox_txtfile.toggled.connect(self.txtFileChecked)
+        grid_lt.addWidget(self.cbox_txtfile,3,0)
+
+        self.btn_loadtxtfile = QPushButton("Load text file",self)
+        self.btn_loadtxtfile.clicked.connect(self.loadTxtFile)
+        grid_lt.addWidget(self.btn_loadtxtfile,3,0)
+
+        self.btn_cleartxtfile = QPushButton("Clear text file",self)
+        self.btn_cleartxtfile.clicked.connect(self.clearTxtFile)
+        self.btn_cleartxtfile.setVisible(0)
+        grid_lt.addWidget(self.btn_cleartxtfile,4,0)
+
+        if len(self.data.txtFile_fn) > 0:
+            if self.data.use_loaded_txt_file:
+                self.cbox_txtfile.setChecked(1)
+            self.btn_loadtxtfile.setVisible(0)
+            self.btn_cleartxtfile.setVisible(1)
+            self.cbox_txtfile.setVisible(1)
+            self.cbox_txtfile.setText(self.data.txtFile_fn)
 
         lbl = QLabel("")
-        grid_lt.addWidget(lbl, 3,0)
+        grid_lt.addWidget(lbl, 5,0)
 
         btnOrganize = QPushButton('Organize', self)
         btnOrganize.clicked.connect(self.organize)
-        grid_lt.addWidget(btnOrganize,4,0)
+        grid_lt.addWidget(btnOrganize,6,0)
 
         btnExit = QPushButton('Ok', self)
         btnExit.clicked.connect(self.okayPressed)
-        grid_lt.addWidget(btnExit,5,0)
+        grid_lt.addWidget(btnExit,7,0)
 
         grid_rt.addWidget(self.scroll,0,1)
 
@@ -90,7 +112,11 @@ class ChannelOptions(QWidget):
         layout.addLayout(grid_rt,0,1)
         self.setLayout(layout)
 
-        self.show()
+        if len(self.parent.argv) == 0:
+            self.show()
+        else:
+            self.loadTxtFile(self.parent.argv_mont_fn)
+            self.okayPressed()
 
     def populateChnList(self):
         """
@@ -111,6 +137,7 @@ class ChannelOptions(QWidget):
                     #self.chn_items[i].setCheckState(Qt.Unchecked)
                     self.chn_qlist.addItem(self.chn_items[i])
                 elif len(self.unprocessed_data) > 0:
+                    self.parent.predicted = 0
                     self.data.pred_chn_data.append(self.unprocessed_data[i])
                     lbls.pop(chns[i])
                     chns.pop(i)
@@ -138,49 +165,127 @@ class ChannelOptions(QWidget):
 
     def arChecked(self):
         c = self.sender()
-        chns = self.data.getARchns()
+        chns = self.data.getChns(self.data.labelsAR)
         if c.isChecked():
-            if self.cbox_bip.isChecked():
-                self.cbox_bip.setChecked(0)
+            self.cbox_txtfile.setChecked(0)
+            self.cbox_bip.setChecked(0)
             # select all AR channels, deselect all others
-            for k in range(len(chns)):
-                if chns[k]:
-                    self.chn_items[k].setSelected(True)
-                else:
-                    self.chn_items[k].setSelected(False)
+            self._selectChns(chns, 0)
         else:
-            for k in range(len(chns)):
-                if chns[k]:
-                    self.chn_items[k].setSelected(False)
+            self._selectChns(chns, 1)
 
     def bipChecked(self):
         c = self.sender()
-        chns = self.data.getBIPchns()
+        chns = self.data.getChns(self.data.labelsBIP)
         if self.ar:
-            chns = self.data.getARchns()
+            chns = self.data.getChns(self.data.labelsAR)
             if c.isChecked():
-                if self.cbox_ar.isChecked():
-                    self.cbox_ar.setChecked(0)
-                for k in range(len(chns)):
-                    if chns[k]:
-                        self.chn_items[k].setSelected(True)
-                    else:
-                        self.chn_items[k].setSelected(False)
+                self.cbox_ar.setChecked(0)
+                self.cbox_txtfile.setChecked(0)
+                self._selectChns(chns, 0)
             else:
-                for k in range(len(chns)):
-                    if chns[k]:
-                        self.chn_items[k].setSelected(False)
+                self._selectChns(chns, 1)
         elif c.isChecked():
+            self.cbox_txtfile.setChecked(0)
             # select all bipolar channels, deselect all others
+            self._selectChns(chns, 0)
+        else:
+            self._selectChns(chns, 1)
+
+    def txtFileChecked(self):
+        c = self.sender()
+        chns = self.data.getChns(self.data.labelsFromTxtFile)
+        if c.isChecked():
+            if self.ar:
+                self.cbox_ar.setChecked(0)
+                self.cbox_bip.setChecked(0)
+            if self.bip:
+                self.cbox_bip.setChecked(0)
+            self._selectChns(chns, 0)
+            self.data.use_loaded_txt_file = 1
+        else:
+            self._selectChns(chns, 1)
+            self.data.use_loaded_txt_file = 0
+
+    def _selectChns(self, chns, deselectOnly):
+        """
+        Selects given channels.
+
+        input:
+            deselectOnly - whether to only deselect given channels
+        """
+        if deselectOnly:
             for k in range(len(chns)):
                 if chns[k]:
-                    self.chn_items[k].setSelected(True)
-                else:
-                    self.chn_items[k].setSelected(False)
+                    self.chn_items[k].setSelected(0)
         else:
             for k in range(len(chns)):
                 if chns[k]:
-                    self.chn_items[k].setSelected(True)
+                    self.chn_items[k].setSelected(1)
+                else:
+                    self.chn_items[k].setSelected(0)
+
+    def loadTxtFile(self, name = ""):
+        if len(name) == 0:
+            name = QFileDialog.getOpenFileName(self, 'Open file','.','Text files (*.txt)')
+            name = name[0]
+        if name == None or len(name) == 0:
+            return
+        else:
+            if self._check_chns(name):
+                self.data.txtFile_fn = name.split('/')[-1]
+                if len(name.split('/')[-1]) > 15:
+                    self.data.txtFile_fn = name.split('/')[-1][0:15] + "..."
+                self.btn_loadtxtfile.setVisible(0)
+                self.btn_cleartxtfile.setVisible(1)
+                self.cbox_txtfile.setVisible(1)
+                self.cbox_txtfile.setChecked(1)
+                self.cbox_txtfile.setText(self.data.txtFile_fn)
+            else:
+                # throw error
+                self.parent.throwAlert("The channels in this file do not match"
+                    + " those of the .edf file you have loaded. Please check your file.")
+
+    def _check_chns(self, txt_fn):
+        """
+        Function to check that this file has the appropriate channel names.
+        Sets self.data.labelsFromTxtFile if valid.
+
+        inputs:
+            txt_fn: the file name to be loaded
+        returns:
+            1 for sucess, 0 for at least one of the channels was not found in
+            the .edf file
+        """
+        text_file = open(txt_fn, "r")
+        lines = text_file.readlines()
+        l = 0
+        while l < len(lines):
+            loc = lines[l].find("\n")
+            if loc != -1:
+                lines[l] = lines[l][0:loc]
+            if len(lines[l]) == 0:
+                lines.pop(l)
+            else:
+                l += 1
+        text_file.close()
+        ret = 1
+        for l in lines:
+            if not l in self.data.convertedChnNames:
+                ret = 0
+        if ret:
+            for i in range(len(lines)):
+                self.data.labelsFromTxtFile.append(lines[len(lines) - 1 - i])
+        return ret
+
+    def clearTxtFile(self):
+        # TODO
+        self.cbox_txtfile.setVisible(0)
+        self.btn_loadtxtfile.setVisible(1)
+        self.btn_cleartxtfile.setVisible(0)
+        self.cbox_txtfile.setChecked(0)
+        self.data.labelsFromTxtFile = []
+        self.data.txtFile_fn = ""
 
     def overwriteTempInfo(self):
         """
@@ -194,6 +299,7 @@ class ChannelOptions(QWidget):
             - parent.max_time
             - parent.pi
             - parent.ci
+            - parent.predicted
         """
         self.parent.edf_info = self.parent.edf_info_temp
         self.parent.data = self.parent.data_temp

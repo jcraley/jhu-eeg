@@ -33,8 +33,11 @@ from channel_info import ChannelInfo
 
 class MainPage(QMainWindow):
 
-    def __init__(self):
+    def __init__(self, argv):
         super().__init__()
+        if len(argv) >= 1:
+            argv.pop(0)
+        self.argv = argv
         self.left = 10
         self.top = 10
         self.title = 'EEG Visualization'
@@ -48,7 +51,6 @@ class MainPage(QMainWindow):
         """
         Setup the UI
         """
-
         layout = QGridLayout()
         layout.setSpacing(10)
         grid_lt = QGridLayout()
@@ -217,7 +219,16 @@ class MainPage(QMainWindow):
         self.pi = PredsInfo() # holds data needed to predict
         self.ci = ChannelInfo() # holds channel information
 
+        if len(self.argv) > 0:
+            fn = self.argv[self.argv.index("-f") + 1]
+            self.argv_pred_fn = self.argv[self.argv.index("-p") + 1]
+            self.argv_mont_fn = self.argv[self.argv.index("-m") + 1]
+            self.argv_count = self.argv[self.argv.index("-c") + 1]
+            self.argv_save_fn = self.argv[self.argv.index("-s") + 1]
+            self.load_data(fn)
         self.show()
+
+
 
     def closeEvent(self, event):
         """
@@ -405,54 +416,38 @@ class MainPage(QMainWindow):
 
             savedEDF.close()
 
-    def load_data(self):
+    def load_data(self, name=""):
         """
         Function to load in the data
 
         loads selected .edf file into edf_info and data
         data is initially unfiltered
         """
-        name = QFileDialog.getOpenFileName(self, 'Open file','.','EDF files (*.edf)')
+        if len(self.argv) == 0:
+            name = QFileDialog.getOpenFileName(self, 'Open file','.','EDF files (*.edf)')
+            name = name[0]
 
-        if name[0] == None or len(name[0]) == 0:
+        if name == None or len(name) == 0:
             return
         else:
             loader = EdfLoader()
             try:
-                self.edf_info_temp = loader.load_metadata(name[0])
+                self.edf_info_temp = loader.load_metadata(name)
             except:
                 self.throwAlert("The .edf file is invalid.")
                 return
             self.edf_info_temp.annotations = np.array(self.edf_info_temp.annotations)
 
             edf_montages = EdfMontage(self.edf_info_temp)
-            fs_idx = edf_montages.getIndexForFs(self.edf_info_temp.labels2chns)
+            # fs_idx = edf_montages.getIndexForFs(self.edf_info_temp.labels2chns)
 
             self.data_temp = loader.load_buffers(self.edf_info_temp)
             data_for_preds = self.data_temp
-            self.data_temp = np.array(self.data_temp)
-
-            if self.data_temp.ndim == 1:
-                data_temp = np.zeros((self.data_temp.shape[0],self.data_temp[fs_idx].shape[0]))
-                for i in range(self.data_temp.shape[0]):
-                    try:
-                        if self.data_temp[i].shape == self.data_temp[0].shape:
-                            data_temp[i,:] = self.data_temp[i]
-                    except:
-                        pass
-                self.data_temp = data_temp
-
-            self.data_temp = np.array(self.data_temp)
-            fs = self.edf_info_temp.fs
-            try:
-                fs = fs[fs_idx]
-                self.edf_info_temp.fs = fs
-            except:
-                pass
+            self.edf_info_temp.fs, self.data_temp = loadSignals(self.data_temp, self.edf_info_temp.fs)
 
             # setting temporary variables that will be overwritten if
             # the user selects signals to plot
-            self.max_time_temp = int(self.data_temp.shape[1] / fs)
+            self.max_time_temp = int(self.data_temp.shape[1] / self.edf_info_temp.fs)
             self.ci_temp = ChannelInfo() # holds channel information
             self.ci_temp.chns2labels = self.edf_info_temp.chns2labels
             self.ci_temp.labels2chns = self.edf_info_temp.labels2chns
@@ -461,7 +456,9 @@ class MainPage(QMainWindow):
 
             self.chn_win_open = 1
             self.chn_ops = ChannelOptions(self.ci_temp,self,data_for_preds)
-            self.chn_ops.show()
+            if len(self.argv) == 0:
+                self.chn_ops.show()
+
 
     def callInitialMovePlot(self):
         """
@@ -482,9 +479,13 @@ class MainPage(QMainWindow):
         if self.filter_checked == 1:
             self.movePlot(0,0,self.ylim[1],0)
         else:
-            self.movePlot(0,0,self.ylim[0],0)
+            if len(self.argv) > 0:
+                self.movePlot(0,0,self.ylim[0],0,self.argv_save_fn)
+            else:
+                self.movePlot(0,0,self.ylim[0],0)
         self.callmovePlot(1,0)
         self.init = 1
+
         ann = self.edf_info.annotations
         if len(ann[0]) > 0 and ann[2][0] == "filtered":
              self.cbox_filter.setChecked(True) # must be set after init = 1
@@ -562,7 +563,7 @@ class MainPage(QMainWindow):
             else:
                 self.movePlot(right,num_move,self.ylim[0],print_graph)
 
-    def movePlot(self, right, num_move, y_lim, print_graph):
+    def movePlot(self, right, num_move, y_lim, print_graph, print_fn =""):
         """
         Function to shift the plot left and right
 
@@ -572,8 +573,13 @@ class MainPage(QMainWindow):
             y_lim - the values for the y_limits of the plot
             print_graph - whether or not to print a copy of the graph
         """
-
         fs = self.edf_info.fs
+        if len(self.argv) > 0:
+            self.count = int(self.argv_count)
+            self.predicted = 1
+            self.pi.set_preds(self.argv_pred_fn, self.max_time, fs, self.ci.nchns_to_plot)
+            self.pi.preds_to_plot = self.pi.preds
+            self.thresh = 0.1
 
         if right == 0 and self.count - num_move >= 0:
             self.count = self.count - num_move
@@ -596,9 +602,6 @@ class MainPage(QMainWindow):
 
         nchns = self.ci.nchns_to_plot
         if self.predicted == 1:
-            """if len(self.pi.preds_to_plot.shape) > 1 and self.pi.preds_to_plot.shape[1] != nchns:
-                self.predLabel.setText("")
-            else:"""
             self.predLabel.setText("Predictions plotted.")
         else:
             self.predLabel.setText("")
@@ -620,7 +623,8 @@ class MainPage(QMainWindow):
 
             width = 1 / (nchns + 2)
             if self.predicted == 1:
-                starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh, self.count, self.window_size, fs, nchns)
+                starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh,
+                                            self.count, self.window_size, fs, nchns)
                 for k in range(len(starts)):
                     if self.pi.pred_by_chn:
                         if chns[k][i]:
@@ -678,6 +682,8 @@ class MainPage(QMainWindow):
         if print_graph == 1:
             file = QFileDialog.getSaveFileName(self, 'Save File')
             self.ax.figure.savefig(file[0] +".png",bbox_inches='tight')
+        elif len(self.argv) > 0:
+            self.ax.figure.savefig(print_fn,bbox_inches='tight')
 
         self.m.draw()
 
@@ -760,5 +766,5 @@ class PlotCanvas(FigureCanvas):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = MainPage()
+    ex = MainPage(sys.argv)
     sys.exit(app.exec_())

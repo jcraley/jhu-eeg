@@ -121,9 +121,7 @@ class PredsInfo():
             if (fs * max_time) % preds.shape[0] == 0:
                 ret = 0
         elif dim == 2:
-            if preds.shape[0] == nchns:
-                preds = preds.T
-            elif preds.shape[0] < preds.shape[1]:
+            if preds.shape[0] < preds.shape[1]:
                 preds = preds.T
             if (fs * max_time) % preds.shape[0] == 0:
                 if preds.shape[1] == 1:
@@ -131,7 +129,7 @@ class PredsInfo():
                 elif preds.shape[1] == 2:
                     preds = preds[:,1]
                     ret = 0
-                elif preds.shape[1] == nchns:
+                else:
                     self.pred_by_chn = 1
                     ret = 0
         if ret == 0:
@@ -169,8 +167,18 @@ class PredsInfo():
         start_pred_idx = 0
         end_pred_idx = 0
         pw = self.pred_width
-        if len(self.preds_to_plot.shape) > 1 and self.preds_to_plot.shape[1] != nchns:
-            return starts, ends, chns
+
+        if self.pred_by_chn:
+            preds_flipped = np.zeros(self.preds_to_plot.shape)
+            for i in range(preds_flipped.shape[1]):
+                preds_flipped[:,i] += self.preds_to_plot[:,self.preds_to_plot.shape[1] - i - 1]
+
+            preds_mutli_chn = np.zeros((self.preds_to_plot.shape[0], nchns))
+            if self.preds_to_plot.shape[1] >= nchns:
+                preds_mutli_chn += preds_flipped[:,self.preds_to_plot.shape[1] - nchns:]
+            else:
+                preds_mutli_chn[:,nchns - self.preds_to_plot.shape[1]:] += preds_flipped
+
         i = 0
         while i * pw < start_t: # find starting value
             i += 1
@@ -180,7 +188,7 @@ class PredsInfo():
                 starts.append(start_t)
                 ends.append((i + 1) * pw)
                 if self.pred_by_chn:
-                    chn_i = self.preds_to_plot[i] > thresh
+                    chn_i = preds_mutli_chn[i] > thresh
                     chns.append(chn_i)
             i += 1
         while i * pw < start_t: # find starting value
@@ -191,7 +199,7 @@ class PredsInfo():
                     starts.append(i * pw)
                     ends.append(end_t)
                     if self.pred_by_chn:
-                        chn_i = self.preds_to_plot[i] > thresh
+                        chn_i = preds_mutli_chn[i] > thresh
                         chns.append(chn_i)
                     self.preds_to_plot = temp
                     return starts, ends, chns
@@ -199,7 +207,7 @@ class PredsInfo():
                 starts.append(i * pw)
                 ends.append((i + 1) * pw)
                 if self.pred_by_chn:
-                    chn_i = self.preds_to_plot[i] > thresh
+                    chn_i = preds_mutli_chn[i] > thresh
                     chns.append(chn_i)
             i += 1
         return starts, ends, chns
@@ -216,7 +224,7 @@ class PredsInfo():
         returns:
             1 for predicted = 1, 0 for predicted = 0
         """
-        fs = data.shape[1] / max_time
+        """fs = data.shape[1] / max_time
         nchns = data.shape[0]
 
         if predicted:
@@ -235,5 +243,7 @@ class PredsInfo():
                 if ret == 0:
                     return 1
                 else:
-                    self.plot_loaded_preds = 0
+                    self.plot_loaded_preds = 0"""
+        if self.plot_model_preds or self.plot_loaded_preds:
+            return 1
         return 0

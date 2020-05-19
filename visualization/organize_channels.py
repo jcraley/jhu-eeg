@@ -70,6 +70,7 @@ class OrganizeChannels(QWidget):
         #lbls = self.data.labels2chns
         self.chn_items = []
         self.labels_flipped = []
+        self.data.organize = 1 # set that channels were organized
         if len(self.data.labels_to_plot) == 0:
             self.closeWindow()
         else:

@@ -120,7 +120,7 @@ class PredictionOptions(QWidget):
         Load data for prediction
         """
         ptfile_fn = QFileDialog.getOpenFileName(self, 'Open file','.','Pytorch files (*.pt)')
-        if ptfile_fn[0] == None or ptfile_len == 0:
+        if ptfile_fn[0] == None or len(ptfile_fn[0]) == 0:
             return
         else:
             if len(ptfile_fn[0].split('/')[-1]) < 18:
