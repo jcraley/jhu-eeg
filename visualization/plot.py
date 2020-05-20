@@ -79,7 +79,7 @@ class MainPage(QMainWindow):
         buttonChgFilt.setToolTip("Click to change filter")
         grid_lt.addWidget(buttonChgFilt,2,1)
 
-        test0= QLabel("",self)
+        test0 = QLabel("",self)
         grid_lt.addWidget(test0,3,0)
 
         buttonPredict = QPushButton("Load model / predictions",self)
