@@ -225,8 +225,8 @@ class MainPage(QMainWindow):
             self.argv_count = self.argv[self.argv.index("-c") + 1]
             self.argv_save_fn = self.argv[self.argv.index("-s") + 1]
             self.load_data(fn)
-        # else:
-        # self.show()
+        else:
+            self.show()
 
     def closeEvent(self, event):
         """
@@ -276,7 +276,7 @@ class MainPage(QMainWindow):
                 self.fi.do_notch = 0
 
         self.ylim = [150, 100]  # [150,3] # reset scale of axis
-        self.window_size = 10  # number of seconds displayed at once
+        self.window_size = 20  # number of seconds displayed at once
         self.count = 0  # current location in time
         self.ann_list = []  # list of annotations
         self.aspan_list = []  # list of lines on the axis from preds
@@ -792,5 +792,5 @@ class PlotCanvas(FigureCanvas):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = MainPage(sys.argv)
+    ex = MainPage(sys.argv[1:])
     sys.exit(app.exec_())
