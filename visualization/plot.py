@@ -1005,7 +1005,7 @@ class MainPage(QMainWindow):
         self.hist = pg.HistogramLUTItem()
         # Link the histogram to the image
         self.hist.setImageItem(self.img)
-        # If you don't add the histogram to the window, it stays invisible, but I find it useful.
+        # If you don't add the histogram to the window, it stays invisible
         self.specWidget.addItem(self.hist)
 
     def removeSpecPlot(self):
