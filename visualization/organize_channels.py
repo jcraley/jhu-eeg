@@ -21,9 +21,8 @@ class OrganizeChannels(QWidget):
 
     def setupUI(self):
 
-        layout = QGridLayout()
+        # layout = QGridLayout()
         grid_lt = QGridLayout()
-        grid_rt = QGridLayout()
 
         self.scroll = QScrollArea()
         self.scroll.setMinimumWidth(120)
@@ -56,9 +55,8 @@ class OrganizeChannels(QWidget):
 
         grid_lt.addWidget(self.scroll,1,0)
 
-        layout.addLayout(grid_lt,0,0)
-        layout.addLayout(grid_rt,0,1)
-        self.setLayout(layout)
+        # layout.addLayout(grid_lt,0,0)
+        self.setLayout(grid_lt)
 
         self.show()
 

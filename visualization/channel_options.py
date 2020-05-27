@@ -112,11 +112,14 @@ class ChannelOptions(QWidget):
         layout.addLayout(grid_rt,0,1)
         self.setLayout(layout)
 
-        if len(self.parent.argv) > 0:
+        if self.parent.argv.show and self.parent.argv.montage_file is None:
+            self.show()
+        elif not self.parent.argv.montage_file is None:
+            self.loadTxtFile(self.parent.argv.montage_file)
+            self.okayPressed()
+        else:
             self.loadTxtFile(self.parent.argv_mont_fn)
             self.okayPressed()
-        #else:
-        #self.show()
 
     def populateChnList(self):
         """
@@ -279,7 +282,6 @@ class ChannelOptions(QWidget):
         return ret
 
     def clearTxtFile(self):
-        # TODO
         self.cbox_txtfile.setVisible(0)
         self.btn_loadtxtfile.setVisible(1)
         self.btn_cleartxtfile.setVisible(0)
@@ -340,6 +342,9 @@ class ChannelOptions(QWidget):
             # Overwrite if needed, and prepare to plot
             if self.new_load:
                 self.overwriteTempInfo()
+                if self.parent.si.plotSpec:
+                    self.parent.si.plotSpec = 0
+                    self.parent.removeSpecPlot()
             data = self.parent.data
             plot_bip_from_ar = 0
             if self.ar and self.cbox_bip.isChecked():

@@ -66,9 +66,10 @@ class ChannelInfo():
                        "F8-T8","FP2-F8","P7-O1","T7-P7","F7-T7","FP1-F7"]
         self.labelsAR = ["O2","O1","PZ","CZ","FZ","P8","P7","T8","T7","F8",
                         "F7","P4","P3","C4","C3","F4","F3","FP2","FP1"]
-        self.colorsBIP = ['g','g','b','b','b','b','r','r','r','r','b','b','b',
+        g = '#1f8c45'
+        self.colorsBIP = [g, g,'b','b','b','b','r','r','r','r','b','b','b',
                             'b','r','r','r','r','r']
-        self.colorsAR = ['b','r','g','g','g','b','r','b','r','b','r','b','r','b',
+        self.colorsAR = ['b','r',g, g, g,'b','r','b','r','b','r','b','r','b',
                             'r','b','r','b','r','b']
         self.pred_chn_data = []
         self.labelsFromTxtFile = []
