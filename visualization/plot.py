@@ -1065,7 +1065,7 @@ def get_args():
                     help="The width of signals on the plot.")
     p.add_argument("--filter", nargs=3, type=float, default=[2,30,0],
                     help="Low pass, high pass, and notch frequencies. Set to 0 to turn off filter.")
-    p.add_argument("--show", type=int,required=True, choices=[0,1],
+    p.add_argument("--show", type=int, default=1 choices=[0,1],
                     help="Whether or not to show the GUI.")
 
     return p.parse_args()
