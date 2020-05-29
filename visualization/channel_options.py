@@ -117,9 +117,6 @@ class ChannelOptions(QWidget):
         elif not self.parent.argv.montage_file is None:
             self.loadTxtFile(self.parent.argv.montage_file)
             self.okayPressed()
-        else:
-            self.loadTxtFile(self.parent.argv_mont_fn)
-            self.okayPressed()
 
     def populateChnList(self):
         """
@@ -128,6 +125,9 @@ class ChannelOptions(QWidget):
         """
         chns = self.data.chns2labels
         lbls = self.data.labels2chns
+        self.data.pred_chn_data = []
+        if len(self.unprocessed_data) > 0: # reset predicted
+            self.parent.predicted = 0
         if len(chns) == 0:
             self.parent.throwAlert("There are no named channels in the file.")
             self.closeWindow()
@@ -140,7 +140,6 @@ class ChannelOptions(QWidget):
                     #self.chn_items[i].setCheckState(Qt.Unchecked)
                     self.chn_qlist.addItem(self.chn_items[i])
                 elif len(self.unprocessed_data) > 0:
-                    self.parent.predicted = 0
                     self.data.pred_chn_data.append(self.unprocessed_data[i])
                     lbls.pop(chns[i])
                     chns.pop(i)
@@ -229,7 +228,7 @@ class ChannelOptions(QWidget):
                     self.chn_items[k].setSelected(0)
 
     def loadTxtFile(self, name = ""):
-        if len(name) == 0:
+        if self.parent.argv.montage_file is None:
             name = QFileDialog.getOpenFileName(self, 'Open file','.','Text files (*.txt)')
             name = name[0]
         if name == None or len(name) == 0:

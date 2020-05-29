@@ -323,7 +323,6 @@ class MainPage(QMainWindow):
         """
         self.count = int(
             float(self.edf_info.annotations[0][self.ann_qlist.currentRow()]))
-        print("ann clicked")
         self.callmovePlot(0, 0)
 
     def populateAnnDock(self):
@@ -523,17 +522,16 @@ class MainPage(QMainWindow):
             self.movePlot(0, 0, self.ylim[1], 0)
         else:
             self.movePlot(0, 0, self.ylim[0], 0)
-        self.callmovePlot(1, 0)
         self.init = 1
 
         ann = self.edf_info.annotations
         if len(ann[0]) > 0 and ann[2][0] == "filtered":
             self.cbox_filter.setChecked(True)  # must be set after init = 1
 
-        if self.predicted == 1:
-            self.pi.plot_preds_preds = 1
-            self.pi.preds_loaded = 1
-            self.pi.preds_fn = "loaded from edf file"
+        #if self.predicted == 1:
+        #    self.pi.plot_preds_preds = 1
+        #    self.pi.preds_loaded = 1
+        #    self.pi.preds_fn = "loaded from edf file"
 
     def rightPlot1s(self):
         self.callmovePlot(1, 1)
@@ -576,13 +574,17 @@ class MainPage(QMainWindow):
                 self.window_size = self.window_size - 5
                 self.slider.setMaximum(self.max_time - self.window_size)
                 self.callmovePlot(0, 0)
+            else:
+                self.window_size = 1
+                self.callmovePlot(0, 0)
+
 
     def getCount(self):
         """
         Used for the "jump to" button to update self.count to the user's input
         """
         if self.init == 1:
-            num, ok = QInputDialog.getInt(self, "integer input", "enter a number",
+            num, ok = QInputDialog.getInt(self, "Jump to...", "Enter a time in seconds:",
                                           0, 0, self.max_time)
             if ok:
                 if num > self.max_time - self.window_size:
@@ -614,7 +616,6 @@ class MainPage(QMainWindow):
             print_graph - whether or not to print a copy of the graph
         """
         fs = self.edf_info.fs
-
         if not self.argv.predictions_file is None:
             self.predicted = 1
             self.pi.set_preds(self.argv.predictions_file, self.max_time,
@@ -744,7 +745,6 @@ class MainPage(QMainWindow):
 
         if not (len(self.plot_lines) > 0 and len(self.plot_lines) == nchns):
             self.plotWidget.clear()
-            print("clearing")
             self.plot_lines = []
             for i in range(nchns):
                 pen = pg.mkPen(color=self.ci.colors[i], width=1, style=QtCore.Qt.SolidLine)
@@ -761,19 +761,16 @@ class MainPage(QMainWindow):
         # add predictions
         if len(self.rect_list) > 0:
             for a in self.rect_list:
-                print("removing things")
                 self.plotWidget.removeItem(a)
             self.rect_list[:] = []
 
         width = 1 / (nchns + 2)
         if self.predicted == 1:
-            blueBrush = QBrush(QColor(38,233,254,127))
+            blueBrush = QBrush(QColor(38,233,254,50))
             starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh,
                                         self.count, self.window_size, fs, nchns)
-            print(starts)
             for k in range(len(starts)):
                 if self.pi.pred_by_chn:
-                    print("pred by channel")
                     for i in range(nchns):
                         if chns[k][i]:
                             if i == plotData.shape[0] - 1:
@@ -1013,7 +1010,6 @@ class MainPage(QMainWindow):
         Removes the spectrogram plot.
         """
         # TODO
-        print("removing widget")
         self.grid_rt.removeWidget(self.specWidget)
         self.specWidget.deleteLater()
 
@@ -1063,17 +1059,15 @@ def get_args():
     p.add_argument("--window-width", type=int, default=10,
                    choices=[5, 10, 15, 20, 25, 30],
                     help="The width of signals on the plot.")
-    p.add_argument("--filter", nargs=3, type=float, default=[2,30,0],
+    p.add_argument("--filter", nargs=3, type=float, default=[30,2,0],
                     help="Low pass, high pass, and notch frequencies. Set to 0 to turn off filter.")
-    p.add_argument("--show", type=int, default=1 choices=[0,1],
+    p.add_argument("--show", type=int, default=1, choices=[0,1],
                     help="Whether or not to show the GUI.")
 
     return p.parse_args()
 
 
 def check_args(args):
-    if not 'show' in set(dir(args)):
-        raise Exception(("--show must be specified"))
 
     mandatory_args = {'fn', 'montage_file', 'show'}
     if args.show == 0:
