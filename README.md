@@ -56,16 +56,21 @@ Command line options:
 We have added command line options to streamline use: 
 ```
 $ python visualization/plot.py --show {0 | 1} --fn [EDF_FILE] --montage-file [TXT_FILE] 
---predictions-file [PT_FILE] --export-png-file [PNG_FILE] --filter [LOW_PASS_FS] [HIGH_PASS_FS] [NOTCH_FS] 
---location [INT] --window-width {5 | 10 | 15 | 20 | 25 | 30}
+--predictions-file [PT_FILE] --filter [LOW_PASS_FS] [HIGH_PASS_FS] [NOTCH_FS] --location [INT] 
+--window-width {5 | 10 | 15 | 20 | 25 | 30} --export-png-file [PNG_FILE] --plot-title [TITLE]
+--print-annotations {0 | 1} --line-thickness [THICKNESS] --font-size [FONT_SIZE] 
 ```
 These options include:
 
 * Whether or not to show the visualizer
 * The .edf file to load
 * What montage to use
-* Predictions
-* Name of .png file to save the graph
+* Predictions to load
 * Filter specifications
 * Where in time to load the graph
 * How many seconds to show in the window
+* Name of .png file to save the graph
+    * The title of the saved graph
+    * Whether to show annotations on the saved graph
+    * Line thickness of the saved graph
+    * Font size for the saved graph
