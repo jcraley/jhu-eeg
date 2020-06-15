@@ -112,11 +112,11 @@ class ChannelOptions(QWidget):
         layout.addLayout(grid_rt,0,1)
         self.setLayout(layout)
 
-        if self.parent.argv.show and self.parent.argv.montage_file is None:
-            self.show()
-        elif not self.parent.argv.montage_file is None:
+        if (not self.parent.argv.montage_file is None) and self.parent.init == 0:
             self.loadTxtFile(self.parent.argv.montage_file)
             self.okayPressed()
+        else:
+            self.show()
 
     def populateChnList(self):
         """
@@ -259,7 +259,10 @@ class ChannelOptions(QWidget):
             1 for sucess, 0 for at least one of the channels was not found in
             the .edf file
         """
-        text_file = open(txt_fn, "r")
+        try:
+            text_file = open(txt_fn, "r")
+        except:
+            self.parent.throwAlert("The .txt file is invalid.")
         lines = text_file.readlines()
         l = 0
         while l < len(lines):

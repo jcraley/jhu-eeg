@@ -66,11 +66,24 @@ class ChannelInfo():
                        "F8-T8","FP2-F8","P7-O1","T7-P7","F7-T7","FP1-F7"]
         self.labelsAR = ["O2","O1","PZ","CZ","FZ","P8","P7","T8","T7","F8",
                         "F7","P4","P3","C4","C3","F4","F3","FP2","FP1"]
-        g = '#1f8c45'
-        self.colorsBIP = [g, g,'b','b','b','b','r','r','r','r','b','b','b',
-                            'b','r','r','r','r','r']
-        self.colorsAR = ['b','r',g, g, g,'b','r','b','r','b','r','b','r','b',
-                            'r','b','r','b','r','b']
+        self.otherLabels = ["T1","T2","A1","A2","FPZ","NZ","AF7","AF3","AFZ",
+                            "AF4","AF8","F9","F5","F1","F2","F6","F10","FT9",
+                            "FT7","FC5","FC3","FC1","FCZ","FC2","FC4","FC6",
+                            "FT8","FT10","T9","C5","C1","C2","C6","T10","TP9",
+                            "TP7","CP5","CP3","CP1","CPZ","CP2","CP4","CP6",
+                            "TP8","TP10","P9","P5","P1","P2","P6","P10","PO7",
+                            "PO3","POZ","PO4","PO8","OZ","LZ"]
+        self.g = '#1f8c45'
+        self.colorsBIP = [self.g, self.g,'b','b','b','b','r','r','r','r','b',
+                            'b','b','b','r','r','r','r','r']
+        self.colorsAR = ['b','r',self.g, self.g, self.g,'b','r','b','r','b',
+                            'r','b','r','b','r','b','r','b','r','b']
+        self.otherColors = ['r','b','r','b',self.g, self.g,'r','r',self.g,'b',
+                                'b','r','r','r','b','b','b','r','r','r','r','r',
+                                self.g,'b','b','b','b','b','r','r','r','b','b',
+                                'b','r','r','r','r','r',self.g,'b','b','b','b',
+                                'b','r','r','r','b','b','b','r','r',self.g,'b',
+                                'b',self.g,self.g]
         self.pred_chn_data = []
         self.labelsFromTxtFile = []
         self.use_loaded_txt_file = 0
@@ -117,6 +130,12 @@ class ChannelInfo():
             if ret != -1:
                 if self.convertedChnNames[ret] == "":
                     self.convertedChnNames[ret] = self.labelsAR[k]
+
+        for k in range(len(self.otherLabels)):
+            ret = _check_label(self.otherLabels[k],self.labels2chns)
+            if ret != -1:
+                if self.convertedChnNames[ret] == "":
+                    self.convertedChnNames[ret] = self.otherLabels[k]
 
         for k in range(len(self.convertedChnNames)):
             if self.convertedChnNames[k] == "":
@@ -184,28 +203,6 @@ class ChannelInfo():
                         else:
                             ret[i] = 0
         return ret
-
-    """def getBIPchns(self):
-        #returns:
-        #    A list of the indices of the bipolar channels.
-        #    The list is of length total_nchns and has 1 where it is
-        #    a bipolar channel and 0 otherwise.
-        ret = []
-        for i in range(len(self.convertedChnNames)):
-            if self.convertedChnNames[i] in self.labelsBIP:
-                ret.append(1)
-            else:
-                ret.append(0)
-        # Check for repeats
-        for i in range(len(ret)):
-            if ret[i]:
-                for j in range(len(ret)):
-                    if i != j and self.convertedChnNames[i] == self.convertedChnNames[j]:
-                        if j > i:
-                            ret[j] = 0
-                        else:
-                            ret[i] = 0
-        return ret"""
 
     def prepareToPlot(self, idxs, data, parent, plot_bip_from_ar = 0):
         """
@@ -315,7 +312,7 @@ class ChannelInfo():
                     if idx != -1:
                         colors.append(self.colorsBIP[idx])
                 elif idx == -1:
-                    colors.append('g')
+                    colors.append(self.g)
         elif bip:
             labels = self.labelsBIP
             colors = self.colorsBIP
@@ -345,7 +342,11 @@ class ChannelInfo():
             c = len(idxs) - 1
             for k in range(len(idxs)):
                 self.labels_to_plot.insert(1,self.convertedChnNames[idxs[k]])
-                self.colors.insert(0,'g')
+                if self.convertedChnNames[idxs[k]] in self.otherLabels:
+                    i = self.otherLabels.index(self.convertedChnNames[idxs[k]])
+                    self.colors.insert(0,self.otherColors[i])
+                else:
+                    self.colors.insert(0,self.g)
                 self.data_to_plot[c,:] = data[idxs[k],:]
                 c -= 1
 

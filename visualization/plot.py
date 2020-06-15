@@ -6,6 +6,8 @@ from pred_options import PredictionOptions
 from preds_info import PredsInfo
 from spec_options import SpecOptions
 from spec_info import SpecInfo
+from saveImg_info import SaveImgInfo
+from saveImg_options import SaveImgOptions
 
 import pyedflib
 from plot_utils import *
@@ -20,13 +22,14 @@ from matplotlib.backends.backend_qt5agg import (
 from matplotlib.backends.qt_compat import QtCore, QtWidgets
 import sys
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTime
 
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog, QMenu,
                              QVBoxLayout, QSizePolicy, QMessageBox, QWidget,
                              QPushButton, QCheckBox, QLabel, QInputDialog,
                              QSlider, QGridLayout, QDockWidget, QListWidget,
-                             QStatusBar, QListWidgetItem)
+                             QStatusBar, QListWidgetItem, QLineEdit, QSpinBox,
+                             QTimeEdit)
 from PyQt5.QtGui import QIcon, QBrush, QColor, QPen, QFont
 import pyqtgraph as pg
 import pyqtgraph.exporters
@@ -36,11 +39,14 @@ import matplotlib
 matplotlib.use("Qt5Agg")
 
 import argparse as ap
+from copy import deepcopy
+import os.path
+from os import path
 
 
 class MainPage(QMainWindow):
 
-    def __init__(self, argv):
+    def __init__(self, argv, app):
         super().__init__()
         self.argv = argv
         self.left = 10
@@ -50,6 +56,7 @@ class MainPage(QMainWindow):
         # print(" Screen size : "  + str(sizeObject.height()) + "x"  + str(sizeObject.width()))
         self.width = sizeObject.width() * 0.9
         self.height = sizeObject.height() * 0.9
+        self.app = app
         self.initUI()
 
     def initUI(self):
@@ -118,51 +125,64 @@ class MainPage(QMainWindow):
         test = QLabel("", self)
         grid_lt.addWidget(test, 8, 0)
 
+        self.btnZoom = QPushButton("Open zoom", self)
+        self.btnZoom.clicked.connect(self.openZoomPlot)
+        self.btnZoom.setToolTip("Click to open the zoom window")
+        grid_lt.addWidget(self.btnZoom, 9, 0)
+
         labelAmp = QLabel("Change amplitude:", self)
-        grid_lt.addWidget(labelAmp, 9, 0)
+        grid_lt.addWidget(labelAmp, 10, 0)
 
         buttonAmpInc = QPushButton("+", self)
         buttonAmpInc.clicked.connect(self.incAmp)
         buttonAmpInc.setToolTip("Click to increase signal amplitude")
-        grid_lt.addWidget(buttonAmpInc, 9, 1)
+        grid_lt.addWidget(buttonAmpInc, 10, 1)
 
         buttonAmpDec = QPushButton("-", self)
         buttonAmpDec.clicked.connect(self.decAmp)
         buttonAmpDec.setToolTip("Click to decrease signal amplitude")
-        grid_lt.addWidget(buttonAmpDec, 10, 1)
+        grid_lt.addWidget(buttonAmpDec, 11, 1)
 
         labelWS = QLabel("Change window size:", self)
-        grid_lt.addWidget(labelWS, 11, 0)
+        grid_lt.addWidget(labelWS, 12, 0)
 
         buttonWSInc = QPushButton("+", self)
         buttonWSInc.clicked.connect(self.incWindow_size)
         buttonWSInc.setToolTip("Click to increase amount of seconds plotted")
-        grid_lt.addWidget(buttonWSInc, 11, 1)
+        grid_lt.addWidget(buttonWSInc, 12, 1)
 
         buttonWSDec = QPushButton("-", self)
         buttonWSDec.clicked.connect(self.decWindow_size)
         buttonWSDec.setToolTip("Click to decrease amount of seconds plotted")
-        grid_lt.addWidget(buttonWSDec, 12, 1)
+        grid_lt.addWidget(buttonWSDec, 13, 1)
 
         buttonPrint = QPushButton("Export to .png", self)
         buttonPrint.clicked.connect(self.print_graph)
         buttonPrint.setToolTip("Click to print a copy of the graph")
-        grid_lt.addWidget(buttonPrint, 13, 0)
+        grid_lt.addWidget(buttonPrint, 14, 0)
 
         buttonSaveEDF = QPushButton("Save to .edf", self)
         buttonSaveEDF.clicked.connect(self.save_to_edf)
         buttonSaveEDF.setToolTip(
             "Click to save current signals to an .edf file")
-        grid_lt.addWidget(buttonSaveEDF, 14, 0)
+        grid_lt.addWidget(buttonSaveEDF, 15, 0)
 
         # Right side of the screen
         # self.m = PlotCanvas(self, width=5, height=5)
         # self.grid_rt.addWidget(self.m, 0, 0, 6, 8)
-        self.plotWidget = pg.PlotWidget(name='MainPlot')
-        self.plotWidget.setMouseEnabled(x=False, y=False)
-        self.plotWidget.setBackground('w')
-        self.grid_rt.addWidget(self.plotWidget,0,0,2,8)
-        # self.p1 = pg.plot()
+        #self.plotWidget = pg.PlotWidget(name='MainPlot')
+        #self.plotWidget.setMouseEnabled(x=False, y=False)
+        #self.plotWidget.setBackground('w')
+        #self.grid_rt.addWidget(self.plotWidget,0,0,2,8)
+        self.plotLayout = pg.GraphicsLayoutWidget()
+        self.mainPlot = self.plotLayout.addPlot(row=0, col=0)
+        self.mainPlot.setMouseEnabled(x=False, y=False)
+        self.plotLayout.setBackground('w')
+        self.grid_rt.addWidget(self.plotLayout,0,0,6,8)
+
+        #self.specWidget = pg.GraphicsLayoutWidget()
+        #self.specWidget.setBackground('w')
+        #self.grid_rt.addWidget(self.specWidget,0,0,2,8)
 
         self.slider = QSlider(Qt.Horizontal, self)
         self.slider.setMinimum(0)
@@ -172,6 +192,12 @@ class MainPage(QMainWindow):
         # self.slider.setTickInterval(100)
         self.slider.sliderReleased.connect(self.valuechange)
         self.grid_rt.addWidget(self.slider, 6, 0, 1, 8)
+
+        self.btnOpenAnnDock = QPushButton("Add annotations", self)
+        self.btnOpenAnnDock.clicked.connect(self.openAnnDock)
+        self.btnOpenAnnDock.setToolTip("Click to open annotations dock")
+        self.grid_rt.addWidget(self.btnOpenAnnDock, 7, 0)
+        self.btnOpenAnnDock.hide()
 
         buttonLt10s = QPushButton("<10", self)
         buttonLt10s.clicked.connect(self.leftPlot10s)
@@ -203,14 +229,63 @@ class MainPage(QMainWindow):
 
         # Annotation dock
         self.scroll = QDockWidget()
-        ann_title = QLabel("Annotations")
-        self.scroll.setTitleBarWidget(ann_title)
+        #ann_title = QLabel("Annotations")
+        #self.scroll.setTitleBarWidget(ann_title)
+        self.btnOpenEditAnn = QPushButton("Open annotation editor", self)
+        self.btnOpenEditAnn.clicked.connect(self.openAnnEditor)
+        self.btnOpenEditAnn.setToolTip("Click to open annotation editor")
+        self.scroll.setTitleBarWidget(self.btnOpenEditAnn)
         self.ann_qlist = QListWidget()
         self.scroll.setWidget(self.ann_qlist)
         self.scroll.setFloating(False)
         self.addDockWidget(Qt.RightDockWidgetArea, self.scroll)
         self.scroll.hide()
         self.ann_qlist.itemClicked.connect(self.ann_clicked)
+
+        # Annotation editor dock
+        self.annEditDock = QDockWidget()
+        self.annEditDock.setTitleBarWidget(QLabel("Annotation editor"))
+        self.annEditMainWidget = QWidget()
+        self.annEditLayout = QGridLayout()
+        annTxtLabel = QLabel("Text: ", self)
+        annTimeLabel = QLabel("Time: ", self)
+        annDurationLabel = QLabel("Duration: ", self)
+        self.annTxtEdit = QLineEdit(self)
+        self.annTimeEditTime = QTimeEdit(self)
+        self.annTimeEditTime.setMinimumTime(QTime(0,0,0))
+        self.annTimeEditTime.setDisplayFormat("hh:mm:ss")
+        self.annTimeEditTime.timeChanged.connect(self.updateCountTime)
+        self.annTimeEditCount = QSpinBox(self)
+        self.annTimeEditCount.valueChanged.connect(self.updateNormalTime)
+        # self.annTimeEditCount.setValue()
+        # self.btnGetLP.setRange(0, self.data.fs / 2)
+        self.annDuration = QSpinBox(self)
+        self.btnAnnEdit = QPushButton("Update", self)
+        self.btnAnnEdit.clicked.connect(self.annEditorUpdate)
+        self.btnAnnEdit.setToolTip("Click to modify selected annotation")
+        self.btnAnnDel = QPushButton("Delete", self)
+        self.btnAnnDel.clicked.connect(self.annEditorDel)
+        self.btnAnnDel.setToolTip("Click to delete selected annotation")
+        self.btnAnnCreate = QPushButton("Create", self)
+        self.btnAnnCreate.clicked.connect(self.annEditorCreate)
+        self.btnAnnCreate.setToolTip("Click to create new annotation")
+        self.annEditLayout.addWidget(annTxtLabel,0,0)
+        self.annEditLayout.addWidget(self.annTxtEdit,0,1,1,2)
+        self.annEditLayout.addWidget(annTimeLabel,1,0)
+        self.annEditLayout.addWidget(self.annTimeEditTime,1,1)
+        self.annEditLayout.addWidget(self.annTimeEditCount,1,2)
+        self.annEditLayout.addWidget(annDurationLabel,2,0)
+        self.annEditLayout.addWidget(self.annDuration,2,1)
+        self.annEditLayout.addWidget(self.btnAnnEdit,3,0)
+        self.annEditLayout.addWidget(self.btnAnnDel,3,1)
+        self.annEditLayout.addWidget(self.btnAnnCreate,3,2)
+        self.annEditMainWidget.setLayout(self.annEditLayout)
+        self.annEditDock.setWidget(self.annEditMainWidget)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.annEditDock)
+        self.annEditDock.hide()
+
+        #self.tabifyDockWidget(self.scroll,self.annEditDock)
+        self.splitDockWidget(self.annEditDock, self.scroll, Qt.Vertical)
 
         wid = QWidget(self)
         self.setCentralWidget(wid)
@@ -232,10 +307,12 @@ class MainPage(QMainWindow):
         self.chn_win_open = 0  # whether or not the channel selection window is open
         self.organize_win_open = 0  # whether or not the signal organization window is open
         self.spec_win_open = 0 # whether or not the spectrogram window is open
+        self.saveimg_win_open = 0 # whether or not the print preview window is open
         self.max_time = 0  # number of seconds in the recording
         self.pi = PredsInfo()  # holds data needed to predict
         self.ci = ChannelInfo()  # holds channel information
         self.si = SpecInfo() # holds spectrogram information
+        self.sii = SaveImgInfo() # holds info to save the img
 
 
         if self.argv.show:
@@ -246,7 +323,6 @@ class MainPage(QMainWindow):
             fn = self.argv.fn
             self.argv_pred_fn = self.argv.predictions_file
             self.argv_mont_fn = self.argv.montage_file
-            self.argv_count = self.argv.location
             self.load_data(fn)
 
     def closeEvent(self, event):
@@ -264,6 +340,8 @@ class MainPage(QMainWindow):
             self.chn_org.closeWindow()
         if self.spec_win_open:
             self.spec_ops.closeWindow()
+        if self.saveimg_win_open:
+            self.saveimg_ops.closeWindow()
 
         event.accept()
 
@@ -325,17 +403,242 @@ class MainPage(QMainWindow):
             float(self.edf_info.annotations[0][self.ann_qlist.currentRow()]))
         self.callmovePlot(0, 0)
 
+        # Update annotation dock if it is open
+        if self.btnOpenEditAnn.text() == "Close annotation editor":
+            self.annTxtEdit.setText(self.edf_info.annotations[2][self.ann_qlist.currentRow()])
+            self.annTimeEditCount.setValue(int(
+                float(self.edf_info.annotations[0][self.ann_qlist.currentRow()])))
+            self.annDuration.setValue(int(float(self.edf_info.annotations[1][self.ann_qlist.currentRow()])))
+            self.btnAnnEdit.setEnabled(True)
+            self.btnAnnDel.setEnabled(True)
+            blackPen = QPen(QColor(0,0,0))
+            # a1 = pg.InfiniteLine(pos=0,movable=True, bounds=None, hoverPen=blackPen)
+            # self.mainPlot.addItem(a1)
+            # a1.sigDragged.connect(self.printVal)
+            # a1.sigPositionChangeFinished.connect(self.printVal)
+
+    def openAnnEditor(self):
+        """
+        Create and open the annotation editor.
+        """
+        if self.btnOpenEditAnn.text() == "Open annotation editor":
+            self.annTxtEdit.clear()
+            self.annDuration.setRange(-1,self.max_time)
+            self.annDuration.setValue(-1)
+            hrs, min, sec = convertFromCount(self.max_time)
+            t = QTime(hrs, min, sec)
+            self.annTimeEditTime.setMaximumTime(t)
+            self.annTimeEditCount.setMaximum(self.max_time)
+            self.annTimeEditCount.setValue(self.count)
+            self.btnAnnEdit.setEnabled(False)
+            self.btnAnnDel.setEnabled(False)
+            selectedListItems = self.ann_qlist.selectedItems()
+            if len(selectedListItems) > 0:
+                selectedListItems[0].setSelected(False)
+            self.btnOpenEditAnn.setText("Close annotation editor")
+            self.annEditDock.show()
+        else:
+            self.btnOpenEditAnn.setText("Open annotation editor")
+            self.annEditDock.hide()
+
+    def openAnnDock(self):
+        self.scroll.show()
+        self.btnOpenAnnDock.hide()
+        self.openAnnEditor()
+
     def populateAnnDock(self):
         """
         Fills the annotation dock with annotations if they exist.
         """
+        self.ann_qlist.clear()
         ann = self.edf_info.annotations
         if len(ann[0]) == 0:
             self.scroll.hide()
+            self.btnOpenAnnDock.show()
         else:
             for i in range(len(ann[0])):
                 self.ann_qlist.addItem(ann[2][i])
             self.scroll.show()
+            self.btnOpenAnnDock.hide()
+
+    def annEditorUpdate(self):
+        annTxt = self.annTxtEdit.text()
+        loc = self.annTimeEditCount.value()
+        dur = self.annDuration.value()
+        self.edf_info.annotations[0][self.ann_qlist.currentRow()] = loc
+        self.edf_info.annotations[1][self.ann_qlist.currentRow()] = dur
+        self.edf_info.annotations[2][self.ann_qlist.currentRow()] = annTxt
+        self.populateAnnDock()
+        self.callmovePlot(0,0)
+
+    def annEditorDel(self):
+        self.edf_info.annotations = np.delete(self.edf_info.annotations,self.ann_qlist.currentRow(),axis = 1)
+        self.btnAnnEdit.setEnabled(False)
+        self.btnAnnDel.setEnabled(False)
+        self.populateAnnDock()
+        self.callmovePlot(0,0)
+
+    def annEditorCreate(self):
+        annTxt = self.annTxtEdit.text()
+        loc = self.annTimeEditCount.value()
+        dur = self.annDuration.value()
+        i = 0
+        while i < len(self.edf_info.annotations[0]):
+            if int(float(self.edf_info.annotations[0][i])) > loc:
+                if i > 0:
+                    i -= 1
+                break
+            i += 1
+        if len(self.edf_info.annotations[0]) == 0:
+            self.edf_info.annotations = np.append(self.edf_info.annotations, np.array([[loc], [dur], [annTxt]]), axis = 1)
+        else:
+            self.edf_info.annotations = np.insert(self.edf_info.annotations, i, [loc, dur, annTxt], axis = 1)
+        self.populateAnnDock()
+        self.callmovePlot(0,0)
+
+    def updateNormalTime(self):
+        """
+        Updates self.annTimeEditTime when self.annTimeEditCount is changed.
+        """
+        hrs, min, sec = convertFromCount(self.annTimeEditCount.value())
+        t = QTime(hrs, min, sec)
+        self.annTimeEditTime.setTime(t)
+        self.annDuration.setRange(-1,self.max_time - self.annTimeEditCount.value())
+
+    def updateCountTime(self):
+        """
+        Updates self.annTimeEditCount when self.annTimeEditTime is changed.
+        """
+        c = ( 3600 * self.annTimeEditTime.time().hour() +
+                60 * self.annTimeEditTime.time().minute() +
+                self.annTimeEditTime.time().second() )
+        self.annTimeEditCount.setValue(c)
+        self.annDuration.setRange(-1,self.max_time - c)
+
+    def openZoomPlot(self):
+        # TODO: prevent from opening spec and zoom simultaneously
+        if self.init:
+            if self.btnZoom.text() == "Open zoom":
+                if self.si.plotSpec:
+                    self.throwAlert("Please close the spectrogram plot before opening zoom.")
+                else:
+                    self.zoomPlot = self.plotLayout.addPlot(row=1, col=0, border=True)
+                    qGraphicsGridLayout = self.plotLayout.ci.layout
+                    qGraphicsGridLayout.setRowStretchFactor(0, 2)
+                    qGraphicsGridLayout.setRowStretchFactor(1, 1)
+                    #pg.setConfigOptions(imageAxisOrder='row-major')
+                    self.zoomRoi = pg.RectROI([0,0], [256,200], pen=(1,9))
+                    self.zoomRoi.addScaleHandle([0.5,1],[0.5,0.5])
+                    self.zoomRoi.addScaleHandle([0,0.5],[0.5,0.5])
+                    self.mainPlot.addItem(self.zoomRoi)
+                    self.zoomRoi.setZValue(100)
+                    self.zoomRoi.sigRegionChanged.connect(self.updateZoomPlot)
+                    self.btnZoom.setText("Close zoom")
+                    self.zoom_plot_lines = []
+                    self.zoom_rect_list = []
+                    self.updateZoomPlot()
+            else:
+                self.btnZoom.setText("Open zoom")
+                self.plotLayout.removeItem(self.zoomPlot)
+                self.mainPlot.removeItem(self.zoomRoi)
+
+    def updateZoomPlot(self):
+        roiPos = self.zoomRoi.pos()
+        roiSize = self.zoomRoi.size()
+
+        if self.filter_checked == 1:
+            y_lim = self.ylim[1]
+            self.prep_filter_ws()
+            plotData = np.zeros(self.filteredData.shape)
+            plotData += self.filteredData
+            stddev = np.std(
+                plotData[:, self.count * fs:(self.count + 10) * fs])
+            plotData[plotData > 3 * stddev] = 3 * stddev
+            plotData[plotData < -3 * stddev] = -3 * stddev
+        else:
+            plotData = np.zeros(self.ci.data_to_plot.shape)
+            plotData += self.ci.data_to_plot
+            y_lim = self.ylim[0]
+
+        fs = self.edf_info.fs
+        nchns = self.ci.nchns_to_plot
+
+        if not (len(self.zoom_plot_lines) > 0 and len(self.zoom_plot_lines) == nchns):
+            # self.plotWidget.clear()
+            self.zoomPlot.clear()
+            self.zoom_plot_lines = []
+            for i in range(nchns):
+                pen = pg.mkPen(color=self.ci.colors[i], width=2, style=QtCore.Qt.SolidLine)
+                self.zoom_plot_lines.append(self.zoomPlot.plot(plotData[i, self.count * fs:(self.count + self.window_size) * fs]
+                             + (i + 1) * y_lim, clickable=False, pen=pen))
+        else:
+            for i in range(nchns):
+                self.zoom_plot_lines[i].setData(plotData[i, self.count * fs:(self.count + self.window_size) * fs]
+                            + (i + 1) * y_lim)
+
+        # add predictions
+        if len(self.zoom_rect_list) > 0:
+            for a in self.zoom_rect_list:
+                self.zoomPlot.removeItem(a)
+            self.zoom_rect_list[:] = []
+
+        width = 1 / (nchns + 2)
+        if self.predicted == 1:
+            blueBrush = QBrush(QColor(38,233,254,50))
+            starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh,
+                                        self.count, self.window_size, fs, nchns)
+            for k in range(len(starts)):
+                if self.pi.pred_by_chn:
+                    for i in range(nchns):
+                        if chns[k][i]:
+                            if i == plotData.shape[0] - 1:
+                                r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i+0.5),
+                                        ends[k] - starts[k], y_lim) # (x, y, w, h)
+                                r1.setPen(pg.mkPen(None))
+                                r1.setBrush(pg.mkBrush(color = (38,233,254,50))) # (r,g,b,alpha)
+                                self.zoomPlot.addItem(r1)
+                                self.zoom_rect_list.append(r1)
+                            else:
+                                r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i + 0.5),
+                                        ends[k] - starts[k], y_lim) # (x, y, w, h)
+                                r1.setPen(pg.mkPen(None))
+                                r1.setBrush(blueBrush) # (r,g,b,alpha)
+                                self.zoomPlot.addItem(r1)
+                                self.zoom_rect_list.append(r1)
+                            x_vals = range(
+                                int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
+                            pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
+                            self.zoom_plot_lines.append(self.zoomPlot.plot(x_vals, plotData[i, int(starts[k]):int(ends[k])] + i*y_lim + y_lim, clickable=False, pen=pen))
+                else:
+                    r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
+                                    brush=blueBrush, movable=False, orientation=pg.LinearRegionItem.Vertical)
+                    self.zoomPlot.addItem(r1)
+                    self.zoom_rect_list.append(r1)
+
+        x_ticks = []
+        for i in range(self.window_size):
+            x_ticks.append((i * fs, str(self.count + i)))
+        x_ticks = [x_ticks]
+        y_ticks = []
+        for i in range(nchns + 1):
+            y_ticks.append((i * y_lim, self.ci.labels_to_plot[i]))
+        y_ticks = [y_ticks]
+
+        blackPen = QPen(QColor(0,0,0))
+        font = QFont()
+        font.setPixelSize(16)
+        self.zoomPlot.setYRange(roiPos[1], roiPos[1] + roiSize[1])
+        self.zoomPlot.getAxis('left').setPen(blackPen)
+        self.zoomPlot.getAxis('left').setTicks(y_ticks)
+        self.zoomPlot.getAxis("left").tickFont = font
+        self.zoomPlot.getAxis("left").setStyle(tickTextOffset = 10)
+        self.zoomPlot.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
+        self.zoomPlot.setXRange(roiPos[0], roiPos[0] + roiSize[0], padding=0)
+        self.zoomPlot.getAxis('bottom').setTicks(x_ticks)
+        self.zoomPlot.getAxis("bottom").tickFont = font
+        self.zoomPlot.getAxis('bottom').setPen(blackPen)
+        self.zoomPlot.setLabel('bottom', 'Time (s)', pen = blackPen)
+        self.zoomPlot.getAxis('top').setWidth(200)
 
     def valuechange(self):
         """
@@ -492,8 +795,8 @@ class MainPage(QMainWindow):
             self.ci_temp.fs = self.edf_info_temp.fs
             self.ci_temp.max_time = self.max_time_temp
 
-            self.chn_ops = ChannelOptions(self.ci_temp, self, data_for_preds)
             self.chn_win_open = 1
+            self.chn_ops = ChannelOptions(self.ci_temp, self, data_for_preds)
             if self.argv.show and self.argv.montage_file is None:
                 self.chn_ops.show()
 
@@ -510,28 +813,22 @@ class MainPage(QMainWindow):
         self.ann_qlist.clear()  # Clear annotations
         self.populateAnnDock()  # Add annotations if they exist
 
-        #self.m.fig.clf()
-        #self.ax = self.m.fig.add_subplot(self.m.gs[0])
         nchns = self.ci.nchns_to_plot
         self.plot_lines = []
-        if not self.init:
+        if not self.init and self.argv.location < self.max_time - self.window_size:
             self.count = self.argv.location
 
-        if self.filter_checked == 1:
-            y_lim = self.ylim[1]
+        ann = self.edf_info.annotations
+        if self.filter_checked == 1 or (len(ann[0]) > 0 and ann[2][0] == "filtered"):
             self.movePlot(0, 0, self.ylim[1], 0)
         else:
             self.movePlot(0, 0, self.ylim[0], 0)
+
         self.init = 1
 
         ann = self.edf_info.annotations
         if len(ann[0]) > 0 and ann[2][0] == "filtered":
             self.cbox_filter.setChecked(True)  # must be set after init = 1
-
-        #if self.predicted == 1:
-        #    self.pi.plot_preds_preds = 1
-        #    self.pi.preds_loaded = 1
-        #    self.pi.preds_fn = "loaded from edf file"
 
     def rightPlot1s(self):
         self.callmovePlot(1, 1)
@@ -578,7 +875,6 @@ class MainPage(QMainWindow):
                 self.window_size = 1
                 self.callmovePlot(0, 0)
 
-
     def getCount(self):
         """
         Used for the "jump to" button to update self.count to the user's input
@@ -593,7 +889,12 @@ class MainPage(QMainWindow):
                 self.callmovePlot(0, 0)
 
     def print_graph(self):
-        self.callmovePlot(0, 0, 1)
+        # TODO: change this so it works for SaveImgOptions
+        if self.init and self.saveimg_win_open == 0:
+            self.callmovePlot(0, 0, 1) # to set all options in self.sii
+            self.saveimg_win_open = 1
+            self.saveimg_ops = SaveImgOptions(self.sii, self)
+            self.saveimg_ops.show()
 
     def callmovePlot(self, right, num_move, print_graph=0):
         """
@@ -616,7 +917,7 @@ class MainPage(QMainWindow):
             print_graph - whether or not to print a copy of the graph
         """
         fs = self.edf_info.fs
-        if not self.argv.predictions_file is None:
+        if not self.argv.predictions_file is None and self.init == 0:
             self.predicted = 1
             self.pi.set_preds(self.argv.predictions_file, self.max_time,
                               fs, self.ci.nchns_to_plot)
@@ -636,8 +937,7 @@ class MainPage(QMainWindow):
             plotData += self.filteredData
             stddev = np.std(
                 plotData[:, self.count * fs:(self.count + 10) * fs])
-            plotData[plotData > 3 * stddev] = 3 * \
-                stddev  # float('nan') # clip amplitude
+            plotData[plotData > 3 * stddev] = 3 * stddev  # float('nan') # clip amplitude
             plotData[plotData < -3 * stddev] = -3 * stddev
         else:
             plotData = np.zeros(self.ci.data_to_plot.shape)
@@ -741,27 +1041,25 @@ class MainPage(QMainWindow):
 
         self.m.draw()"""
 
-        self.plotWidget.disableAutoRange()
+        # self.mainPlot.disableAutoRange()
 
         if not (len(self.plot_lines) > 0 and len(self.plot_lines) == nchns):
-            self.plotWidget.clear()
+            # self.plotWidget.clear()
+            self.mainPlot.clear()
             self.plot_lines = []
             for i in range(nchns):
-                pen = pg.mkPen(color=self.ci.colors[i], width=1, style=QtCore.Qt.SolidLine)
-                self.plot_lines.append(self.plotWidget.plot(plotData[i, self.count * fs:(self.count + self.window_size) * fs]
+                pen = pg.mkPen(color=self.ci.colors[i], width=2, style=QtCore.Qt.SolidLine)
+                self.plot_lines.append(self.mainPlot.plot(plotData[i, self.count * fs:(self.count + self.window_size) * fs]
                              + (i + 1) * y_lim, clickable=False, pen=pen))
         else:
             for i in range(nchns):
-                #pen = pg.mkPen(color=self.ci.colors[i], width=1, style=QtCore.Qt.SolidLine)
-                #self.plotWidget.plot(plotData[i, self.count * fs:(self.count + 1) * fs*self.window_size]
-                #            + (i + 1) * y_lim, clickable=False, pen=pen)
                 self.plot_lines[i].setData(plotData[i, self.count * fs:(self.count + self.window_size) * fs]
                             + (i + 1) * y_lim)
 
         # add predictions
         if len(self.rect_list) > 0:
             for a in self.rect_list:
-                self.plotWidget.removeItem(a)
+                self.mainPlot.removeItem(a)
             self.rect_list[:] = []
 
         width = 1 / (nchns + 2)
@@ -778,29 +1076,24 @@ class MainPage(QMainWindow):
                                         ends[k] - starts[k], y_lim) # (x, y, w, h)
                                 r1.setPen(pg.mkPen(None))
                                 r1.setBrush(pg.mkBrush(color = (38,233,254,50))) # (r,g,b,alpha)
-                                self.plotWidget.addItem(r1)
+                                self.mainPlot.addItem(r1)
                                 self.rect_list.append(r1)
                             else:
                                 r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i + 0.5),
                                         ends[k] - starts[k], y_lim) # (x, y, w, h)
                                 r1.setPen(pg.mkPen(None))
                                 r1.setBrush(blueBrush) # (r,g,b,alpha)
-                                self.plotWidget.addItem(r1)
+                                self.mainPlot.addItem(r1)
                                 self.rect_list.append(r1)
-                                #self.rect_list.append(self.ax.axvspan(starts[k] - self.count * fs, ends[k] - self.count * fs,
-                                #                                       ymin=width*(i+1.5), ymax=width*(i+2.5), color='paleturquoise', alpha=1))
                             x_vals = range(
                                 int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
                             pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
-                            self.plot_lines.append(self.plotWidget.plot(x_vals, plotData[i, int(starts[k]):int(ends[k])] + i*y_lim + y_lim, clickable=False, pen=pen))
-                            #self.ax.plot(x_vals, plotData[i, int(starts[k]):int(ends[k])] + i*y_lim + y_lim,
-                            #             '-', linewidth=1, color=self.ci.colors[i])
+                            self.plot_lines.append(self.mainPlot.plot(x_vals, plotData[i, int(starts[k]):int(ends[k])] + i*y_lim + y_lim, clickable=False, pen=pen))
                 else:
                     r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
                                     brush=blueBrush, movable=False, orientation=pg.LinearRegionItem.Vertical)
-                    self.plotWidget.addItem(r1)
+                    self.mainPlot.addItem(r1)
                     self.rect_list.append(r1)
-
 
         x_ticks = []
         for i in range(self.window_size):
@@ -816,25 +1109,24 @@ class MainPage(QMainWindow):
         font = QFont()
         font.setPixelSize(16)
 
-        self.plotWidget.setYRange(-y_lim, (nchns + 1) * y_lim)
-        self.plotWidget.getAxis('left').setPen(blackPen)
-        self.plotWidget.getAxis('left').setTicks(y_ticks)
-        self.plotWidget.getAxis("left").tickFont = font
-        # self.plotWidget.getAxis("left").setStyle(tickTextOffset = 0)
-        self.plotWidget.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
+        self.mainPlot.setYRange(-y_lim, (nchns + 1) * y_lim)
+        self.mainPlot.getAxis('left').setPen(blackPen)
+        self.mainPlot.getAxis('left').setTicks(y_ticks)
+        self.mainPlot.getAxis("left").tickFont = font
+        self.mainPlot.getAxis("left").setStyle(tickTextOffset = 10)
+        self.mainPlot.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
 
-        self.plotWidget.setXRange(0 * fs, (0 + self.window_size) * fs, padding=0)
-        self.plotWidget.getAxis('bottom').setTicks(x_ticks)
-        self.plotWidget.getAxis("bottom").tickFont = font
-        self.plotWidget.getAxis('bottom').setPen(blackPen)
-        self.plotWidget.setLabel('bottom', 'Time (s)', pen = blackPen)
-        # self.plotWidget.showGrid(x = True, y = True, alpha = 0.1)
+        self.mainPlot.setXRange(0 * fs, (0 + self.window_size) * fs, padding=0)
+        self.mainPlot.getAxis('bottom').setTicks(x_ticks)
+        self.mainPlot.getAxis("bottom").tickFont = font
+        self.mainPlot.getAxis('bottom').setPen(blackPen)
+        self.mainPlot.setLabel('bottom', 'Time (s)', pen = blackPen)
+        self.mainPlot.getAxis('top').setWidth(200)
 
         # add annotations
-
         if len(self.ann_list) > 0:
             for a in self.ann_list:
-                self.plotWidget.removeItem(a)
+                self.mainPlot.removeItem(a)
             self.ann_list[:] = []
 
         ann, idx_w_ann = checkAnnotations(self.count, self.window_size, self.edf_info)
@@ -850,16 +1142,12 @@ class MainPage(QMainWindow):
                 else:
                     if idx_w_ann[int_prev - self.count] and int_prev % 2 == 1:
                         txt_item = pg.TextItem(text=txt, color='k', anchor=(0,1))
-                        self.plotWidget.addItem(txt_item)
+                        self.mainPlot.addItem(txt_item)
                         txt_item.setPos((int_prev - self.count)*fs, -(3/2)*y_lim)
                         self.ann_list.append(txt_item)
-                        #self.ann_list.append(self.ax.annotate(txt, xy=(
-                        #    (int_prev - self.count)*fs, -y_lim / 2 + y_lim), color='black', size=font_size))
                     else:
                         txt_item = pg.TextItem(text=txt, color='k', anchor=(0,1))
-                        #self.ann_list.append(self.ax.annotate(txt, xy=(
-                        #    (int_prev - self.count)*fs, -y_lim / 2), color='black', size=font_size))
-                        self.plotWidget.addItem(txt_item)
+                        self.mainPlot.addItem(txt_item)
                         txt_item.setPos((int_prev - self.count)*fs, -y_lim)
                         self.ann_list.append(txt_item)
                     txt = ann[2, i]
@@ -867,40 +1155,37 @@ class MainPage(QMainWindow):
             if txt != "":
                 if idx_w_ann[int_i - self.count] and int_i % 2 == 1:
                     txt_item = pg.TextItem(text=txt, color='k', anchor=(0,1))
-                    self.plotWidget.addItem(txt_item)
+                    self.mainPlot.addItem(txt_item)
                     txt_item.setPos((int_i - self.count)*fs, -(3 / 2) *y_lim)
                     self.ann_list.append(txt_item)
-                    #self.ann_list.append(self.ax.annotate(txt, xy=(
-                    #    (int_i - self.count)*fs, -y_lim / 2 + y_lim), color='black', size=font_size))
                 else:
                     txt_item = pg.TextItem(text=txt, color='k', anchor=(0,1))
-                    #self.ann_list.append(self.ax.annotate(
-                    #    txt, xy=((int_i - self.count)*fs, -y_lim / 2), color='black', size=font_size))
-                    self.plotWidget.addItem(txt_item)
+                    self.mainPlot.addItem(txt_item)
                     txt_item.setPos((int_i - self.count)*fs, -y_lim)
                     self.ann_list.append(txt_item)
 
-        if print_graph == 1:
-            file = QFileDialog.getSaveFileName(self, 'Save File')
-            exporter = pg.exporters.ImageExporter(self.plotWidget.scene())
-            exporter.export(file[0] + '.png')
-            # self.ax.figure.savefig(file[0] + ".png", bbox_inches='tight')
-        elif not self.argv.export_png_file is None:
-            # self.processEvents()
-            self.plotWidget.resize(1000, 1000)
-            #self.plotWidget.setVisible(True)
-            #self.plotWidget.setVisible(False)
-            exporter = pg.exporters.ImageExporter(self.plotWidget.scene())
-            exporter.export(self.argv.export_png_file)
-            # self.ax.figure.savefig(print_fn, bbox_inches='tight')
-            if not self.argv.show:
-                sys.exit()
+        if print_graph == 1 or (not self.argv.export_png_file is None and self.init == 0):
+            # exporter = pg.exporters.ImageExporter(self.plotWidget.scene())
+            # exporter.export(file[0] + '.png')
+            self.sii.data = plotData
+            self.sii.pi = self.pi
+            self.sii.ci = self.ci
+            self.sii.predicted = self.predicted
+            self.sii.fs = fs
+            self.sii.count = self.count
+            self.sii.window_size = self.window_size
+            self.sii.y_lim = y_lim
+            self.sii.thresh = self.thresh
+        if not self.argv.export_png_file is None and self.init == 0:
+            self.saveimg_win_open = 1
+            self.saveimg_ops = SaveImgOptions(self.sii, self)
 
         if self.si.plotSpec:
             dataForSpec = self.si.data[self.count * fs:(self.count + self.window_size - 1) * fs]
             f, t, Sxx = scipy.signal.spectrogram(dataForSpec, fs=fs)
             # Fit the min and max levels of the histogram to the data available
-            self.hist.setLevels(np.min(Sxx), np.max(Sxx))
+            self.hist.axis.setPen(blackPen)
+            self.hist.setLevels(0,200)#np.min(Sxx), np.max(Sxx))
             # This gradient is roughly comparable to the gradient used by Matplotlib
             # You can adjust it and then save it using hist.gradient.saveState()
             self.hist.gradient.restoreState(
@@ -914,18 +1199,26 @@ class MainPage(QMainWindow):
             self.img.scale(self.window_size/np.size(Sxx, axis=1),
                     f[-1]/np.size(Sxx, axis=0))
                     # Limit panning/zooming to the spectrogram
-            self.p2.setLimits(xMin=0, xMax=self.window_size, yMin=0, yMax=30)
-            #x_ticks.append((self.window_size * fs, str(self.count + self.window_size)))
-            #x_ticks.pop(0)
+            self.specPlot.setLimits(xMin=0, xMax=self.window_size, yMin=0, yMax=30)
             spec_x_ticks = []
             for i in range(self.window_size):
                 spec_x_ticks.append((i, str(self.count + i)))
             spec_x_ticks = [spec_x_ticks]
-            self.p2.getAxis('bottom').setTicks(spec_x_ticks)
+            self.specPlot.getAxis('bottom').setPen(blackPen)
+            self.specPlot.getAxis('top').setPen(blackPen)
+            self.specPlot.getAxis('bottom').setTicks(spec_x_ticks)
             # Add labels to the axis
-            self.p2.setLabel('bottom', "Time", units='s')
+            self.specPlot.setLabel('bottom', "Time", units='s')
+            self.specPlot.setLabel('top',self.si.chnName)
             # If you include the units, Pyqtgraph automatically scales the axis and adjusts the SI prefix (in this case kHz)
-            self.p2.setLabel('left', "Frequency", units='Hz')
+            self.specPlot.getAxis('left').setPen(blackPen)
+            self.specPlot.setLabel('left', "Frequency", units='Hz')
+
+        if self.init == 0 and self.show:
+            self.throwAlert("Data has been plotted.")
+
+    def printVal(self):
+        print(self.sender().value())
 
     def filterChecked(self):
         """
@@ -990,37 +1283,35 @@ class MainPage(QMainWindow):
         """
         Creates the spectrogram plot.
         """
-        # TODO: makes spec window
-        self.specWidget = pg.GraphicsLayoutWidget()
-        self.grid_rt.addWidget(self.specWidget,3,0,2,8)
-        self.p2 = self.specWidget.addPlot()
+        self.specPlot = self.plotLayout.addPlot(row=1, col=0)
+        qGraphicsGridLayout = self.plotLayout.ci.layout
+        qGraphicsGridLayout.setRowStretchFactor(0, 2)
+        qGraphicsGridLayout.setRowStretchFactor(1, 1)
         pg.setConfigOptions(imageAxisOrder='row-major')
-        # Item for displaying image data
-        self.img = pg.ImageItem()
-        self.p2.addItem(self.img)
-        # Add a histogram with which to control the gradient of the image
-        self.hist = pg.HistogramLUTItem()
-        # Link the histogram to the image
-        self.hist.setImageItem(self.img)
-        # If you don't add the histogram to the window, it stays invisible
-        self.specWidget.addItem(self.hist)
+        self.img = pg.ImageItem() # Item for displaying image data
+        self.specPlot.addItem(self.img)
+        self.hist = pg.HistogramLUTItem() # Add a histogram with which to control the gradient of the image
+        self.hist.setImageItem(self.img) # Link the histogram to the image
+        self.plotLayout.addItem(self.hist, row = 1, col = 1) # To make visible, add the histogram
 
     def removeSpecPlot(self):
         """
         Removes the spectrogram plot.
         """
-        # TODO
-        self.grid_rt.removeWidget(self.specWidget)
-        self.specWidget.deleteLater()
+        self.plotLayout.removeItem(self.specPlot)
+        self.plotLayout.removeItem(self.hist)
 
     def loadSpec(self):
         """
         Opens the SpecOptions window
         """
         if self.init == 1:
-            self.spec_win_open = 1
-            self.spec_ops = SpecOptions(self.si, self)
-            self.spec_ops.show()
+            if self.btnZoom.text() == "Close zoom":
+                self.throwAlert("Please close the zoom plot before opening the spectrogram.")
+            else:
+                self.spec_win_open = 1
+                self.spec_ops = SpecOptions(self.si, self)
+                self.spec_ops.show()
 
     def throwAlert(self, msg):
         """
@@ -1063,9 +1354,12 @@ def get_args():
                     help="Low pass, high pass, and notch frequencies. Set to 0 to turn off filter.")
     p.add_argument("--show", type=int, default=1, choices=[0,1],
                     help="Whether or not to show the GUI.")
+    p.add_argument("--print-annotations",type=int, default=1, choices=[0,1])
+    p.add_argument("--line-thickness",type=float, default=0.5)
+    p.add_argument("--font-size",type=int, default=12)
+    p.add_argument("--plot-title", type=str, default="")
 
     return p.parse_args()
-
 
 def check_args(args):
 
@@ -1079,9 +1373,34 @@ def check_args(args):
         if args.montage_file is None:
             raise Exception("--montage_file must be specified")
 
+    if not args.fn is None:
+        if not path.exists(args.fn):
+            raise Exception("The --fn that you specifed does not exist.")
+
+    if not args.montage_file is None:
+        if not path.exists(args.montage_file):
+            raise Exception("The --montage_file that you specifed does not exist.")
+        elif not args.montage_file[len(args.montage_file) - 4:] == ".txt":
+            raise Exception("The --montage_file must be a .txt file.")
+
+    if not args.predictions_file is None:
+        if not path.exists(args.predictions_file):
+            raise Exception("The --predictions_file that you specifed does not exist.")
+        elif not args.montage_file[len(args.montage_file) - 3:] == ".pt":
+            raise Exception("The --predictions_file must be a .pt file.")
+
+    if not args.line_thickness is None:
+        if args.line_thickness < 0.1 or args.line_thickness > 3:
+            raise Exception("Please choose a line thickness between 0.1 and 3.")
+
+    if not args.font_size is None:
+        if args.font_size < 5 or args.line_thickness > 20:
+            raise Exception("Please choose a font size between 5 and 20.")
+
+
 if __name__ == '__main__':
     args = get_args()
     check_args(args)
     app = QApplication(sys.argv)
-    ex = MainPage(args)
+    ex = MainPage(args, app)
     sys.exit(app.exec_())

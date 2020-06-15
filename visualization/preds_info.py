@@ -60,7 +60,10 @@ class PredsInfo():
             0 for sucess, -1 if predictions are not the right length
             predictions must be for an integer number of samples in the file
         """
-        preds = torch.load(preds_fn)
+        try:
+            preds = torch.load(preds_fn)
+        except:
+            raise Exception("The predictions file could not be loaded.")
         try:
             preds = preds.detach()
         except:

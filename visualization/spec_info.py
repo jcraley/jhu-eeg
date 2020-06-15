@@ -5,3 +5,4 @@ class SpecInfo():
         self.data = [] # data for plotting
         self.plotSpec = 0 # whether or not to plot spectrograms
         self.chnPlotted = -1
+        self.chnName = ""

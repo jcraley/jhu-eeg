@@ -91,6 +91,7 @@ class SpecOptions(QWidget):
         if len(selectedListItem) == 1:
             row = self.chn_qlist.currentRow()
             self.data.chnPlotted = row
+            self.data.chnName = self.labels_flipped[len(self.labels_flipped) - 1 - row]
             nchns = self.parent.ci.nchns_to_plot
             self.data.data = self.parent.ci.data_to_plot[nchns - 1 - row,:]
             if not self.data.plotSpec:

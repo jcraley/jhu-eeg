@@ -183,19 +183,20 @@ class PredictionOptions(QWidget):
             self.parent.throwAlert("You have not chosen to plot any predictions.")
             self.parent.callmovePlot(0,0,0)
         elif self.data.plot_loaded_preds:
-            loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
-                                    self.parent.max_time, self.parent.edf_info.fs, self.nchns)
-            if not loaded_preds_valid and self.data.preds_loaded:
-                self.parent.predicted = 1
-                self.data.preds_to_plot = self.data.preds
-                self.parent.predLabel.setText("Predictions plotted.")
-                self.parent.callmovePlot(0,0,0)
-                self.closeWindow()
-            elif loaded_preds_valid == -1:
-                self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
-                                "file you loaded or are the incorrect shape. Please check your file.")
-            else:
+            if not self.data.preds_loaded:
                 self.parent.throwAlert("Please load predictions.")
+            else:
+                loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
+                                        self.parent.max_time, self.parent.edf_info.fs, self.nchns)
+                if not loaded_preds_valid:
+                    self.parent.predicted = 1
+                    self.data.preds_to_plot = self.data.preds
+                    self.parent.predLabel.setText("Predictions plotted.")
+                    self.parent.callmovePlot(0,0,0)
+                    self.closeWindow()
+                elif loaded_preds_valid == -1:
+                    self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
+                                    "file you loaded or are the incorrect shape. Please check your file.")
         else:
             if self.data.ready:
                 preds_ret = self.data.predict(self.parent.max_time,self.parent.edf_info.fs,self.nchns)

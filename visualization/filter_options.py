@@ -29,7 +29,7 @@ class FilterOptions(QWidget):
         btnExit.clicked.connect(self.change)
         layout.addWidget(btnExit,3,3)
 
-        self.cbox_lp= QCheckBox("Lowpass",self)
+        self.cbox_lp = QCheckBox("Lowpass",self)
         self.cbox_lp.toggled.connect(self.lp_filterChecked)
         self.cbox_lp.setToolTip("Click to filter")
         if self.data.do_lp:

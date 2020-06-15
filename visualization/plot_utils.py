@@ -114,16 +114,16 @@ def filterData(data, fs, fi):
 
     return filt_bufs
 
-def getTime(count):
+def convertFromCount(count):
     """
-    Creates a string for the time in seconds.
+    Converts time from count (int in seconds) to the time format
+    hh:mm:ss.
 
-    inputs:
-        count - the current value of the plot in seconds
+    input:
+        count - the value of count
     returns:
-        t_str - a string of the seconds in the form hrs:min:sec
+        hrs, min, sec - the time
     """
-    t_str = ""
     t = count
     hrs = 0
     min = 0
@@ -135,6 +135,30 @@ def getTime(count):
         min = int(t / 60)
         t = t % 60
     sec = t
+    return hrs, min, sec
+
+def getTime(count):
+    """
+    Creates a string for the time in seconds.
+
+    inputs:
+        count - the current value of the plot in seconds
+    returns:
+        t_str - a string of the seconds in the form hrs:min:sec
+    """
+    t_str = ""
+    hrs, min, sec = convertFromCount(count)
+    """t = count
+    hrs = 0
+    min = 0
+    sec = 0
+    if int(t / 3600) > 0:
+        hrs = int(t / 3600)
+        t = t % 3600
+    if int(t / 60) > 0:
+        min = int(t / 60)
+        t = t % 60
+    sec = t"""
     if sec >= 10:
         str_sec = str(sec)
     else:
@@ -198,8 +222,6 @@ def loadSignals(data, fsArray):
             buf = np.array(data_temp)
 
     return fs, buf
-
-
 
 def applyNotch(x, fs, fc=60, Q=20.0):
     """Apply a notch filter at fc Hz
