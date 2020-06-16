@@ -123,3 +123,6 @@ class TestConfiguration():
 
     def __getitem__(self, key):
         return self.all_params[key]
+
+    def __setitem__(self, key, value):
+        self.all_params[key] = value

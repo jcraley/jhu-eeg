@@ -9,6 +9,16 @@ from torch.utils.data import Dataset
 import utils.read_files as read
 
 
+def normalize(buffers):
+    """Given a set of buffers in (T, C, L) perform normalization
+    """
+    ndim = buffers.ndim
+    mean = buffers.mean(dim=ndim-1).unsqueeze(ndim-1)
+    std = buffers.std(dim=ndim-1).unsqueeze(ndim-1)
+    std[torch.where(std == 0)] = 1.0
+    return torch.true_divide(buffers - mean, std)
+
+
 def compute_nwindows(duration, window_length, overlap):
     """Compute the number of windows for a recording
 
@@ -53,13 +63,14 @@ class EpilepsyDataset(Dataset):
 
     def __init__(self, manifest_fn, data_dir,
                  window_length, overlap, device='cpu', features_dir='',
-                 features=[], no_load=False):
+                 features=[], no_load=False, normalize_windows=False):
         self.as_sequences = False
         self.data_dir = data_dir
 
         self.device = device
         self.features_dir = features_dir
         self.features = features
+        self.normalize_windows = normalize_windows
 
         # Read manifest, get number of channels and sample frequency
         self.manifest_files = read.read_manifest(manifest_fn)
@@ -230,6 +241,8 @@ class EpilepsyDataset(Dataset):
                 sample_start = window_number * self.advance_samples
                 sample['buffers'] = torch.transpose(self.buffer_list[buffer_idx][
                     sample_start:sample_start + self.window_samples, :], 0, 1)
+        if self.normalize_windows:
+            sample['buffers'] = normalize(sample['buffers'])
         return sample
 
     def get_all_data(self):
