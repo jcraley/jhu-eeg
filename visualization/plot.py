@@ -1204,7 +1204,7 @@ class MainPage(QMainWindow):
 
         if self.si.plotSpec:
             # dataForSpec = self.si.data
-            f, t, Sxx = scipy.signal.spectrogram(self.si.data[self.count * fs:(self.count + self.window_size - 1) * fs], fs=fs, nperseg=fs, noverlap=0)
+            f, t, Sxx = scipy.signal.spectrogram(self.si.data[self.count * fs:(self.count + self.window_size) * fs], fs=fs, nperseg=fs, noverlap=0)
             # Fit the min and max levels of the histogram to the data available
             self.hist.axis.setPen(blackPen)
             # self.hist.setLevels(0,200)#np.min(Sxx), np.max(Sxx))
