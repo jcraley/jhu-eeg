@@ -9,6 +9,7 @@ import numpy as np
 from preds_info import PredsInfo
 from channel_info import ChannelInfo
 from organize_channels import OrganizeChannels
+from copy import deepcopy
 
 class ChannelOptions(QWidget):
     def __init__(self,data,parent,data_for_preds = []):
@@ -51,8 +52,10 @@ class ChannelOptions(QWidget):
         self.populateChnList()
         self.data.convertedChnNames = []
         self.data.convertChnNames()
-        self.ar = self.data.canDoAR()
-        self.bip = self.data.canDoBIP()
+        self.ar1020 = self.data.canDoBIP_AR(1,0)
+        self.bip1020 = self.data.canDoBIP_AR(0,0)
+        self.ar1010 = self.data.canDoBIP_AR(1,1)
+        self.bip1010 = self.data.canDoBIP_AR(0,1)
         self.data.total_nchns = len(self.data.chns2labels)
 
         self.setWindowTitle(self.title)
@@ -61,31 +64,44 @@ class ChannelOptions(QWidget):
         lblInfo = QLabel("Select channels to plot: ")
         grid_lt.addWidget(lblInfo,0,0)
 
-        if self.ar:
-            self.cbox_ar = QCheckBox("Average reference",self)
+        if self.ar1020:
+            self.cbox_ar = QCheckBox("Average reference (10-20)",self)
             self.cbox_ar.toggled.connect(self.arChecked)
             grid_lt.addWidget(self.cbox_ar,1,0)
 
-            self.cbox_bip = QCheckBox("Bipolar",self)
+            self.cbox_bip = QCheckBox("Bipolar (10-20)",self)
             self.cbox_bip.toggled.connect(self.bipChecked)
             grid_lt.addWidget(self.cbox_bip,2,0)
-        elif self.bip:
-            self.cbox_bip = QCheckBox("Bipolar",self)
+        elif self.bip1020:
+            self.cbox_bip = QCheckBox("Bipolar (10-20)",self)
             self.cbox_bip.toggled.connect(self.bipChecked)
             grid_lt.addWidget(self.cbox_bip,1,0)
 
+        if self.ar1010:
+            self.cbox_ar1010 = QCheckBox("Average reference (10-10)",self)
+            self.cbox_ar1010.toggled.connect(self.arChecked1010)
+            grid_lt.addWidget(self.cbox_ar1010,3,0)
+
+            self.cbox_bip1010 = QCheckBox("Bipolar (10-10)",self)
+            self.cbox_bip1010.toggled.connect(self.bipChecked1010)
+            grid_lt.addWidget(self.cbox_bip1010,4,0)
+        elif self.bip1010:
+            self.cbox_bip1010 = QCheckBox("Bipolar (10-10)",self)
+            self.cbox_bip1010.toggled.connect(self.bipChecked1010)
+            grid_lt.addWidget(self.cbox_bip1010,3,0)
+
         self.cbox_txtfile = QCheckBox("",self)
         self.cbox_txtfile.toggled.connect(self.txtFileChecked)
-        grid_lt.addWidget(self.cbox_txtfile,3,0)
+        grid_lt.addWidget(self.cbox_txtfile,5,0)
 
         self.btn_loadtxtfile = QPushButton("Load text file",self)
         self.btn_loadtxtfile.clicked.connect(self.loadTxtFile)
-        grid_lt.addWidget(self.btn_loadtxtfile,3,0)
+        grid_lt.addWidget(self.btn_loadtxtfile,5,0)
 
         self.btn_cleartxtfile = QPushButton("Clear text file",self)
         self.btn_cleartxtfile.clicked.connect(self.clearTxtFile)
         self.btn_cleartxtfile.setVisible(0)
-        grid_lt.addWidget(self.btn_cleartxtfile,4,0)
+        grid_lt.addWidget(self.btn_cleartxtfile,6,0)
 
         if len(self.data.txtFile_fn) > 0:
             if self.data.use_loaded_txt_file:
@@ -96,15 +112,15 @@ class ChannelOptions(QWidget):
             self.cbox_txtfile.setText(self.data.txtFile_fn)
 
         lbl = QLabel("")
-        grid_lt.addWidget(lbl, 5,0)
+        grid_lt.addWidget(lbl, 7,0)
 
         btnOrganize = QPushButton('Organize', self)
         btnOrganize.clicked.connect(self.organize)
-        grid_lt.addWidget(btnOrganize,6,0)
+        grid_lt.addWidget(btnOrganize,8,0)
 
         btnExit = QPushButton('Ok', self)
         btnExit.clicked.connect(self.okayPressed)
-        grid_lt.addWidget(btnExit,7,0)
+        grid_lt.addWidget(btnExit,9,0)
 
         grid_rt.addWidget(self.scroll,0,1)
 
@@ -167,10 +183,15 @@ class ChannelOptions(QWidget):
 
     def arChecked(self):
         c = self.sender()
-        chns = self.data.getChns(self.data.labelsAR)
+        chns = self.data.getChns(self.data.labelsAR1020)
         if c.isChecked():
             self.cbox_txtfile.setChecked(0)
             self.cbox_bip.setChecked(0)
+            if self.ar1010:
+                self.cbox_ar1010.setChecked(0)
+                self.cbox_bip1010.setChecked(0)
+            elif self.bip1010:
+                self.cbox_bip1010.setChecked(0)
             # select all AR channels, deselect all others
             self._selectChns(chns, 0)
         else:
@@ -178,9 +199,15 @@ class ChannelOptions(QWidget):
 
     def bipChecked(self):
         c = self.sender()
-        chns = self.data.getChns(self.data.labelsBIP)
-        if self.ar:
-            chns = self.data.getChns(self.data.labelsAR)
+        chns = self.data.getChns(self.data.labelsBIP1020)
+        if c.isChecked():
+            if self.ar1010:
+                self.cbox_ar1010.setChecked(0)
+                self.cbox_bip1010.setChecked(0)
+            elif self.bip1010:
+                self.cbox_bip1010.setChecked(0)
+        if self.ar1020:
+            chns = self.data.getChns(self.data.labelsAR1020)
             if c.isChecked():
                 self.cbox_ar.setChecked(0)
                 self.cbox_txtfile.setChecked(0)
@@ -194,15 +221,55 @@ class ChannelOptions(QWidget):
         else:
             self._selectChns(chns, 1)
 
+    def arChecked1010(self):
+        c = self.sender()
+        chns = self.data.getChns(self.data.labelsAR1010)
+        if c.isChecked():
+            self.cbox_txtfile.setChecked(0)
+            self.cbox_bip.setChecked(0)
+            self.cbox_ar.setChecked(0)
+            self.cbox_bip1010.setChecked(0)
+            # select all AR channels, deselect all others
+            self._selectChns(chns, 0)
+        else:
+            self._selectChns(chns, 1)
+
+    def bipChecked1010(self):
+        c = self.sender()
+        chns = self.data.getChns(self.data.labelsBIP1010)
+        if self.ar1020:
+            chns = self.data.getChns(self.data.labelsAR1010)
+            if c.isChecked():
+                self.cbox_ar.setChecked(0)
+                self.cbox_txtfile.setChecked(0)
+                if self.ar1010:
+                    self.cbox_ar1010.setChecked(0)
+                self.cbox_bip.setChecked(0)
+                self._selectChns(chns, 0)
+            else:
+                self._selectChns(chns, 1)
+        elif c.isChecked():
+            self.cbox_txtfile.setChecked(0)
+            self.cbox_bip.setChecked(0)
+            # select all bipolar channels, deselect all others
+            self._selectChns(chns, 0)
+        else:
+            self._selectChns(chns, 1)
+
     def txtFileChecked(self):
         c = self.sender()
         chns = self.data.getChns(self.data.labelsFromTxtFile)
         if c.isChecked():
-            if self.ar:
+            if self.ar1020:
                 self.cbox_ar.setChecked(0)
                 self.cbox_bip.setChecked(0)
-            if self.bip:
+                if self.ar1010:
+                    self.cbox_ar1010.setChecked(0)
+                    self.cbox_bip1010.setChecked(0)
+            if self.bip1020:
                 self.cbox_bip.setChecked(0)
+                if self.bip1010:
+                    self.cbox_bip1010.setChecked(0)
             self._selectChns(chns, 0)
             self.data.use_loaded_txt_file = 1
         else:
@@ -228,7 +295,7 @@ class ChannelOptions(QWidget):
                     self.chn_items[k].setSelected(0)
 
     def loadTxtFile(self, name = ""):
-        if self.parent.argv.montage_file is None:
+        if self.parent.argv.montage_file is None or self.parent.init:
             name = QFileDialog.getOpenFileName(self, 'Open file','.','Text files (*.txt)')
             name = name[0]
         if name == None or len(name) == 0:
@@ -276,10 +343,12 @@ class ChannelOptions(QWidget):
         text_file.close()
         ret = 1
         for l in lines:
-            if not l in self.data.convertedChnNames:
+            if not l in self.data.convertedChnNames and not l in self.data.labels2chns:
                 ret = 0
         if ret:
             for i in range(len(lines)):
+                if not lines[len(lines) - 1 - i] in self.data.convertedChnNames:
+                    lines[len(lines) - 1 - i] = self.data.convertTxtChnNames(lines[len(lines) - 1 - i])
                 self.data.labelsFromTxtFile.append(lines[len(lines) - 1 - i])
         return ret
 
@@ -304,6 +373,7 @@ class ChannelOptions(QWidget):
             - parent.pi
             - parent.ci
             - parent.predicted
+            - parent.count (set to 0 if new load)
         """
         self.parent.edf_info = self.parent.edf_info_temp
         self.parent.data = self.parent.data_temp
@@ -311,6 +381,9 @@ class ChannelOptions(QWidget):
         self.parent.pi.write_data(self.pi)
         self.parent.ci.write_data(self.data)
         self.data = self.parent.ci
+        if len(self.unprocessed_data) > 0: # new load
+            self.parent.count = 0
+            self.parent.lblFn.setText("Plotting: " + self.parent.fn_temp)
 
     def organize(self):
         """
@@ -349,9 +422,21 @@ class ChannelOptions(QWidget):
                     self.parent.removeSpecPlot()
             data = self.parent.data
             plot_bip_from_ar = 0
-            if self.ar and self.cbox_bip.isChecked():
+            if (self.ar1020 and self.cbox_bip.isChecked() or
+                    self.ar1010 and self.cbox_bip1010.isChecked()):
                 plot_bip_from_ar = 1
-            self.data.prepareToPlot(idxs, data, self.parent, plot_bip_from_ar)
+            mont_type = 5
+            if self.ar1020 and self.cbox_ar.isChecked():
+                mont_type = 0
+            elif (self.ar1020 or self.bip1020) and self.cbox_bip.isChecked():
+                mont_type = 1
+            elif self.ar1010 and self.cbox_ar1010.isChecked():
+                mont_type = 2
+            elif self.bip1010 and self.cbox_bip1010.isChecked():
+                mont_type = 3
+            elif self.cbox_txtfile.isChecked():
+                mont_type = 4
+            self.data.prepareToPlot(idxs, data, self.parent, mont_type, plot_bip_from_ar)
         return 0
 
     def okayPressed(self):

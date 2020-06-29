@@ -8,6 +8,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 
 from plot_utils import checkAnnotations
+from ui_files.saveImg import Ui_Form
 import sys
 
 class SaveImgOptions(QWidget):
@@ -15,16 +16,20 @@ class SaveImgOptions(QWidget):
         super().__init__()
         self.data = data
         self.parent = parent
-        self.sio_ui = uic.loadUi("./visualization/ui_files/saveImg.ui", self) # Load the .ui file
+        self.sio_ui = Ui_Form()
+        self.sio_ui.setupUi(self)
         self.setupUI() # Show the GUI
 
     def setupUI(self):
-        self.sio_ui.resize(self.parent.width / 1.5, self.parent.height / 1.5)
+        # self.sio_ui.resize(self.parent.width / 1.5, self.parent.height / 1.5)
 
         self.m = PlotCanvas(self, width=7, height=7)
         self.sio_ui.plot_layout.addWidget(self.m)
 
-        # set signals and slots - in .ui file
+        self.setSigSlots()
+
+    def setSigSlots(self):
+        # set signals and slots
         self.sio_ui.okBtn.button(QDialogButtonBox.Ok).clicked.connect(self.printPlot)
         self.sio_ui.okBtn.button(QDialogButtonBox.Cancel).clicked.connect(self.closeWindow)
 
@@ -107,14 +112,14 @@ class SaveImgOptions(QWidget):
 
         for i in range(self.nchns):
             if self.data.plotAnn:
-                self.ax.plot(self.plotData[i, self.count * self.fs:(self.count + 1) * self.fs * self.window_size]
+                self.ax.plot(self.plotData[i, :]
                              + (i + 1) * self.y_lim, '-', linewidth=self.data.linethick, color=self.data.ci.colors[i])
                 self.ax.set_ylim([-self.y_lim, self.y_lim * (self.nchns + 1)])
                 self.ax.set_yticks(np.arange(0, (self.nchns + 2)*self.y_lim, step=self.y_lim))
                 self.ax.set_yticklabels(
                     self.data.ci.labels_to_plot, fontdict=None, minor=False, fontsize=self.data.fontSize)
             else:
-                self.ax.plot(self.plotData[i, self.count * self.fs:(self.count + 1) * self.fs * self.window_size]
+                self.ax.plot(self.plotData[i, :]
                              + (i) * self.y_lim, '-', linewidth=self.data.linethick, color=self.data.ci.colors[i])
                 self.ax.set_ylim([-self.y_lim, self.y_lim * (self.nchns)])
                 self.ax.set_yticks(np.arange(0, (self.nchns + 1)*self.y_lim, step=self.y_lim))
@@ -124,20 +129,19 @@ class SaveImgOptions(QWidget):
             width = 1 / (self.nchns + 2)
             if self.predicted == 1:
                 starts, ends, chns = self.data.pi.compute_starts_ends_chns(self.thresh,
-                                                                      self.count, self.window_size, fs, nchns)
+                                                                      self.count, self.window_size, self.fs, self.nchns)
                 for k in range(len(starts)):
-                    if self.pi.pred_by_chn:
+                    if self.data.pi.pred_by_chn:
                         if chns[k][i]:
-                            if i == plotData.shape[0] - 1:
+                            if i == self.plotData.shape[0] - 1:
                                 self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs, ends[k] - self.count * self.fs,
                                                                        ymin=width*(i+1.5), ymax=1, color='paleturquoise', alpha=1))
                             else:
                                 self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs, ends[k] - self.count * self.fs,
                                                                        ymin=width*(i+1.5), ymax=width*(i+2.5), color='paleturquoise', alpha=1))
-                            x_vals = range(
-                                int(starts[k]) - self.count * self.fs, int(ends[k]) - self.count * self.fs)
-                            self.ax.plot(x_vals, self.plotData[i, int(starts[k]):int(ends[k])] + i*self.y_lim + self.y_lim,
-                                         '-', linewidth=self.linethick * 2, color=self.data.ci.colors[i])
+                            x_vals = range(int(starts[k]) - self.count * self.fs, int(ends[k]) - self.count * self.fs)
+                            self.ax.plot(x_vals, self.plotData[i, int(starts[k]) - self.count * self.fs:int(ends[k]) - self.count * self.fs] + i*self.y_lim + self.y_lim,
+                                         '-', linewidth=self.data.linethick * 2, color=self.data.ci.colors[i])
                     else:
                         self.aspan_list.append(self.ax.axvspan(
                             starts[k] - self.count * self.fs, ends[k] - self.count * self.fs, color='paleturquoise', alpha=0.5))
@@ -154,7 +158,8 @@ class SaveImgOptions(QWidget):
         self.ax.set_xticks(np.arange(0, self.window_size *
                                      self.fs + 1, step=step_size))
         self.ax.set_xticklabels(np.arange(self.count, self.count + self.window_size + 1,
-                                          step=step_width), fontdict=None, minor=False, fontsize=self.data.fontSize)
+                                          step=step_width), fontdict=None,
+                                          minor=False, fontsize=self.data.fontSize)
         self.ax.set_xlabel("Time (s)", fontsize=self.data.fontSize)
         self.ax.set_title(self.data.title, fontsize=self.data.fontSize)
 

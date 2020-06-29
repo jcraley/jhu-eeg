@@ -218,5 +218,10 @@ class PredictionOptions(QWidget):
                 self.parent.throwAlert('Please load a model.')
 
     def closeWindow(self):
+        # For when zoom plot is open, if new predictions are loaded they will
+        # make the roi box invisible
+        if self.parent.btnZoom.text() == "Close zoom":
+            self.parent.openZoomPlot()
+            self.parent.openZoomPlot()
         self.parent.preds_win_open = 0
         self.close()

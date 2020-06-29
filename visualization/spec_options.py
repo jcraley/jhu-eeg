@@ -3,7 +3,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QVBoxLayout, QMessageBox, QWidget, QListWidget,
                                 QPushButton, QCheckBox, QLabel, QGridLayout,
                                 QScrollArea, QListWidgetItem, QAbstractItemView,
-                                QFileDialog)
+                                QFileDialog, QSpinBox, QComboBox)
+from PyQt5.QtGui import QFont
 
 import numpy as np
 
@@ -20,39 +21,62 @@ class SpecOptions(QWidget):
         self.setupUI()
 
     def setupUI(self):
+        self.setWindowTitle(self.title)
+        self.setGeometry(self.left, self.top, self.width, self.height)
 
         grid = QGridLayout()
 
-        self.scroll = QScrollArea()
+        """self.scroll = QScrollArea()
         self.scroll.setMinimumWidth(120)
         self.scroll.setMinimumHeight(200) # would be better if resizable
         self.scroll.setWidgetResizable(True)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
         self.chn_qlist = QListWidget()
         self.chn_qlist.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.scroll.setWidget(self.chn_qlist)
+        self.scroll.setWidget(self.chn_qlist)"""
 
-        self.populateChnList()
+        self.chnComboBox = QComboBox()
+        self.chnComboBox.addItems(["<select channel>"])
 
-        self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        lblInfo = QLabel("To hide the plot, click \n\"Clear\" and then \"Ok\".")
+        grid.addWidget(lblInfo,3,0)
+        myFont=QFont()
+        myFont.setBold(True)
+        lblInfo.setFont(myFont)
 
-        lblInfo = QLabel("Select a channel for \n spectrogram plotting: ")
-        grid.addWidget(lblInfo,0,0,1,2)
+        lblChn = QLabel("Select a channel for \nspectrogram plotting: ")
+        grid.addWidget(lblChn,1,0)
+        # grid.addWidget(self.scroll,1,0)
+        grid.addWidget(self.chnComboBox,1,1,1,3)
 
-        btnExit = QPushButton('Ok', self)
-        btnExit.clicked.connect(self.check)
-        grid.addWidget(btnExit,2,1)
+        lblfsaxis = QLabel("y-axis (Hz): ")
+        grid.addWidget(lblfsaxis,2,0)
+        self.btnGetMinFs = QSpinBox(self)
+        self.btnGetMinFs.setRange(0, self.parent.edf_info.fs / 2)
+        self.btnGetMinFs.setValue(self.data.minFs)
+        grid.addWidget(self.btnGetMinFs,2,1)
+        lblfsto = QLabel(" to ")
+        grid.addWidget(lblfsto,2,2)
+        self.btnGetMaxFs = QSpinBox(self)
+        self.btnGetMaxFs.setRange(0, self.parent.edf_info.fs / 2)
+        self.btnGetMaxFs.setValue(self.data.maxFs)
+        grid.addWidget(self.btnGetMaxFs,2,3)
 
-        btnClear = QPushButton('Clear', self)
-        btnClear.clicked.connect(self.clearSpec)
-        grid.addWidget(btnClear,2,0)
-
-        grid.addWidget(self.scroll,1,0)
+        self.btnClear = QPushButton('Clear', self)
+        grid.addWidget(self.btnClear,3,1,1,2)
+        self.btnExit = QPushButton('Ok', self)
+        grid.addWidget(self.btnExit,3,3)
 
         self.setLayout(grid)
+
+        self.setSigSlots()
+
+    def setSigSlots(self):
+        # set signals and slots
+        self.populateChnList()
+        self.btnExit.clicked.connect(self.check)
+        self.btnClear.clicked.connect(self.clearSpec)
 
         self.show()
 
@@ -71,29 +95,40 @@ class SpecOptions(QWidget):
             for i in range(len(labels_to_plot) - 1):
                 #self.labels_flipped.append(self.data.labels_to_plot[len(self.data.labels_to_plot) - 1 - i])
                 self.labels_flipped.append(labels_to_plot[i+1])
-                self.chn_items.append(QListWidgetItem(labels_to_plot[len(labels_to_plot) - 1 - i], self.chn_qlist))
-                self.chn_qlist.addItem(self.chn_items[i])
-                if i == self.data.chnPlotted:
-                    self.chn_items[i].setSelected(1)
-            self.scroll.show()
+                self.chnComboBox.addItems([labels_to_plot[len(labels_to_plot) - 1 - i]])
+                # self.chn_items.append(QListWidgetItem(labels_to_plot[len(labels_to_plot) - 1 - i], self.chn_qlist))
+                # self.chn_qlist.addItem(self.chn_items[i])
+                #if i == self.data.chnPlotted:
+                    # self.chn_items[i].setSelected(1)
+            if self.data.chnPlotted != -1:
+                self.chnComboBox.setCurrentIndex(len(labels_to_plot) - self.data.chnPlotted - 1)
+            else:
+                self.chnComboBox.setCurrentIndex(0)
+            # self.scroll.show()
+            # self.labels_flipped.append(labels_to_plot[i+1])
+            # self.chnComboBox.addItems(self.labels_flipped)
 
     def clearSpec(self):
-        selectedListItem = self.chn_qlist.selectedItems()
-        if len(selectedListItem) == 1:
-            selectedListItem[0].setSelected(0)
+        self.chnComboBox.setCurrentIndex(0)
+        self.data.chnPlotted = -1
+        #selectedListItem = self.chn_qlist.selectedItems()
+        #if len(selectedListItem) == 1:
+        #    selectedListItem[0].setSelected(0)
 
     def check(self):
         """
         Function to check the clicked channel and exit.
         """
-        # TODO: get selected chn from parent.data
-        selectedListItem = self.chn_qlist.selectedItems()
-        if len(selectedListItem) == 1:
-            row = self.chn_qlist.currentRow()
-            self.data.chnPlotted = row
-            self.data.chnName = self.labels_flipped[len(self.labels_flipped) - 1 - row]
+        # selectedListItem = self.chn_qlist.selectedItems()
+        # selectedIdx = self.chn_qlist.selectedIndexes()[0].row()
+        row = self.chnComboBox.currentIndex()
+        if row != 0:
+            # row = self.chnComboBox.currentIndex()
+            # row = self.chn_qlist.selectedIndexes()[0].row()
             nchns = self.parent.ci.nchns_to_plot
-            self.data.data = self.parent.ci.data_to_plot[nchns - 1 - row,:]
+            self.data.chnPlotted = nchns - row
+            self.data.chnName = self.labels_flipped[len(self.labels_flipped) - row]
+            self.data.data = self.parent.ci.data_to_plot[self.data.chnPlotted,:]
             if not self.data.plotSpec:
                 self.data.plotSpec = 1
                 self.parent.makeSpecPlot()
@@ -101,7 +136,14 @@ class SpecOptions(QWidget):
             self.data.plotSpec = 0
             self.parent.removeSpecPlot()
             self.data.chnPlotted = -1
-        self.closeWindow()
+        if self.btnGetMaxFs.value() > self.btnGetMinFs.value():
+            self.data.maxFs = self.btnGetMaxFs.value()
+            self.data.minFs = self.btnGetMinFs.value()
+            self.closeWindow()
+        elif self.data.plotSpec:
+            self.parent.throwAlert("Maximum frequency must be greater than minimum frequency.")
+        else:
+            self.closeWindow()
 
     def closeWindow(self):
         self.parent.spec_win_open = 0
