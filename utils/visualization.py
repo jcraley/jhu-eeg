@@ -34,7 +34,7 @@ def plot_yhat(y_hat, label, fn=None, threshold=None):
     ax.tick_params(axis='x', labelsize=16)
     ax.tick_params(axis='y', labelsize=16)
     # ax.legend(ncol=3, loc='upper right')
-    # ax.set_ylim([0, 10])
+    ax.set_ylim([-0.05, 1.05])
     ax.set_xlim([0, len(y_hat[:, 1])])
     if fn:
         plt.tight_layout()
