@@ -77,10 +77,13 @@ class Pipeline():
         print('Training')
         start = time.time()
         self.model.fit(self.train_dataset)
-        model_fn = os.path.join(self.paths['models'], 'model.pt')
-        torch.save(self.model, model_fn)
+        self.save_model()
         end = time.time()
         print('Training complete in {} seconds'.format(end-start))
+
+    def save_model(self):
+        model_fn = os.path.join(self.paths['models'], 'model.pt')
+        torch.save(self.model, model_fn)
 
     def load_model(self):
         self.model = torch.load(self.params['load model fn'])
