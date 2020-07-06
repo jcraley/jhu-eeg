@@ -16,7 +16,7 @@ def normalize(buffers):
     mean = buffers.mean(dim=ndim-1).unsqueeze(ndim-1)
     std = buffers.std(dim=ndim-1).unsqueeze(ndim-1)
     std[torch.where(std == 0)] = 1.0
-    return torch.true_divide(buffers - mean, std)
+    return torch.div(buffers - mean, std)
 
 
 def compute_nwindows(duration, window_length, overlap):
