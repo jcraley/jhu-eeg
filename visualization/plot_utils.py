@@ -45,15 +45,16 @@ def checkAnnotations(t_start,window_size,edf_info):
     else:
         return ret, idx_w_ann
 
-    if not(idx_w_ann[0] == 1 and idx_w_ann[1] == 1):
-        idx_w_ann[0] = 0
-    i = 1
-    while i < window_size - 1:
-        if not((idx_w_ann[i-1] == 1 or idx_w_ann[i+1] == 1) and idx_w_ann[i] == 1):
-            idx_w_ann[i] = 0
-        i += 1
-    if idx_w_ann[window_size - 2] == 0 and idx_w_ann[window_size - 1] == 1:
-        idx_w_ann[window_size - 1] = 0
+    if window_size > 1:
+        if not(idx_w_ann[0] == 1 and idx_w_ann[1] == 1):
+            idx_w_ann[0] = 0
+        i = 1
+        while i < window_size - 1:
+            if not((idx_w_ann[i-1] == 1 or idx_w_ann[i+1] == 1) and idx_w_ann[i] == 1):
+                idx_w_ann[i] = 0
+            i += 1
+        if idx_w_ann[window_size - 2] == 0 and idx_w_ann[window_size - 1] == 1:
+            idx_w_ann[window_size - 1] = 0
 
     return ret, idx_w_ann
 
