@@ -45,15 +45,16 @@ def checkAnnotations(t_start,window_size,edf_info):
     else:
         return ret, idx_w_ann
 
-    if not(idx_w_ann[0] == 1 and idx_w_ann[1] == 1):
-        idx_w_ann[0] = 0
-    i = 1
-    while i < window_size - 1:
-        if not((idx_w_ann[i-1] == 1 or idx_w_ann[i+1] == 1) and idx_w_ann[i] == 1):
-            idx_w_ann[i] = 0
-        i += 1
-    if idx_w_ann[window_size - 2] == 0 and idx_w_ann[window_size - 1] == 1:
-        idx_w_ann[window_size - 1] = 0
+    if window_size > 1:
+        if not(idx_w_ann[0] == 1 and idx_w_ann[1] == 1):
+            idx_w_ann[0] = 0
+        i = 1
+        while i < window_size - 1:
+            if not((idx_w_ann[i-1] == 1 or idx_w_ann[i+1] == 1) and idx_w_ann[i] == 1):
+                idx_w_ann[i] = 0
+            i += 1
+        if idx_w_ann[window_size - 2] == 0 and idx_w_ann[window_size - 1] == 1:
+            idx_w_ann[window_size - 1] = 0
 
     return ret, idx_w_ann
 
@@ -114,16 +115,16 @@ def filterData(data, fs, fi):
 
     return filt_bufs
 
-def getTime(count):
+def convertFromCount(count):
     """
-    Creates a string for the time in seconds.
+    Converts time from count (int in seconds) to the time format
+    hh:mm:ss.
 
-    inputs:
-        count - the current value of the plot in seconds
+    input:
+        count - the value of count
     returns:
-        t_str - a string of the seconds in the form hrs:min:sec
+        hrs, min, sec - the time
     """
-    t_str = ""
     t = count
     hrs = 0
     min = 0
@@ -135,6 +136,30 @@ def getTime(count):
         min = int(t / 60)
         t = t % 60
     sec = t
+    return hrs, min, sec
+
+def getTime(count):
+    """
+    Creates a string for the time in seconds.
+
+    inputs:
+        count - the current value of the plot in seconds
+    returns:
+        t_str - a string of the seconds in the form hrs:min:sec
+    """
+    t_str = ""
+    hrs, min, sec = convertFromCount(count)
+    """t = count
+    hrs = 0
+    min = 0
+    sec = 0
+    if int(t / 3600) > 0:
+        hrs = int(t / 3600)
+        t = t % 3600
+    if int(t / 60) > 0:
+        min = int(t / 60)
+        t = t % 60
+    sec = t"""
     if sec >= 10:
         str_sec = str(sec)
     else:
@@ -147,6 +172,57 @@ def getTime(count):
     t_str = str_hr + ":" + str_min + ":" + str_sec
     return t_str
 
+def loadSignals(data, fsArray):
+    """
+    Loads signals into a buffer based on the array of freqeuncies.
+    Signals with frequencies != max_fs will be interpolated.
+
+    inputs:
+        data - the raw EEG data
+        fsArray - array of fs for each signal
+        nsamples - array of the number of samples in each signal
+    returns:
+        fs - the frequency of the signals
+        buf - the loaded buffer of signals
+    """
+    nchns = len(data)
+    if nchns == 1:
+        return fsArray, np.array(data)
+
+    same_fs = 1
+    try:
+        if len(fsArray) > 1:
+            fs = np.max(fsArray)
+            fs_idx = np.argmax(fsArray)
+            same_fs = 0
+        elif len(fsArray) == 1:
+            fsArray = fsArray[0]
+    except:
+        fs = fsArray
+        same_fs = 1
+
+    buf = np.array(data)
+    if buf.ndim == 1:
+        if same_fs:
+            data_temp = np.zeros((buf.shape[0],buf[0].shape[0]))
+            for i in range(buf.shape[0]):
+                data_temp[i,:] = buf[i]
+            buf = np.array(data_temp)
+        else:
+            nsamples = data[fs_idx].shape[0]
+            data_temp = np.zeros((buf.shape[0],nsamples))
+            for i in range(buf.shape[0]):
+                fs_i = fsArray[i]
+                if fs == fs_i:
+                    data_temp[i,:] = data[i]
+                else:
+                    xp = np.arange(0,nsamples,int(fs / fs_i))
+                    yp = data[i]
+                    x = np.arange(0,nsamples,1)
+                    data_temp[i,:] = np.interp(x,xp,yp)
+            buf = np.array(data_temp)
+
+    return fs, buf
 
 def applyNotch(x, fs, fc=60, Q=20.0):
     """Apply a notch filter at fc Hz

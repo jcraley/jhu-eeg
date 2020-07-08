@@ -21,9 +21,8 @@ class OrganizeChannels(QWidget):
 
     def setupUI(self):
 
-        layout = QGridLayout()
+        # layout = QGridLayout()
         grid_lt = QGridLayout()
-        grid_rt = QGridLayout()
 
         self.scroll = QScrollArea()
         self.scroll.setMinimumWidth(120)
@@ -56,9 +55,8 @@ class OrganizeChannels(QWidget):
 
         grid_lt.addWidget(self.scroll,1,0)
 
-        layout.addLayout(grid_lt,0,0)
-        layout.addLayout(grid_rt,0,1)
-        self.setLayout(layout)
+        # layout.addLayout(grid_lt,0,0)
+        self.setLayout(grid_lt)
 
         self.show()
 
@@ -70,6 +68,7 @@ class OrganizeChannels(QWidget):
         #lbls = self.data.labels2chns
         self.chn_items = []
         self.labels_flipped = []
+        self.data.organize = 1 # set that channels were organized
         if len(self.data.labels_to_plot) == 0:
             self.closeWindow()
         else:
@@ -111,6 +110,6 @@ class OrganizeChannels(QWidget):
         """
         Called when the window is closed.
         """
-        self.parent.callInitialMovePlot()
+        # self.parent.callInitialMovePlot()
         self.parent.organize_win_open = 0
         event.accept()
