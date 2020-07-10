@@ -1,6 +1,5 @@
 import argparse
 import pyedflib
-from pyedflib import highlevel
 from scipy.signal import resample_poly
 
 
