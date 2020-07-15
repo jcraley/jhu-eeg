@@ -34,7 +34,8 @@ def compute_nwindows(duration, window_length, overlap):
     return int(np.floor((duration - window_length) / advance)) + 1
 
 
-def create_label(duration, sz_starts, sz_ends, window_length, overlap):
+def create_label(duration, sz_starts, sz_ends, window_length, overlap,
+                 post_sz_state=False):
     """Create a tensor of labels
 
     Arguments:
@@ -51,6 +52,8 @@ def create_label(duration, sz_starts, sz_ends, window_length, overlap):
     # Initialize all labels to 0
     label = torch.zeros(nwindows, dtype=torch.long)
     window_time = (window_length - overlap) * np.arange(nwindows)
+    if post_sz_state:
+        label[np.where(window_time >= sz_ends[0])] = 2
     # Set any labels between starts to 1
     for start, end in zip(sz_starts, sz_ends):
         label[np.where((window_time >= start) * (window_time <= end))] = 1
@@ -63,7 +66,8 @@ class EpilepsyDataset(Dataset):
 
     def __init__(self, manifest_fn, data_dir,
                  window_length, overlap, device='cpu', features_dir='',
-                 features=[], no_load=False, normalize_windows=False):
+                 features=[], no_load=False, normalize_windows=False,
+                 post_sz=False):
         self.as_sequences = False
         self.data_dir = data_dir
 
@@ -71,6 +75,7 @@ class EpilepsyDataset(Dataset):
         self.features_dir = features_dir
         self.features = features
         self.normalize_windows = normalize_windows
+        self.post_sz = post_sz
 
         # Read manifest, get number of channels and sample frequency
         self.manifest_files = read.read_manifest(manifest_fn)
@@ -95,7 +100,7 @@ class EpilepsyDataset(Dataset):
                 create_label(float(file['duration']),
                              json.loads(file['sz_starts']),
                              json.loads(file['sz_ends']), self.window_length,
-                             self.overlap))
+                             self.overlap, post_sz_state=self.post_sz))
             self.start_windows.append(window_idx)
             window_idx += len(self.labels[-1])
         self.nwindows = window_idx
