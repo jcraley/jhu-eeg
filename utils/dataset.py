@@ -271,4 +271,10 @@ class EpilepsyDataset(Dataset):
         return torch.cat(self.labels)
 
     def class_counts(self):
+        if self.post_sz:
+            counts = torch.zeros(3)
+            for label in self.labels:
+                new_counts = torch.bincount(label)
+                counts[:len(new_counts)] += new_counts
+            return counts
         return sum([torch.bincount(label) for label in self.labels])
