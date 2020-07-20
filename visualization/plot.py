@@ -353,29 +353,42 @@ class MainPage(QMainWindow):
         ann = self.edf_info.annotations
         if len(ann[0]) > 0 and ann[2][0] == "filtered":
             self.filter_checked = 1  # whether or not filter checkbox is checked
-            strFilt = ann[2][1].split("Hz")
-            strLP = strFilt[0][4:]
-            strHP = strFilt[1][5:]
-            strN = strFilt[2][4:]
-            if int(strLP):
-                self.fi.lp = int(strLP)
+            # strFilt = ann[2][1].split("Hz")
+            strLP = ann[2][1].split("Hz")[0][4:]
+            strHP = ann[2][2].split("Hz")[0][4:]
+            strN = ann[2][3].split("Hz")[0][3:]
+            strBP1 = ann[2][4].split("-")[0][4:]
+            strBP2 = ann[2][4].split("-")[1].split("Hz")[0]
+            if float(strLP) > 0:
+                self.fi.lp = float(strLP)
             else:
                 self.fi.do_lp = 0
-            if int(strHP):
-                self.fi.hp = int(strHP)
+            if float(strHP) > 0:
+                self.fi.hp = float(strHP)
             else:
                 self.fi.do_hp = 0
-            if int(strN):
-                self.fi.notch = int(strN)
+            if float(strN) > 0:
+                self.fi.notch = float(strN)
             else:
                 self.fi.do_notch = 0
+            if float(strBP1) > 0 and float(strBP2) > 0:
+                self.fi.do_bp = 1
+                self.fi.bp1 = float(strBP1)
+                self.fi.bp2 = float(strBP2)
+            else:
+                self.fi.do_bp = 0
         else:
-            self.fi.lp = self.argv.filter[0]
-            self.fi.hp = self.argv.filter[1]
-            self.fi.notch = self.argv.filter[2]
+            self.fi.lp = self.argv.filter[1]
+            self.fi.hp = self.argv.filter[2]
+            self.fi.notch = self.argv.filter[3]
+            self.fi.bp1 = self.argv.filter[4]
+            self.fi.bp2 = self.argv.filter[5]
             self.fi.do_lp = self.fi.lp != 0
             self.fi.do_hp = self.fi.hp != 0
             self.fi.do_notch = self.fi.notch != 0
+            self.fi.do_bp = self.fi.bp1 != 0 and self.fi.bp2 != 0
+            if (self.fi.do_lp or self.fi.do_hp or self.fi.do_notch or self.fi.do_bp) and self.argv.filter[0] == 1:
+                self.filter_checked = 1
 
         if self.btnZoom.text() == "Close zoom":
             self.btnZoom.setText("Open zoom")
@@ -490,8 +503,8 @@ class MainPage(QMainWindow):
         i = 0
         while i < len(self.edf_info.annotations[0]):
             if int(float(self.edf_info.annotations[0][i])) > loc:
-                if i > 0:
-                    i -= 1
+                # if i > 0:
+                #     i -= 1
                 break
             i += 1
         if len(self.edf_info.annotations[0]) == 0:
@@ -690,6 +703,10 @@ class MainPage(QMainWindow):
                     return
             else:
                 dataToSave = self.ci.data_to_plot
+            ann = self.edf_info.annotations
+            if len(ann[0]) > 0 and ann[2][0] == "filtered":
+                self.throwAlert("If filter values have since been changed, filter history will not be saved.\n"  +
+                            "If you would like to append some record of previous filters, please add an annotation.")
             file = QFileDialog.getSaveFileName(self, 'Save File')
             nchns = self.ci.nchns_to_plot
             labels = self.ci.labels_to_plot
@@ -739,10 +756,9 @@ class MainPage(QMainWindow):
             savedEDF.writeSamples(dataToSave)
 
             # write annotations
-            ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
-                ann = np.delete(ann, 0, axis=1)
-                ann = np.delete(ann, 0, axis=1)
+                for aa in range(5): # remove any old annotations
+                    ann = np.delete(ann, 0, axis=1)
             if self.filter_checked == 1:
                 if len(ann[0]) == 0:
                     ann = np.array([0.0, -1.0, "filtered"])
@@ -751,9 +767,14 @@ class MainPage(QMainWindow):
                     ann = np.insert(ann, 0, [0.0, -1.0, "filtered"], axis=1)
                 strFilt = ""
                 strFilt += "LP: " + str(self.fi.do_lp * self.fi.lp) + "Hz"
-                strFilt += " HP: " + str(self.fi.do_hp * self.fi.hp) + "Hz"
-                strFilt += " N: " + str(self.fi.do_notch * self.fi.hp) + "Hz"
                 ann = np.insert(ann, 1, [0.0, -1.0, strFilt], axis=1)
+                strFilt = "" + "HP: " + str(self.fi.do_hp * self.fi.hp) + "Hz"
+                ann = np.insert(ann, 2, [0.0, -1.0, strFilt], axis=1)
+                strFilt = "" + "N: " + str(self.fi.do_notch * self.fi.notch) + "Hz"
+                ann = np.insert(ann, 3, [0.0, -1.0, strFilt], axis=1)
+                strFilt = "" + "BP: " + str(self.fi.do_bp * self.fi.bp1) + "-" + str(self.fi.do_bp * self.fi.bp2) + "Hz"
+                ann = np.insert(ann, 4, [0.0, -1.0, strFilt], axis=1)
+                # ann = np.insert(ann, 1, [0.0, -1.0, strFilt], axis=1)
             for i in range(len(ann[0])):
                 savedEDF.writeAnnotation(
                     float(ann[0][i]), float((ann[1][i])), ann[2][i])
@@ -838,7 +859,7 @@ class MainPage(QMainWindow):
         self.init = 1
 
         ann = self.edf_info.annotations
-        if len(ann[0]) > 0 and ann[2][0] == "filtered":
+        if len(ann[0]) > 0 and ann[2][0] == "filtered" or self.filter_checked == 1:
             self.cbox_filter.setChecked(True)  # must be set after init = 1
 
     def rightPlot1s(self):
@@ -1366,8 +1387,8 @@ def get_args():
     p.add_argument("--window-width", type=int, default=10,
                    choices=[5, 10, 15, 20, 25, 30],
                     help="The width of signals on the plot.")
-    p.add_argument("--filter", nargs=3, type=float, default=[30,2,0],
-                    help="Low pass, high pass, and notch frequencies. Set to 0 to turn off filter.")
+    p.add_argument("--filter", nargs=6, type=float, default=[0,30,2,0,0,0],
+                    help="1 or 0 to set the filter. Low pass, high pass, notch, and bandpass frequencies. Set to 0 to turn off each filter.")
     p.add_argument("--show", type=int, default=1, choices=[0,1],
                     help="Whether or not to show the GUI.")
     p.add_argument("--print-annotations",type=int, default=1, choices=[0,1])

@@ -71,24 +71,28 @@ def filterData(data, fs, fi):
     returns:
         filtered data
     """
-    if fi.do_lp == 0:
+    lp = fi.lp
+    hp = fi.hp
+    bp1 = fi.bp1
+    bp2 = fi.bp2
+    if fi.do_lp == 0 or lp < 0 or lp > fs / 2:
         lp = 0
-    else:
-        lp = fi.lp
-    if fi.do_hp == 0:
+    if fi.do_hp == 0 or hp < 0 or hp > fs / 2:
         hp = 0
-    else:
-        hp = fi.hp
+    if fi.do_bp == 0 or bp1 < 0 or bp1 > fs / 2 or bp2 < 0 or bp1 > fs / 2 or bp2 - bp1 <= 0:
+        bp1 = 0
+        bp2 = 0
+
 
     nchns = len(data)
     filt_bufs = deepcopy(data)
-    progress = QProgressDialog("Filtering...", "Cancel", 0, nchns * 3)
+    progress = QProgressDialog("Filtering...", "Cancel", 0, nchns * 4)
     progress.setWindowModality(Qt.WindowModal)
 
     i = 0
     for chn in range(nchns):
         # Notch
-        if fi.notch > 0:
+        if fi.notch > 0 and fi.notch < fs / 2:
             filt_bufs[chn] = applyNotch(filt_bufs[chn], fs,fi.notch)
         i += 1
         progress.setValue(i)
@@ -106,6 +110,14 @@ def filterData(data, fs, fi):
         # HPF
         if hp > 0:
             filt_bufs[chn] = dsp.applyHighPass(filt_bufs[chn], fs, hp)
+        i += 1
+        progress.setValue(i)
+        if progress.wasCanceled():
+            fi.filter_canceled = 1
+            break
+        # BPF
+        if bp1 > 0:
+            filt_bufs[chn] = applyBandPass(filt_bufs[chn], fs, [bp1, bp2]) 
         i += 1
         progress.setValue(i)
         if progress.wasCanceled():
@@ -229,4 +241,11 @@ def applyNotch(x, fs, fc=60, Q=20.0):
     """
     w60Hz = fc / (fs / 2)
     b, a = scipy.signal.iirnotch(w60Hz, Q)
+    return scipy.signal.filtfilt(b, a, x, method='gust')
+
+def applyBandPass(x, fs, fc=[1.6,30], N=4):
+    """Apply a low-pass filter to the signal
+    """
+    wc = fc / (fs / 2)
+    b, a = scipy.signal.butter(N, wc, btype='bandpass')
     return scipy.signal.filtfilt(b, a, x, method='gust')
