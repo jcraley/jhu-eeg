@@ -1,5 +1,6 @@
 import sklearn.ensemble
 import sklearn.linear_model
+from sklearn.svm import SVC
 
 from models.basemodel import BaseModel
 
@@ -44,3 +45,8 @@ class RandomForest(SklearnMixin, BaseModel):
         self.model = (
             sklearn.ensemble.RandomForestClassifier(**kwargs)
         )
+
+
+class SupportVectorMachine(SklearnMixin, BaseModel):
+    def __init__(self, **kwargs):
+        self.model = SVC(probability=True, **kwargs)
