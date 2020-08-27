@@ -167,7 +167,10 @@ class Pipeline():
 
         # Perform the threshold sweep
         evaluation.threshold_sweep(all_preds, all_labels,
-                                   self.paths['results'], prefix, '')
+                                   self.paths['results'], prefix, '',
+                                   dataset.get_total_sz(),
+                                   dataset.get_total_duration(),
+                                   dataset.get_window_advance_seconds())
 
         # Check for smoothing and run if so
         if self.params['smoothing'] > 0:
@@ -192,4 +195,6 @@ class Pipeline():
             # Perform the threshold sweep on the smoothed predictions.
             evaluation.threshold_sweep(smoothed_preds, all_labels,
                                        self.paths['results'], prefix,
-                                       '_smoothed')
+                                       '_smoothed', dataset.get_total_sz(),
+                                       dataset.get_total_duration(),
+                                       dataset.get_window_advance_seconds())

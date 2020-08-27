@@ -87,23 +87,32 @@ class EpilepsyDataset(Dataset):
         assert overlap < window_length, "Overlap is longer than window"
         self.window_length = window_length
         self.overlap = overlap
-        self.advance_seconds = window_length - overlap
+        self.window_advance_seconds = window_length - overlap
         self.window_samples = int(window_length * self.fs)
-        self.advance_samples = int(self.advance_seconds * self.fs)
+        self.window_advance_samples = int(
+            self.window_advance_seconds * self.fs)
 
         # Create the labels for the dataset
         self.labels = []
         self.start_windows = []
         window_idx = 0
-        for file in self.manifest_files:
+        for recording in self.manifest_files:
             self.labels.append(
-                create_label(float(file['duration']),
-                             json.loads(file['sz_starts']),
-                             json.loads(file['sz_ends']), self.window_length,
+                create_label(float(recording['duration']),
+                             json.loads(recording['sz_starts']),
+                             json.loads(recording['sz_ends']
+                                        ), self.window_length,
                              self.overlap, post_sz_state=self.post_sz))
             self.start_windows.append(window_idx)
             window_idx += len(self.labels[-1])
         self.nwindows = window_idx
+
+        # Get the total duration and number of seizures
+        self.total_duration = 0
+        self.total_sz = 0
+        for recording in self.manifest_files:
+            self.total_duration += float(recording['duration'])
+            self.total_sz += int(recording['nsz'])
 
         # Load features
         if not no_load:
@@ -278,3 +287,12 @@ class EpilepsyDataset(Dataset):
                 counts[:len(new_counts)] += new_counts
             return counts
         return sum([torch.bincount(label) for label in self.labels])
+
+    def get_total_sz(self):
+        return self.total_sz
+
+    def get_total_duration(self):
+        return self.total_duration
+
+    def get_window_advance_seconds(self):
+        return self.window_advance_seconds

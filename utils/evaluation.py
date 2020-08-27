@@ -180,7 +180,8 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
 
 
 def threshold_sweep(all_preds, all_labels, report_folder,
-                    prefix="", suffix=""):
+                    prefix="", suffix="", nsz=0, total_duration=0,
+                    window_advance_seconds=0):
     """For a set of predictions, sweep the threshold compute results
 
     Args:
@@ -206,5 +207,16 @@ def threshold_sweep(all_preds, all_labels, report_folder,
             results['latency_samples'][ii] += stats['latency_samples']
             results['ncorrect'][ii] += stats['ncorrect']
 
+    # If needed stats are provided, compute sensitivity, fp/hr, latency_seconds
+    if nsz > 0:
+        results['sensitivity'] = results['ncorrect'] / nsz
+    if total_duration > 0:
+        results['fps_per_hour'] = results['nfps'] * 3600 / total_duration
+    if window_advance_seconds > 0:
+        results['latency_seconds'] = (
+            results['latency_samples'] * window_advance_seconds
+        )
+
+    # Save the results
     fn = '{}threshold_sweep{}.pkl'.format(prefix, suffix)
-    torch.save(report_folder, os.path.join(report_folder, fn))
+    torch.save(results, os.path.join(report_folder, fn))
