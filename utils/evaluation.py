@@ -1,9 +1,21 @@
 import os
 import csv
-import pickle
+import torch
 import numpy as np
 from sklearn import metrics
 from collections import OrderedDict
+
+
+def smooth(all_preds, smoothing):
+    smoothed_preds = []
+    for pred in all_preds:
+        new_pred = np.zeros_like(pred)
+        for ii in range(len(pred)):
+            start = max(ii - smoothing // 2, 0)
+            end = ii + smoothing // 2
+            new_pred[ii, :] = np.mean(pred[start:end, :], axis=0)
+        smoothed_preds.append(new_pred)
+    return smoothed_preds
 
 
 def compute_metrics(labels, preds, threshold=0.5):
@@ -118,12 +130,13 @@ def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix):
                           '{}roc{}.pkl'.format(prefix, suffix))
     results_fn = os.path.join(report_folder,
                               '{}iid_results{}.csv'.format(prefix, suffix))
-    with open(stats_fn, 'wb') as f:
-        pickle.dump(stats, f)
-    with open(pr_fn, 'wb') as f:
-        pickle.dump(stats['pr curve'], f)
-    with open(roc_fn, 'wb') as f:
-        pickle.dump(stats['roc curve'], f)
+
+    # Save results
+    torch.save(stats, stats_fn)
+    torch.save(stats['pr curve'], pr_fn)
+    torch.save(stats['roc curve'], roc_fn)
+
+    # Write out report
     with open(results_fn, 'w', newline='') as csvfile:
         fieldnames = ['acc', 'sens', 'spec', 'prec', 'f1', 'auc-roc',
                       'auc-pr']
@@ -166,13 +179,32 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
         writer.writerows(all_results)
 
 
-def smooth(all_preds, smoothing):
-    smoothed_preds = []
-    for pred in all_preds:
-        new_pred = np.zeros_like(pred)
-        for ii in range(len(pred)):
-            start = max(ii - smoothing // 2, 0)
-            end = ii + smoothing // 2
-            new_pred[ii, :] = np.mean(pred[start:end, :], axis=0)
-        smoothed_preds.append(new_pred)
-    return smoothed_preds
+def threshold_sweep(all_preds, all_labels, report_folder,
+                    prefix="", suffix=""):
+    """For a set of predictions, sweep the threshold compute results
+
+    Args:
+        all_preds (list): list of predictions
+        all_labels (list): list of labels
+    """
+
+    # Initialize values
+    thresholds = np.arange(0, 1, 0.01)
+    results = {
+        'thresholds': thresholds,
+        'nfps': np.zeros_like(thresholds),
+        'latency_samples': np.zeros_like(thresholds),
+        'ncorrect': np.zeros_like(thresholds)
+    }
+
+    # Loop over lists of preds and labels
+    for pred, labels in zip(all_preds, all_labels):
+        # Score the recording
+        for ii, thresh in enumerate(thresholds):
+            stats = score_recording(labels, pred, threshold=thresh)
+            results['nfps'][ii] += stats['nfps']
+            results['latency_samples'][ii] += stats['latency_samples']
+            results['ncorrect'][ii] += stats['ncorrect']
+
+    fn = '{}threshold_sweep{}.pkl'.format(prefix, suffix)
+    torch.save(report_folder, os.path.join(report_folder, fn))

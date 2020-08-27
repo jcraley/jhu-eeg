@@ -165,6 +165,10 @@ class Pipeline():
         evaluation.sequence_report(all_fns, all_preds, all_labels,
                                    self.paths['results'], prefix, '')
 
+        # Perform the threshold sweep
+        evaluation.threshold_sweep(all_preds, all_labels,
+                                   self.paths['results'], prefix, '')
+
         # Check for smoothing and run if so
         if self.params['smoothing'] > 0:
             print("Smoothed results")
@@ -182,5 +186,10 @@ class Pipeline():
 
             # Score based on sequences
             evaluation.sequence_report(all_fns, smoothed_preds, all_labels,
+                                       self.paths['results'], prefix,
+                                       '_smoothed')
+
+            # Perform the threshold sweep on the smoothed predictions.
+            evaluation.threshold_sweep(smoothed_preds, all_labels,
                                        self.paths['results'], prefix,
                                        '_smoothed')
