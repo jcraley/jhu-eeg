@@ -81,6 +81,7 @@ class TestConfiguration():
             'load to device': exp_cfg.getboolean('load to device'),
             'load as': exp_cfg['load as'],
             'load model fn': exp_cfg['load model fn'],
+            'fps per hour': exp_cfg.getfloat('fps per hour'),
         })
 
     def _update_preprocessing_params(self):

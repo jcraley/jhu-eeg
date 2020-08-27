@@ -29,11 +29,11 @@ def main():
         pipeline.train()
 
     """Score test and train sets"""
-    if params['score val']:
-        pipeline.score_val_dataset()
-
     if params['score train']:
         pipeline.score_train_dataset()
+
+    if params['score val']:
+        pipeline.score_val_dataset()
 
 
 if __name__ == '__main__':

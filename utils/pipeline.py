@@ -23,11 +23,14 @@ class Pipeline():
         self.paths = paths
         self.device = device
 
-        # Initilize things that don't very long
+        # Initilize things that don't take very long
         manifest = read.read_manifest(self.params['train manifest'])
         self.fs = int(manifest[0]['fs'])
         self.channel_list = read.read_channel_list(self.params['channel list'])
         self.nchns = len(self.channel_list)
+
+        # Initialize the train threshold to None
+        self.train_threshold = None
 
     def write_config_file(self):
         """Write the config file"""
@@ -90,21 +93,32 @@ class Pipeline():
         self.model = torch.load(self.params['load model fn'])
 
     def score_train_dataset(self):
+        """Score the training dataset
+
+        If an "fps per hour" value has been set, the corresponding threshold
+        will be calculated
+        """
         print("Scoring the training dataset")
-        self.score_dataset(self.train_dataset, 'train_',
-                           self.params['visualize train'],
-                           self.paths['figures'], self.paths['results'])
+        # If no "fps per hour" is set, self.train_threshold = None
+        print(self.train_threshold)
+        self.train_threshold = self.score_dataset(
+            self.train_dataset, 'train_', self.params['visualize train'],
+            self.paths['figures'], self.paths['results'],
+            fps_per_hr=self.params['fps per hour'])
+        print(self.train_threshold)
         print("")
 
     def score_val_dataset(self):
         print("Scoring the validation dataset")
         self.score_dataset(self.val_dataset, 'val_',
                            self.params['visualize val'],
-                           self.paths['figures'], self.paths['results'])
+                           self.paths['figures'], self.paths['results'],
+                           threshold=self.train_threshold)
         print("")
 
     def score_dataset(self, dataset, prefix, visualize,
-                      figures_folder, results_folder):
+                      figures_folder, results_folder, threshold=None,
+                      fps_per_hr=0):
         dataset.set_as_sequences(True)
         if hasattr(self.model, "eval"):
             self.model.eval()
@@ -161,16 +175,16 @@ class Pipeline():
         evaluation.iid_window_report(all_preds, all_labels,
                                      self.paths['results'], prefix, '')
 
+        # Perform the threshold sweep
+        evaluation.threshold_sweep(
+            all_preds, all_labels, self.paths['results'], prefix, '',
+            dataset.get_total_sz(), dataset.get_total_duration(),
+            dataset.get_window_advance_seconds()
+        )
+
         # Score based on sequences
         evaluation.sequence_report(all_fns, all_preds, all_labels,
                                    self.paths['results'], prefix, '')
-
-        # Perform the threshold sweep
-        evaluation.threshold_sweep(all_preds, all_labels,
-                                   self.paths['results'], prefix, '',
-                                   dataset.get_total_sz(),
-                                   dataset.get_total_duration(),
-                                   dataset.get_window_advance_seconds())
 
         # Check for smoothing and run if so
         if self.params['smoothing'] > 0:
@@ -178,23 +192,46 @@ class Pipeline():
             smoothed_preds = evaluation.smooth(
                 all_preds, self.params['smoothing'])
 
-            if visualize:
-                viz.make_images(all_fns, smoothed_preds, all_labels,
-                                self.paths['figures'], prefix, '_smoothed')
+            # Perform the threshold sweep on the smoothed predictions.
+            sweep_results = evaluation.threshold_sweep(
+                smoothed_preds, all_labels, self.paths['results'], prefix,
+                '_smoothed', dataset.get_total_sz(),
+                dataset.get_total_duration(),
+                dataset.get_window_advance_seconds()
+            )
+
+            # If a threshold is not specified and an allowable fps_per_hour is,
+            # compute the corresponding threshold
+            if threshold is None and fps_per_hr > 0:
+                # Decrease the threshold until the fp criteria is met
+                threshold_idx = len(sweep_results['thresholds']) - 1
+                stop = False
+                while not stop:
+                    if (sweep_results['fps_per_hour'][threshold_idx]
+                            > fps_per_hr):
+                        stop = True
+                    elif threshold_idx == 10:
+                        stop = True
+                    else:
+                        threshold_idx -= 1
+                # Get the threshold
+                threshold = sweep_results['thresholds'][threshold_idx]
 
             # Compute windowise statistics and write out
             evaluation.iid_window_report(smoothed_preds, all_labels,
                                          self.paths['results'],
-                                         prefix, '_smoothed')
+                                         prefix, '_smoothed',
+                                         threshold=threshold)
 
             # Score based on sequences
             evaluation.sequence_report(all_fns, smoothed_preds, all_labels,
                                        self.paths['results'], prefix,
-                                       '_smoothed')
+                                       '_smoothed', threshold=threshold)
 
-            # Perform the threshold sweep on the smoothed predictions.
-            evaluation.threshold_sweep(smoothed_preds, all_labels,
-                                       self.paths['results'], prefix,
-                                       '_smoothed', dataset.get_total_sz(),
-                                       dataset.get_total_duration(),
-                                       dataset.get_window_advance_seconds())
+            # Visualize
+            if visualize:
+                viz.make_images(all_fns, smoothed_preds, all_labels,
+                                self.paths['figures'], prefix, '_smoothed',
+                                threshold=threshold)
+
+        return threshold

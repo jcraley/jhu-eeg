@@ -18,8 +18,13 @@ def smooth(all_preds, smoothing):
     return smoothed_preds
 
 
-def compute_metrics(labels, preds, threshold=0.5):
+def compute_metrics(labels, preds, threshold=None):
     """Compute the statistics for a set of labels and predictions"""
+
+    # If no threshold is set, set it to 0.5
+    if threshold is None:
+        threshold = 0.5
+
     # Compute stats
     y_hat = np.zeros(preds.shape[0])
     y_hat[np.where(preds[:, 1] >= threshold)] = 1
@@ -118,10 +123,12 @@ def score_recording(labels, preds, threshold=0.5):
     }
 
 
-def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix):
+def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix,
+                      threshold=None):
     # Compute window based statistics and write out
     stats = compute_metrics(np.concatenate(all_labels),
-                            np.concatenate(all_preds))
+                            np.concatenate(all_preds),
+                            threshold=threshold)
     stats_fn = os.path.join(report_folder,
                             '{}stats{}.pkl'.format(prefix, suffix))
     pr_fn = os.path.join(report_folder,
@@ -151,14 +158,19 @@ def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix):
 
 
 def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
-                    suffix):
+                    suffix, threshold=None):
+
+    # If the threshold is None, set it to 0.5
+    if threshold is None:
+        threshold = 0.5
+
     # Score based on sequences
     total_fps = 0
     total_latency_samples = 0
     total_correct = 0
     all_results = []
     for fn, pred, label in zip(all_fns, all_preds, all_labels):
-        stats = score_recording(label, pred)
+        stats = score_recording(label, pred, threshold)
         all_results.append({
             'fn': fn,
             'nfps': stats['nfps'],
@@ -223,3 +235,5 @@ def threshold_sweep(all_preds, all_labels, report_folder,
     # Save the results
     fn = '{}threshold_sweep{}.pkl'.format(prefix, suffix)
     torch.save(results, os.path.join(report_folder, fn))
+
+    return results
