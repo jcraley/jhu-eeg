@@ -126,3 +126,6 @@ class TestConfiguration():
 
     def __setitem__(self, key, value):
         self.all_params[key] = value
+
+    def __contains__(self, key):
+        return key in self.all_params

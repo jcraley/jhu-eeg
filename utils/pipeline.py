@@ -3,6 +3,7 @@ import os
 import time
 
 import torch
+import numpy as np
 
 import utils.evaluation as evaluation
 import utils.read_files as read
@@ -105,6 +106,8 @@ class Pipeline():
     def score_dataset(self, dataset, prefix, visualize,
                       figures_folder, results_folder):
         dataset.set_as_sequences(True)
+        if hasattr(self.model, "eval"):
+            self.model.eval()
 
         # Check if model can score by channel
         has_predict_by_channel = False
@@ -120,15 +123,25 @@ class Pipeline():
         for seq in dataset:
             # Run and save predictions
             fn = seq['filename'].split('.')[0]
-            X = seq['buffers']
-            pred = self.model.predict_proba(X)
+            X = seq['buffers'].to(self.device)
+            if ('classifier' in self.params
+                    and self.params['classifier'] == 'LstmClassifier'):
+                T, c, l = X.size()
+                pred = self.model.predict_proba(
+                    X.view((1, T, c, l))).view(T, 2)
+            else:
+                pred = self.model.predict_proba(X)
+            if type(pred) == torch.Tensor:
+                pred = pred.cpu().detach().numpy()
             pred_fn = os.path.join(self.paths['predictions'], fn + '.pt')
             torch.save(pred, pred_fn)
 
             # Save prediction information
             all_fns.append(fn)
             all_preds.append(pred)
-            all_labels.append(seq['labels'].detach().cpu().numpy())
+            label = seq['labels'].detach().cpu().numpy()
+            label[np.where(label == 2)] = 0
+            all_labels.append(label)
             del pred
 
             # Save channel predictions
