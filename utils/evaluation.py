@@ -210,12 +210,15 @@ def threshold_sweep(all_preds, all_labels, report_folder,
     # If needed stats are provided, compute sensitivity, fp/hr, latency_seconds
     if nsz > 0:
         results['sensitivity'] = results['ncorrect'] / nsz
+        results['average_latency_samples'] = results['latency_samples'] / nsz
     if total_duration > 0:
         results['fps_per_hour'] = results['nfps'] * 3600 / total_duration
     if window_advance_seconds > 0:
         results['latency_seconds'] = (
             results['latency_samples'] * window_advance_seconds
         )
+        if nsz > 0:
+            results['average_latency_seconds'] = results['latency_seconds'] / nsz
 
     # Save the results
     fn = '{}threshold_sweep{}.pkl'.format(prefix, suffix)

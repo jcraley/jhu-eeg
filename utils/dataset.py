@@ -235,8 +235,8 @@ class EpilepsyDataset(Dataset):
                 windowed_buffer = self.buffer_list[0].new_zeros(
                     (self.buffer_windows[idx], self.nchns, self.window_samples))
                 for ii in range(self.buffer_windows[idx]):
-                    start = ii * self.advance_samples
-                    end = ii * self.advance_samples + self.window_samples
+                    start = ii * self.window_advance_samples
+                    end = ii * self.window_advance_samples + self.window_samples
                     windowed_buffer[ii, :, :] = torch.transpose(
                         self.buffer_list[idx][start:end, :], 0, 1)
                 sample['buffers'] = windowed_buffer
@@ -252,9 +252,11 @@ class EpilepsyDataset(Dataset):
             if self.features:
                 sample['buffers'] = self.data[idx]
             else:
-                sample_start = window_number * self.advance_samples
-                sample['buffers'] = torch.transpose(self.buffer_list[buffer_idx][
-                    sample_start:sample_start + self.window_samples, :], 0, 1)
+                sample_start = window_number * self.window_advance_samples
+                sample['buffers'] = torch.transpose(
+                    self.buffer_list[buffer_idx][sample_start:sample_start
+                                                 + self.window_samples, :],
+                    0, 1)
         if self.normalize_windows:
             sample['buffers'] = normalize(sample['buffers'])
         return sample
