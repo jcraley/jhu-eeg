@@ -76,7 +76,7 @@ def compute_metrics(labels, preds, threshold=None):
     return stats
 
 
-def score_recording(labels, preds, threshold=0.5):
+def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0):
     """Score a single recording"""
     # Find the true onsets and offsets
     true_onsets = np.where(np.diff(labels) == 1)[0] + 1
@@ -94,27 +94,32 @@ def score_recording(labels, preds, threshold=0.5):
     # Loop over the seizures
     ncorrect = 0
     latency_samples = 0
+    nfps = 0
     for onset, offset in zip(true_onsets, true_offsets):
 
         # Check for an accurate sample
         if np.sum(tp_samples[onset:offset]) > 0:
-            ncorrect += 1
-
-            # Find the onset
-            if tp_samples[onset] == 1:
-                # Detection occurs before onset annotation
-                idx = onset
-                while y_hat[idx] == 1 and idx >= 0:
-                    tp_samples[idx] = 1
-                    fp_samples[idx] = 0
-                    idx = idx - 1
-                first_tp = idx + 1
-                latency_samples += first_tp - onset
+            # If max_samples_before_sz are all fps, detection is too early
+            if (max_samples_before_sz > 0
+                    and fp_samples[onset-max_samples_before_sz:onset].all()):
+                nfps += 1
             else:
-                # Detection is after onset
-                latency_samples += np.where(
-                    tp_samples[onset:offset] == 1)[0][0]
-    nfps = np.sum(fp_samples[detections])
+                ncorrect += 1
+                # Find the onset
+                if tp_samples[onset] == 1:
+                    # Detection occurs at or before onset annotation
+                    idx = onset
+                    while y_hat[idx] == 1 and idx >= 0:
+                        tp_samples[idx] = 1
+                        fp_samples[idx] = 0
+                        idx = idx - 1
+                    first_tp = idx + 1
+                    latency_samples += first_tp - onset
+                else:
+                    # Detection is after onset
+                    latency_samples += np.where(
+                        tp_samples[onset:offset] == 1)[0][0]
+    nfps += np.sum(fp_samples[detections])
 
     return {
         'nfps': nfps,
@@ -158,7 +163,8 @@ def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix,
 
 
 def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
-                    suffix, threshold=None):
+                    suffix, threshold=None, max_samples_before_sz=0, nsz=0,
+                    total_duration=0, window_advance_seconds=0):
 
     # If the threshold is None, set it to 0.5
     if threshold is None:
@@ -170,7 +176,7 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
     total_correct = 0
     all_results = []
     for fn, pred, label in zip(all_fns, all_preds, all_labels):
-        stats = score_recording(label, pred, threshold)
+        stats = score_recording(label, pred, threshold, max_samples_before_sz)
         all_results.append({
             'fn': fn,
             'nfps': stats['nfps'],
@@ -181,19 +187,38 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
         total_latency_samples += stats['latency_samples']
         total_correct += stats['ncorrect']
 
+    # Include the totals
+    all_results.append({
+        'fn': 'total',
+        'nfps': total_fps,
+        'latency_samples': total_latency_samples,
+        'ncorrect': total_correct
+    })
+
+    # Score the fps per hour
+    if total_duration > 0:
+        all_results[-1]['fps_per_hour'] = (total_fps *
+                                           3600 / total_duration)
+    if window_advance_seconds > 0:
+        all_results[-1]['latency_time'] = (total_latency_samples *
+                                           window_advance_seconds)
+    if nsz > 0:
+        all_results[-1]['sensitivity'] = total_correct / nsz
+
     # Write sequence stats
     results_fn = os.path.join(report_folder,
                               '{}seizure_results{}.csv'.format(prefix, suffix))
     with open(results_fn, 'w', newline='') as csvfile:
-        fieldnames = ['fn', 'nfps', 'latency_samples', 'ncorrect']
+        fieldnames = ['fn', 'nfps', 'latency_samples', 'ncorrect',
+                      'fps_per_hour', 'latency_time', 'sensitivity']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(all_results)
 
 
 def threshold_sweep(all_preds, all_labels, report_folder,
-                    prefix="", suffix="", nsz=0, total_duration=0,
-                    window_advance_seconds=0):
+                    prefix="", suffix="", max_samples_before_sz=0, nsz=0,
+                    total_duration=0, window_advance_seconds=0):
     """For a set of predictions, sweep the threshold compute results
 
     Args:
@@ -214,7 +239,8 @@ def threshold_sweep(all_preds, all_labels, report_folder,
     for pred, labels in zip(all_preds, all_labels):
         # Score the recording
         for ii, thresh in enumerate(thresholds):
-            stats = score_recording(labels, pred, threshold=thresh)
+            stats = score_recording(
+                labels, pred, thresh, max_samples_before_sz)
             results['nfps'][ii] += stats['nfps']
             results['latency_samples'][ii] += stats['latency_samples']
             results['ncorrect'][ii] += stats['ncorrect']

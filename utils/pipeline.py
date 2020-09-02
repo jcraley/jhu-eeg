@@ -100,12 +100,10 @@ class Pipeline():
         """
         print("Scoring the training dataset")
         # If no "fps per hour" is set, self.train_threshold = None
-        print(self.train_threshold)
         self.train_threshold = self.score_dataset(
             self.train_dataset, 'train_', self.params['visualize train'],
             self.paths['figures'], self.paths['results'],
             fps_per_hr=self.params['fps per hour'])
-        print(self.train_threshold)
         print("")
 
     def score_val_dataset(self):
@@ -178,13 +176,15 @@ class Pipeline():
         # Perform the threshold sweep
         evaluation.threshold_sweep(
             all_preds, all_labels, self.paths['results'], prefix, '',
-            dataset.get_total_sz(), dataset.get_total_duration(),
-            dataset.get_window_advance_seconds()
+            self.params['max samples before sz'], dataset.get_total_sz(),
+            dataset.get_total_duration(), dataset.get_window_advance_seconds()
         )
 
         # Score based on sequences
-        evaluation.sequence_report(all_fns, all_preds, all_labels,
-                                   self.paths['results'], prefix, '')
+        evaluation.sequence_report(
+            all_fns, all_preds, all_labels, self.paths['results'], prefix, '',
+            max_samples_before_sz=self.params['max samples before sz']
+        )
 
         # Check for smoothing and run if so
         if self.params['smoothing'] > 0:
@@ -195,8 +195,8 @@ class Pipeline():
             # Perform the threshold sweep on the smoothed predictions.
             sweep_results = evaluation.threshold_sweep(
                 smoothed_preds, all_labels, self.paths['results'], prefix,
-                '_smoothed', dataset.get_total_sz(),
-                dataset.get_total_duration(),
+                '_smoothed', self.params['max samples before sz'],
+                dataset.get_total_sz(), dataset.get_total_duration(),
                 dataset.get_window_advance_seconds()
             )
 
@@ -216,6 +216,9 @@ class Pipeline():
                         threshold_idx -= 1
                 # Get the threshold
                 threshold = sweep_results['thresholds'][threshold_idx]
+                fn = '{}threshold{}.txt'.format(prefix, '_smoothed')
+                with open(os.path.join(self.paths['results'], fn), 'w') as f:
+                    f.write(str(threshold) + '\n')
 
             # Compute windowise statistics and write out
             evaluation.iid_window_report(smoothed_preds, all_labels,
@@ -226,7 +229,11 @@ class Pipeline():
             # Score based on sequences
             evaluation.sequence_report(all_fns, smoothed_preds, all_labels,
                                        self.paths['results'], prefix,
-                                       '_smoothed', threshold=threshold)
+                                       '_smoothed', threshold,
+                                       self.params['max samples before sz'],
+                                       dataset.get_total_sz(),
+                                       dataset.get_total_duration(),
+                                       dataset.get_window_advance_seconds())
 
             # Visualize
             if visualize:

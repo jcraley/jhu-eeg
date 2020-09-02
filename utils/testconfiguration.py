@@ -82,6 +82,7 @@ class TestConfiguration():
             'load as': exp_cfg['load as'],
             'load model fn': exp_cfg['load model fn'],
             'fps per hour': exp_cfg.getfloat('fps per hour'),
+            'max samples before sz': exp_cfg.getint('max samples before sz'),
         })
 
     def _update_preprocessing_params(self):
