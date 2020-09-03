@@ -201,7 +201,7 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
                                            3600 / total_duration)
     if window_advance_seconds > 0:
         all_results[-1]['latency_time'] = (total_latency_samples *
-                                           window_advance_seconds)
+                                           window_advance_seconds) / nsz
     if nsz > 0:
         all_results[-1]['sensitivity'] = total_correct / nsz
 
