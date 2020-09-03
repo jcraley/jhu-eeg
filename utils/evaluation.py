@@ -201,7 +201,7 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
                                            3600 / total_duration)
     if window_advance_seconds > 0:
         all_results[-1]['latency_time'] = (total_latency_samples *
-                                           window_advance_seconds) / nsz
+                                           window_advance_seconds) / total_correct
     if nsz > 0:
         all_results[-1]['sensitivity'] = total_correct / nsz
 
@@ -246,17 +246,19 @@ def threshold_sweep(all_preds, all_labels, report_folder,
             results['ncorrect'][ii] += stats['ncorrect']
 
     # If needed stats are provided, compute sensitivity, fp/hr, latency_seconds
+    results['average_latency_samples'] = (
+        results['latency_samples'] / results['ncorrect'])
     if nsz > 0:
         results['sensitivity'] = results['ncorrect'] / nsz
-        results['average_latency_samples'] = results['latency_samples'] / nsz
     if total_duration > 0:
         results['fps_per_hour'] = results['nfps'] * 3600 / total_duration
     if window_advance_seconds > 0:
         results['latency_seconds'] = (
             results['latency_samples'] * window_advance_seconds
         )
-        if nsz > 0:
-            results['average_latency_seconds'] = results['latency_seconds'] / nsz
+        results['average_latency_seconds'] = (
+            results['latency_seconds'] / results['ncorrect']
+        )
 
     # Save the results
     fn = '{}threshold_sweep{}.pkl'.format(prefix, suffix)
