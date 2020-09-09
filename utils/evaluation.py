@@ -101,30 +101,39 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0):
         if np.sum(tp_samples[onset:offset]) > 0:
             # If max_samples_before_sz are all fps, detection is too early
             if (max_samples_before_sz > 0
-                    and fp_samples[onset-max_samples_before_sz:onset].all()):
+                    and fp_samples[onset-max_samples_before_sz-1:onset].all()):
                 nfps += 1
-            else:
-                ncorrect += 1
-                # Find the onset
-                if tp_samples[onset] == 1:
-                    # Detection occurs at or before onset annotation
-                    idx = onset
-                    while y_hat[idx] == 1 and idx >= 0:
+
+            ncorrect += 1
+            # Find the onset
+            if tp_samples[onset] == 1:
+                # Detection occurs at or before onset annotation
+                idx = onset
+                if max_samples_before_sz == 0:
+                    while (y_hat[idx] == 1 and idx >= 0):
                         tp_samples[idx] = 1
                         fp_samples[idx] = 0
                         idx = idx - 1
-                    first_tp = idx + 1
-                    latency_samples += first_tp - onset
                 else:
-                    # Detection is after onset
-                    latency_samples += np.where(
-                        tp_samples[onset:offset] == 1)[0][0]
+                    while (y_hat[idx] == 1 and idx >= 0 and
+                           idx >= onset-max_samples_before_sz):
+                        tp_samples[idx] = 1
+                        fp_samples[idx] = 0
+                        idx = idx - 1
+                first_tp = idx + 1
+                latency_samples += first_tp - onset
+            else:
+                # Detection is after onset
+                latency_samples += np.where(
+                    tp_samples[onset:offset] == 1)[0][0]
     nfps += np.sum(fp_samples[detections])
 
     return {
         'nfps': nfps,
+        'nfp_samples': np.sum(fp_samples),
+        'ntp_samples': np.sum(tp_samples),
         'latency_samples': latency_samples,
-        'ncorrect': ncorrect
+        'ncorrect': ncorrect,
     }
 
 
@@ -200,8 +209,12 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
         all_results[-1]['fps_per_hour'] = (total_fps *
                                            3600 / total_duration)
     if window_advance_seconds > 0:
-        all_results[-1]['latency_time'] = (total_latency_samples *
-                                           window_advance_seconds) / total_correct
+        if total_correct > 0:
+            all_results[-1]['latency_time'] = (
+                total_latency_samples * window_advance_seconds / total_correct
+            )
+        else:
+            all_results[-1]['latency_time'] = 0
     if nsz > 0:
         all_results[-1]['sensitivity'] = total_correct / nsz
 
@@ -246,8 +259,14 @@ def threshold_sweep(all_preds, all_labels, report_folder,
             results['ncorrect'][ii] += stats['ncorrect']
 
     # If needed stats are provided, compute sensitivity, fp/hr, latency_seconds
+    nonzero_idx = np.where(results['ncorrect'] != 0)
     results['average_latency_samples'] = (
-        results['latency_samples'] / results['ncorrect'])
+        np.zeros_like(results['latency_samples'])
+    )
+    results['average_latency_samples'][nonzero_idx] = (
+        results['latency_samples'][nonzero_idx]
+        / results['ncorrect'][nonzero_idx]
+    )
     if nsz > 0:
         results['sensitivity'] = results['ncorrect'] / nsz
     if total_duration > 0:
@@ -257,7 +276,11 @@ def threshold_sweep(all_preds, all_labels, report_folder,
             results['latency_samples'] * window_advance_seconds
         )
         results['average_latency_seconds'] = (
-            results['latency_seconds'] / results['ncorrect']
+            np.zeros_like(results['latency_samples'])
+        )
+        results['average_latency_seconds'][nonzero_idx] = (
+            results['latency_seconds'][nonzero_idx] /
+            results['ncorrect'][nonzero_idx]
         )
 
     # Save the results
