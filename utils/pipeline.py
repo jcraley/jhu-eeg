@@ -176,7 +176,8 @@ class Pipeline():
             self.train_dataset.get_total_sz(),
             self.train_dataset.get_total_duration(),
             self.train_dataset.get_window_advance_seconds(),
-            fps_per_hr=self.params['fps per hour']
+            fps_per_hr=self.params['fps per hour'],
+            fp_time_per_hr=self.params['fp time per hour']
         )
         print("")
 
@@ -255,13 +256,14 @@ class Pipeline():
             self.params['visualize train'], self.paths['figures'],
             self.paths['results'], total_sz,
             total_duration, window_advance_seconds,
-            fps_per_hr=self.params['fps per hour']
+            fps_per_hr=self.params['fps per hour'],
+            fp_time_per_hr=self.params['fp time per hour']
         )
 
     def score_preds(self, all_preds, all_labels, all_fns, prefix, visualize,
                     figures_folder, results_folder, total_sz=0,
                     total_duration=0, window_advance_seconds=0, threshold=None,
-                    fps_per_hr=0):
+                    fps_per_hr=0, fp_time_per_hr=0):
 
         # If visualize, output pngs for each
         if visualize:
@@ -301,13 +303,20 @@ class Pipeline():
 
             # If a threshold is not specified and an allowable fps_per_hour is,
             # compute the corresponding threshold
-            if threshold is None and fps_per_hr > 0:
+            if threshold is None and (fps_per_hr > 0 or fp_time_per_hr > 0):
                 # Decrease the threshold until the fp criteria is met
                 threshold_idx = len(sweep_results['thresholds']) - 1
                 stop = False
                 while not stop:
-                    if (sweep_results['fps_per_hour'][threshold_idx]
+                    # Check if fps per hour is set and exceeds limit
+                    if (fps_per_hr > 0 and
+                        sweep_results['fps_per_hour'][threshold_idx]
                             > fps_per_hr):
+                        stop = True
+                    # Check if fp time per hour is set and exceeds limit
+                    elif (fp_time_per_hr > 0 and
+                          sweep_results['fp_time_per_hour'][threshold_idx]
+                            > fp_time_per_hr):
                         stop = True
                     elif threshold_idx == 10:
                         stop = True

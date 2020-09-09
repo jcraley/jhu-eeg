@@ -18,64 +18,6 @@ def smooth(all_preds, smoothing):
     return smoothed_preds
 
 
-def compute_metrics(labels, preds, threshold=None):
-    """Compute the statistics for a set of labels and predictions"""
-
-    # If no threshold is set, set it to 0.5
-    if threshold is None:
-        threshold = 0.5
-
-    # Compute stats
-    y_hat = np.zeros(preds.shape[0])
-    y_hat[np.where(preds[:, 1] >= threshold)] = 1
-    tp = float(np.sum((y_hat == 1) * (labels == 1)))
-    fp = float(np.sum((y_hat == 1) * (labels == 0)))
-    tn = float(np.sum((y_hat == 0) * (labels == 0)))
-    fn = float(np.sum((y_hat == 0) * (labels == 1)))
-
-    # Compute metrics
-    stats = OrderedDict()
-    stats['acc'] = float((tp + tn) / (tp + fp + tn + fn))
-    if tp + fn > 0:
-        stats['sens'] = float(tp / (tp + fn))
-    else:
-        stats['sens'] = 0.0
-    if tp + fp > 0:
-        stats['prec'] = float(tp / (tp + fp))
-    else:
-        stats['prec'] = 0.0
-    if tp > 0:
-        stats['f1'] = 2 * (stats['prec'] * stats['sens']
-                           / (stats['prec'] + stats['sens']))
-    else:
-        stats['f1'] = 0.0
-    stats['spec'] = float(tn / (tn + fp))
-    if np.sum(labels) > 0:
-        # Compute the AUC-ROC
-        fpr, tpr, thresholds = metrics.roc_curve(labels, preds[:, 1])
-        stats['roc curve'] = {
-            'fpr': fpr,
-            'tpr': tpr,
-            'thresholds': thresholds
-        }
-        stats['auc-roc'] = metrics.auc(fpr, tpr)
-
-        # Compute AUC-PR
-        precision, recall, thresholds = metrics.precision_recall_curve(
-            labels, preds[:, 1])
-        stats['pr curve'] = {
-            'precision': precision,
-            'recall': recall,
-            'thresholds': thresholds
-        }
-        stats['auc-pr'] = metrics.auc(recall, precision)
-    else:
-        stats['auc-roc'] = 0.0
-        stats['auc-pr'] = 0.0
-
-    return stats
-
-
 def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0):
     """Score a single recording"""
     # Find the true onsets and offsets
@@ -137,6 +79,64 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0):
     }
 
 
+def compute_metrics(labels, preds, threshold=None):
+    """Compute the statistics for a set of labels and predictions"""
+
+    # If no threshold is set, set it to 0.5
+    if threshold is None:
+        threshold = 0.5
+
+    # Compute stats
+    y_hat = np.zeros(preds.shape[0])
+    y_hat[np.where(preds[:, 1] >= threshold)] = 1
+    tp = float(np.sum((y_hat == 1) * (labels == 1)))
+    fp = float(np.sum((y_hat == 1) * (labels == 0)))
+    tn = float(np.sum((y_hat == 0) * (labels == 0)))
+    fn = float(np.sum((y_hat == 0) * (labels == 1)))
+
+    # Compute metrics
+    stats = OrderedDict()
+    stats['acc'] = float((tp + tn) / (tp + fp + tn + fn))
+    if tp + fn > 0:
+        stats['sens'] = float(tp / (tp + fn))
+    else:
+        stats['sens'] = 0.0
+    if tp + fp > 0:
+        stats['prec'] = float(tp / (tp + fp))
+    else:
+        stats['prec'] = 0.0
+    if tp > 0:
+        stats['f1'] = 2 * (stats['prec'] * stats['sens']
+                           / (stats['prec'] + stats['sens']))
+    else:
+        stats['f1'] = 0.0
+    stats['spec'] = float(tn / (tn + fp))
+    if np.sum(labels) > 0:
+        # Compute the AUC-ROC
+        fpr, tpr, thresholds = metrics.roc_curve(labels, preds[:, 1])
+        stats['roc curve'] = {
+            'fpr': fpr,
+            'tpr': tpr,
+            'thresholds': thresholds
+        }
+        stats['auc-roc'] = metrics.auc(fpr, tpr)
+
+        # Compute AUC-PR
+        precision, recall, thresholds = metrics.precision_recall_curve(
+            labels, preds[:, 1])
+        stats['pr curve'] = {
+            'precision': precision,
+            'recall': recall,
+            'thresholds': thresholds
+        }
+        stats['auc-pr'] = metrics.auc(recall, precision)
+    else:
+        stats['auc-roc'] = 0.0
+        stats['auc-pr'] = 0.0
+
+    return stats
+
+
 def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix,
                       threshold=None):
     # Compute window based statistics and write out
@@ -181,6 +181,8 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
 
     # Score based on sequences
     total_fps = 0
+    total_fp_samples = 0
+    total_tp_samples = 0
     total_latency_samples = 0
     total_correct = 0
     all_results = []
@@ -189,10 +191,16 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
         all_results.append({
             'fn': fn,
             'nfps': stats['nfps'],
+            'nfp_samples': stats['nfp_samples'],
+            # 'ntp_samples': stats['ntp_samples'],
             'latency_samples': stats['latency_samples'],
             'ncorrect': stats['ncorrect'],
         })
+
+        # Compute totals
         total_fps += stats['nfps']
+        total_fp_samples += stats['nfp_samples']
+        total_tp_samples += stats['ntp_samples']
         total_latency_samples += stats['latency_samples']
         total_correct += stats['ncorrect']
 
@@ -200,11 +208,18 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
     all_results.append({
         'fn': 'total',
         'nfps': total_fps,
+        'nfp_samples': total_fp_samples,
+        # 'ntp_samples': total_tp_samples,
         'latency_samples': total_latency_samples,
         'ncorrect': total_correct
     })
 
-    # Score the fps per hour
+    # Initialize summaries to zero to avoid errors
+    all_results[-1]['latency_time'] = 0
+    all_results[-1]['fps_per_hour'] = 0
+    all_results[-1]['fp_time_per_hour'] = 0
+
+    # Compute summary stats if possible
     if total_duration > 0:
         all_results[-1]['fps_per_hour'] = (total_fps *
                                            3600 / total_duration)
@@ -213,8 +228,19 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
             all_results[-1]['latency_time'] = (
                 total_latency_samples * window_advance_seconds / total_correct
             )
-        else:
-            all_results[-1]['latency_time'] = 0
+            # all_results[-1]['tp_time'] = (total_tp_samples
+            #                               * window_advance_seconds)
+            # all_results[-1]['fp_time'] = (total_fp_samples
+            #                               * window_advance_seconds)
+            if total_duration > 0:
+                # all_results[-1]['tp_time_per_hour'] = (
+                #     3600 * total_tp_samples * window_advance_seconds
+                #     / total_duration
+                # )
+                all_results[-1]['fp_time_per_hour'] = (
+                    3600 * total_fp_samples * window_advance_seconds
+                    / total_duration
+                )
     if nsz > 0:
         all_results[-1]['sensitivity'] = total_correct / nsz
 
@@ -223,7 +249,8 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
                               '{}seizure_results{}.csv'.format(prefix, suffix))
     with open(results_fn, 'w', newline='') as csvfile:
         fieldnames = ['fn', 'nfps', 'latency_samples', 'ncorrect',
-                      'fps_per_hour', 'latency_time', 'sensitivity']
+                      'nfp_samples', 'fps_per_hour', 'sensitivity',
+                      'latency_time', 'fp_time_per_hour']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(all_results)
@@ -244,6 +271,7 @@ def threshold_sweep(all_preds, all_labels, report_folder,
     results = {
         'thresholds': thresholds,
         'nfps': np.zeros_like(thresholds),
+        'nfp_samples': np.zeros_like(thresholds),
         'latency_samples': np.zeros_like(thresholds),
         'ncorrect': np.zeros_like(thresholds)
     }
@@ -255,6 +283,7 @@ def threshold_sweep(all_preds, all_labels, report_folder,
             stats = score_recording(
                 labels, pred, thresh, max_samples_before_sz)
             results['nfps'][ii] += stats['nfps']
+            results['nfp_samples'][ii] += stats['nfp_samples']
             results['latency_samples'][ii] += stats['latency_samples']
             results['ncorrect'][ii] += stats['ncorrect']
 
@@ -271,6 +300,11 @@ def threshold_sweep(all_preds, all_labels, report_folder,
         results['sensitivity'] = results['ncorrect'] / nsz
     if total_duration > 0:
         results['fps_per_hour'] = results['nfps'] * 3600 / total_duration
+        if window_advance_seconds > 0:
+            results['fp_time_per_hour'] = (
+                results['nfp_samples'] * 3600 * window_advance_seconds
+                / total_duration
+            )
     if window_advance_seconds > 0:
         results['latency_seconds'] = (
             results['latency_samples'] * window_advance_seconds
