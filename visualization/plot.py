@@ -975,6 +975,9 @@ class MainPage(QMainWindow):
             plotData[plotData < -3 * stddev] = -3 * stddev
         else:
             plotData += self.ci.data_to_plot[:,self.count * fs:(self.count + self.window_size) * fs]
+            stddev = np.std(plotData)
+            plotData[plotData > 5 * stddev] = 5 * stddev  # float('nan') # clip amplitude
+            plotData[plotData < -5 * stddev] = -5 * stddev
 
         nchns = self.ci.nchns_to_plot
         if self.predicted == 1:
