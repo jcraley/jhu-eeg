@@ -25,7 +25,8 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0):
     true_offsets = np.where(np.diff(labels) == -1)[0] + 1
 
     # Find the true positives
-    y_hat = np.zeros(preds.shape[0])
+    T = preds.shape[0]
+    y_hat = np.zeros(T)
     y_hat[np.where(preds[:, 1] >= threshold)] = 1
     tp_samples = y_hat * labels
     fp_samples = y_hat * (1 - labels)
@@ -65,9 +66,17 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0):
                 first_tp = idx + 1
                 latency_samples += first_tp - onset
             else:
-                # Detection is after onset
+                # Detection is after onset, find the first tp in the sz period
                 latency_samples += np.where(
                     tp_samples[onset:offset] == 1)[0][0]
+
+            # Ignore post sz FP
+            idx = offset - 1
+            while idx < T and y_hat[idx] == 1:
+                tp_samples[idx] = 1
+                fp_samples[idx] = 0
+                idx = idx + 1
+
     nfps += np.sum(fp_samples[detections])
 
     return {
