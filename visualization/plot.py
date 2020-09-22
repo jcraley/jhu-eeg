@@ -8,10 +8,13 @@ from spec_options import SpecOptions
 from spec_info import SpecInfo
 from saveImg_info import SaveImgInfo
 from saveImg_options import SaveImgOptions
+from saveEdf_info import SaveEdfInfo
+from saveEdf_options import SaveEdfOptions
 
 import pyedflib
 from plot_utils import *
 from montages import *
+from anonymize_edf import anonymizeFile
 from preprocessing.edf_loader import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,7 +31,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog, QMenu,
                              QPushButton, QCheckBox, QLabel, QInputDialog,
                              QSlider, QGridLayout, QDockWidget, QListWidget,
                              QStatusBar, QListWidgetItem, QLineEdit, QSpinBox,
-                             QTimeEdit)
+                             QTimeEdit, QComboBox)
 from PyQt5.QtGui import QIcon, QBrush, QColor, QPen, QFont
 import pyqtgraph as pg
 import pyqtgraph.exporters
@@ -145,18 +148,24 @@ class MainPage(QMainWindow):
         buttonAmpDec.setToolTip("Click to decrease signal amplitude")
         grid_lt.addWidget(buttonAmpDec, 12, 1)
 
-        labelWS = QLabel("Change window size:", self)
+        labelWS = QLabel("Window size:", self)
         grid_lt.addWidget(labelWS, 13, 0)
 
-        buttonWSInc = QPushButton("+", self)
+        self.wsComboBox = QComboBox()
+        self.wsComboBox.addItems(["1s","5s","10s","15s","20s","25s","30s"])
+        self.wsComboBox.setCurrentIndex(2)
+        self.wsComboBox.currentIndexChanged['int'].connect(self.chgWindow_size)
+        grid_lt.addWidget(self.wsComboBox, 13, 1)
+
+        """buttonWSInc = QPushButton("+", self)
         buttonWSInc.clicked.connect(self.incWindow_size)
         buttonWSInc.setToolTip("Click to increase amount of seconds plotted")
-        grid_lt.addWidget(buttonWSInc, 13, 1)
+        grid_lt.addWidget(buttonWSInc, 13, 1)"""
 
-        buttonWSDec = QPushButton("-", self)
+        """buttonWSDec = QPushButton("-", self)
         buttonWSDec.clicked.connect(self.decWindow_size)
         buttonWSDec.setToolTip("Click to decrease amount of seconds plotted")
-        grid_lt.addWidget(buttonWSDec, 14, 1)
+        grid_lt.addWidget(buttonWSDec, 14, 1)"""
 
         buttonPrint = QPushButton("Export to .png", self)
         buttonPrint.clicked.connect(self.print_graph)
@@ -303,11 +312,14 @@ class MainPage(QMainWindow):
         self.organize_win_open = 0  # whether or not the signal organization window is open
         self.spec_win_open = 0 # whether or not the spectrogram window is open
         self.saveimg_win_open = 0 # whether or not the print preview window is open
+        self.saveedf_win_open = 0 # whether or not the save edf options window is open
+        self.anon_win_open = 0 # whether or not the anonymize window is open
         self.max_time = 0  # number of seconds in the recording
         self.pi = PredsInfo()  # holds data needed to predict
         self.ci = ChannelInfo()  # holds channel information
         self.si = SpecInfo() # holds spectrogram information
         self.sii = SaveImgInfo() # holds info to save the img
+        self.sei = SaveEdfInfo() # holds header for edf saving
 
         if self.argv.show:
             self.show()
@@ -336,6 +348,10 @@ class MainPage(QMainWindow):
             self.spec_ops.closeWindow()
         if self.saveimg_win_open:
             self.saveimg_ops.closeWindow()
+        if self.saveedf_win_open:
+            self.saveedf_ops.closeWindow()
+        if self.anon_win_open:
+            self.anon_ops.closeWindow()
 
         event.accept()
 
@@ -402,6 +418,10 @@ class MainPage(QMainWindow):
 
         self.ylim = [150, 100]  # [150,3] # reset scale of axis
         self.window_size = self.argv.window_width # number of seconds displayed at once
+        self.wsComboBox.setCurrentIndex(2)
+        ind = self.wsComboBox.findText(str(self.window_size) + "s")
+        if ind != -1: # -1 for not found
+            self.wsComboBox.setCurrentIndex(ind)
         # self.count = 0  # current location in time
         self.ann_list = []  # list of annotations
         self.rect_list = [] # list of prediction rectangles
@@ -692,7 +712,16 @@ class MainPage(QMainWindow):
 
     def save_to_edf(self):
         """
-        Function to save current data to .edf file
+        Opens window for anonymization. Anonymizer window calls save_sig_to_edf
+        to save to file.
+        """
+        if self.init == 1:
+            self.saveedf_win_open = 1
+            self.saveedf_ops = SaveEdfOptions(self.sei, self)
+
+    def save_sig_to_edf(self):
+        """
+        Function to save current data to .edf file, called by anonymization windows
         """
         if self.init == 1:
             if self.filter_checked == 1:
@@ -703,6 +732,8 @@ class MainPage(QMainWindow):
                     return
             else:
                 dataToSave = self.ci.data_to_plot
+
+            # write annotations
             ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
                 self.throwAlert("If filter values have since been changed, filter history will not be saved.\n"  +
@@ -712,10 +743,6 @@ class MainPage(QMainWindow):
             labels = self.ci.labels_to_plot
 
             # if predictions, save them as well
-            """if (self.predicted == 1 and len(self.pi.preds_to_plot.shape) > 1
-                    and self.pi.preds_to_plot.shape[1] != nchns):
-                self.predicted = 0"""
-
             if self.predicted == 1:
                 if self.pi.pred_by_chn:
                     savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns * 2)
@@ -724,6 +751,8 @@ class MainPage(QMainWindow):
             else:
                 savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns)
 
+            self.sei.convertToHeader()
+            savedEDF.setHeader(self.sei.pyedf_header)
             # Set fs and physical min/max
             fs = self.edf_info.fs
             for i in range(nchns):
@@ -779,7 +808,9 @@ class MainPage(QMainWindow):
                 savedEDF.writeAnnotation(
                     float(ann[0][i]), float((ann[1][i])), ann[2][i])
 
+            # Close file
             savedEDF.close()
+
 
     def load_data(self, name=""):
         """
@@ -821,6 +852,7 @@ class MainPage(QMainWindow):
             self.ci_temp.labels2chns = self.edf_info_temp.labels2chns
             self.ci_temp.fs = self.edf_info_temp.fs
             self.ci_temp.max_time = self.max_time_temp
+            self.fn_full_temp = name
             if len(name.split('/')[-1]) < 40:
                 self.fn_temp = name.split('/')[-1]
             else:
@@ -888,7 +920,7 @@ class MainPage(QMainWindow):
                 self.ylim[1] = self.ylim[1] + 10
                 self.callmovePlot(0, 0)
 
-    def incWindow_size(self):
+    """def incWindow_size(self):
         if self.init == 1:
             if self.window_size + 5 <= 30:
                 if self.window_size == 1:
@@ -908,7 +940,17 @@ class MainPage(QMainWindow):
                 self.callmovePlot(0, 0)
             else:
                 self.window_size = 1
-                self.callmovePlot(0, 0)
+                self.callmovePlot(0, 0)"""
+
+    def chgWindow_size(self):
+        if self.init == 1:
+            new_ws = self.wsComboBox.currentText()
+            new_ws = int(new_ws.split("s")[0])
+            self.window_size = new_ws
+            self.slider.setMaximum(self.max_time - self.window_size)
+            self.callmovePlot(0, 0)
+        else:
+            self.wsComboBox.setCurrentIndex(2)
 
     def getCount(self):
         """
@@ -1333,6 +1375,15 @@ class MainPage(QMainWindow):
         self.hist.setImageItem(self.img) # Link the histogram to the image
         self.plotLayout.addItem(self.hist, row = 1, col = 1) # To make visible, add the histogram
         self.hist.setLevels(0,200)
+
+        # TODO: Update spectrograms to new power spectrum
+        """redBrush = QBrush(QColor(217, 43, 24,50))
+        fs = self.edf_info.fs
+        self.selectTimeRect = pg.LinearRegionItem(values=((self.count + 1) * fs, (self.count + 4) * fs),
+                        brush=redBrush, movable=True, orientation=pg.LinearRegionItem.Vertical)
+
+        self.selectTimeRect.setSpan(0.25,0.5)
+        self.mainPlot.addItem(self.selectTimeRect)"""
 
     def removeSpecPlot(self):
         """

@@ -26,16 +26,6 @@ class SpecOptions(QWidget):
 
         grid = QGridLayout()
 
-        """self.scroll = QScrollArea()
-        self.scroll.setMinimumWidth(120)
-        self.scroll.setMinimumHeight(200) # would be better if resizable
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.chn_qlist = QListWidget()
-        self.chn_qlist.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.scroll.setWidget(self.chn_qlist)"""
-
         self.chnComboBox = QComboBox()
         self.chnComboBox.addItems(["<select channel>"])
 
