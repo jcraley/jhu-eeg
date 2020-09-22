@@ -279,13 +279,14 @@ class Pipeline():
         evaluation.threshold_sweep(
             all_preds, all_labels, self.paths['results'], prefix, '',
             self.params['max samples before sz'], total_sz, total_duration,
-            window_advance_seconds
+            window_advance_seconds, self.params['count post sz']
         )
 
         # Score based on sequences
         evaluation.sequence_report(
             all_fns, all_preds, all_labels, self.paths['results'], prefix, '',
-            max_samples_before_sz=self.params['max samples before sz']
+            max_samples_before_sz=self.params['max samples before sz'],
+            count_post_sz=self.params['count post sz']
         )
 
         # Check for smoothing and run if so
@@ -298,7 +299,8 @@ class Pipeline():
             sweep_results = evaluation.threshold_sweep(
                 smoothed_preds, all_labels, self.paths['results'], prefix,
                 '_smoothed', self.params['max samples before sz'], total_sz,
-                total_duration, window_advance_seconds
+                total_duration, window_advance_seconds,
+                self.params['count post sz']
             )
 
             # If a threshold is not specified and an allowable fps_per_hour is,
@@ -341,7 +343,8 @@ class Pipeline():
                                        self.params['max samples before sz'],
                                        total_sz,
                                        total_duration,
-                                       window_advance_seconds)
+                                       window_advance_seconds,
+                                       self.params['count post sz'])
 
             # Visualize
             if visualize:

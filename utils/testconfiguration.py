@@ -84,6 +84,7 @@ class TestConfiguration():
             'fps per hour': exp_cfg.getfloat('fps per hour'),
             'fp time per hour': exp_cfg.getfloat('fp time per hour'),
             'max samples before sz': exp_cfg.getint('max samples before sz'),
+            'count post sz': exp_cfg.getboolean('count post sz'),
         })
 
     def _update_preprocessing_params(self):

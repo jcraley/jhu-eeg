@@ -18,7 +18,8 @@ def smooth(all_preds, smoothing):
     return smoothed_preds
 
 
-def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0):
+def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
+                    count_post_sz=False):
     """Score a single recording"""
     # Find the true onsets and offsets
     true_onsets = np.where(np.diff(labels) == 1)[0] + 1
@@ -71,11 +72,12 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0):
                     tp_samples[onset:offset] == 1)[0][0]
 
             # Ignore post sz FP
-            idx = offset - 1
-            while idx < T and y_hat[idx] == 1:
-                tp_samples[idx] = 1
-                fp_samples[idx] = 0
-                idx = idx + 1
+            if not count_post_sz:
+                idx = offset - 1
+                while idx < T and y_hat[idx] == 1:
+                    tp_samples[idx] = 1
+                    fp_samples[idx] = 0
+                    idx = idx + 1
 
     nfps += np.sum(fp_samples[detections])
 
@@ -182,7 +184,8 @@ def iid_window_report(all_preds, all_labels, report_folder, prefix, suffix,
 
 def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
                     suffix, threshold=None, max_samples_before_sz=0, nsz=0,
-                    total_duration=0, window_advance_seconds=0):
+                    total_duration=0, window_advance_seconds=0,
+                    count_post_sz=False):
 
     # If the threshold is None, set it to 0.5
     if threshold is None:
@@ -196,7 +199,8 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
     total_correct = 0
     all_results = []
     for fn, pred, label in zip(all_fns, all_preds, all_labels):
-        stats = score_recording(label, pred, threshold, max_samples_before_sz)
+        stats = score_recording(label, pred, threshold, max_samples_before_sz,
+                                count_post_sz)
         all_results.append({
             'fn': fn,
             'nfps': stats['nfps'],
@@ -267,7 +271,8 @@ def sequence_report(all_fns, all_preds, all_labels, report_folder, prefix,
 
 def threshold_sweep(all_preds, all_labels, report_folder,
                     prefix="", suffix="", max_samples_before_sz=0, nsz=0,
-                    total_duration=0, window_advance_seconds=0):
+                    total_duration=0, window_advance_seconds=0,
+                    count_post_sz=False):
     """For a set of predictions, sweep the threshold compute results
 
     Args:
@@ -290,7 +295,7 @@ def threshold_sweep(all_preds, all_labels, report_folder,
         # Score the recording
         for ii, thresh in enumerate(thresholds):
             stats = score_recording(
-                labels, pred, thresh, max_samples_before_sz)
+                labels, pred, thresh, max_samples_before_sz, count_post_sz)
             results['nfps'][ii] += stats['nfps']
             results['nfp_samples'][ii] += stats['nfp_samples']
             results['latency_samples'][ii] += stats['latency_samples']
