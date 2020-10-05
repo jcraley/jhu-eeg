@@ -56,9 +56,10 @@ Command line options:
 We have added command line options to streamline use: 
 ```
 $ python visualization/plot.py --show {0 | 1} --fn [EDF_FILE] --montage-file [TXT_FILE] 
---predictions-file [PT_FILE] --filter {0 | 1} [LOW_PASS_FS] [HIGH_PASS_FS] [NOTCH_FS] [BAND_PASS_FS_1] [BAND_PASS_FS_2] --location [INT] 
---window-width {5 | 10 | 15 | 20 | 25 | 30} --export-png-file [PNG_FILE] --plot-title [TITLE]
---print-annotations {0 | 1} --line-thickness [THICKNESS] --font-size [FONT_SIZE] 
+--predictions-file [PT_FILE] --filter {0 | 1} [LOW_PASS_FS] [HIGH_PASS_FS] [NOTCH_FS] [BAND_PASS_FS_1] [BAND_PASS_FS_2] 
+--location [INT] --window-width {5 | 10 | 15 | 20 | 25 | 30} --export-png-file [PNG_FILE] --plot-title [TITLE]
+--print-annotations {0 | 1} --line-thickness [THICKNESS] --font-size [FONT_SIZE] --save-edf-fn [EDF_FILE] 
+--anonymize-edf {0 | 1}
 ```
 These options include:
 
@@ -74,3 +75,5 @@ These options include:
     * Whether to show annotations on the saved graph
     * Line thickness of the saved graph
     * Font size for the saved graph
+* Name of the .edf file to save
+    * Whether or not to anonymize the file
