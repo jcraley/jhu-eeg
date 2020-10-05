@@ -4,6 +4,8 @@ from PyQt5.QtWidgets import (QFileDialog, QVBoxLayout, QMessageBox, QWidget,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
                                 QSlider, QGridLayout, QSpinBox, QDoubleSpinBox)
 
+from matplotlib.backends.qt_compat import QtWidgets
+
 
 class FilterOptions(QWidget):
     def __init__(self,data,parent):
@@ -21,7 +23,8 @@ class FilterOptions(QWidget):
 
         layout = QGridLayout()
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
+        self.setGeometry(centerPoint.x() - self.width / 2, centerPoint.y() - self.height / 2, self.width, self.height)
 
         self.btnExit = QPushButton('Ok', self)
         layout.addWidget(self.btnExit,4,3)

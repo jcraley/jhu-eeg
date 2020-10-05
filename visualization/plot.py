@@ -24,21 +24,22 @@ from matplotlib.backends.backend_qt5agg import (
 from matplotlib.backends.qt_compat import QtCore, QtWidgets
 import sys
 
-from PyQt5.QtCore import Qt, QTime
+from PyQt5.QtCore import Qt, QTime, QUrl
 
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog, QMenu,
                              QVBoxLayout, QSizePolicy, QMessageBox, QWidget,
                              QPushButton, QCheckBox, QLabel, QInputDialog,
                              QSlider, QGridLayout, QDockWidget, QListWidget,
                              QStatusBar, QListWidgetItem, QLineEdit, QSpinBox,
-                             QTimeEdit, QComboBox)
-from PyQt5.QtGui import QIcon, QBrush, QColor, QPen, QFont
+                             QTimeEdit, QComboBox, QFrame, QGroupBox, QStyle)
+from PyQt5.QtGui import QIcon, QBrush, QColor, QPen, QFont, QDesktopServices
 import pyqtgraph as pg
 import pyqtgraph.exporters
 # pg.setConfigOptions(useOpenGL=True) # To make plotting faster when line width > 1
 
 import matplotlib
 matplotlib.use("Qt5Agg")
+from scipy import signal
 
 import argparse as ap
 import os.path
@@ -73,6 +74,14 @@ class MainPage(QMainWindow):
         #self.grid_rt.setSpacing(8)
 
         # left side of the screen
+
+        groupBox = QGroupBox()
+
+
+        # radio1 = QRadioButton("&Radio button 1")
+        # radio2 = QRadioButton("R&adio button 2")
+        # radio3 = QRadioButton("Ra&dio button 3")
+
         button = QPushButton('Select file', self)
         button.clicked.connect(self.load_data)
         button.setToolTip('Click to select EDF file')
@@ -86,11 +95,6 @@ class MainPage(QMainWindow):
         self.buttonChgSig.setToolTip("Click to change signals")
         grid_lt.addWidget(self.buttonChgSig, 2, 1)
 
-        buttonChgSpec = QPushButton("Plot spectrogram", self)
-        buttonChgSpec.clicked.connect(self.loadSpec)
-        buttonChgSpec.setToolTip("Click to plot the spectrogram of a signal")
-        grid_lt.addWidget(buttonChgSpec, 2, 0)
-
         self.cbox_filter = QCheckBox("Filter signals", self)
         self.cbox_filter.toggled.connect(self.filterChecked)
         self.cbox_filter.setToolTip("Click to filter")
@@ -101,22 +105,42 @@ class MainPage(QMainWindow):
         buttonChgFilt.setToolTip("Click to change filter")
         grid_lt.addWidget(buttonChgFilt, 3, 1)
 
+        vbox = QGridLayout()
+        vbox.addWidget(button,0,0,1,2)
+        vbox.addWidget(self.lblFn, 1, 0, 1, 2)
+        vbox.addWidget(self.buttonChgSig, 2, 1)
+        vbox.addWidget(self.cbox_filter, 3, 0)
+        vbox.addWidget(buttonChgFilt, 3, 1)
+        # vbox.addStretch(1)
+        groupBox.setLayout(vbox)
+        # grid_lt.addWidget(groupBox,0,0,3,2)
+
+        test01 = QLabel("", self)
+        grid_lt.addWidget(test01, 4, 0)
+
+        grid_lt.addWidget(QHLine(), 5, 0, 1, 2)
+
         test0 = QLabel("", self)
-        grid_lt.addWidget(test0, 4, 0)
+        grid_lt.addWidget(test0, 6, 0)
+
+        groupBox2 = QGroupBox()
 
         buttonPredict = QPushButton("Load model / predictions", self)
         buttonPredict.clicked.connect(self.changePredictions)
         buttonPredict.setToolTip("Click load data, models, and predictions")
-        grid_lt.addWidget(buttonPredict, 6, 0, 1, 1)
+        grid_lt.addWidget(buttonPredict, 7, 0, 1, 2)
 
         self.predLabel = QLabel("", self)
-        grid_lt.addWidget(self.predLabel, 6, 1, 1, 1)
+        grid_lt.addWidget(self.predLabel, 8, 0, 1, 1)
 
-        threshLbl = QLabel("Change threshold of prediction:", self)
-        grid_lt.addWidget(threshLbl, 7, 0)
+        #test22 = QLabel("", self)
+        #grid_lt.addWidget(test22, 8, 1)
 
-        self.threshLblVal = QLabel("(threshold = 0.5)", self)
-        grid_lt.addWidget(self.threshLblVal, 7, 1)
+        self.threshLblVal = QLabel("Change threshold of prediction:  (threshold = 0.5)", self)
+        grid_lt.addWidget(self.threshLblVal, 9, 0,1,2)
+
+        # self.threshLblVal = QLabel("(threshold = 0.5)", self)
+        # grid_lt.addWidget(self.threshLblVal, 7, 1)
 
         self.threshSlider = QSlider(Qt.Horizontal, self)
         self.threshSlider.setMinimum(0)
@@ -125,37 +149,80 @@ class MainPage(QMainWindow):
         # self.threshSlider.setTickPosition(QSlider.TicksBelow)
         # self.threshSlider.setTickInterval(5)
         self.threshSlider.sliderReleased.connect(self.changeThreshSlider)
-        grid_lt.addWidget(self.threshSlider, 8, 0, 1, 2)
+        grid_lt.addWidget(self.threshSlider, 10, 0, 1, 2)
+
+        vbox2 = QGridLayout()
+        vbox2.addWidget(buttonPredict, 0, 0, 1, 2)
+        vbox2.addWidget(self.predLabel, 0, 1)
+        # vbox2.addWidget(threshLbl, 1, 0)
+        vbox2.addWidget(self.threshLblVal, 1, 0, 1, 2)
+        vbox2.addWidget(self.threshSlider, 2, 0, 1, 2)
+        # vbox.addStretch(1)
+        groupBox2.setLayout(vbox2)
+        # grid_lt.addWidget(groupBox2,6,0,3,2)
 
         test = QLabel("", self)
-        grid_lt.addWidget(test, 9, 0)
+        grid_lt.addWidget(test, 11, 0)
+
+        grid_lt.addWidget(QHLine(), 12, 0, 1, 2)
+
+        test11 = QLabel("", self)
+        grid_lt.addWidget(test11, 13, 0)
+
+        groupBox3 = QGroupBox()
 
         self.btnZoom = QPushButton("Open zoom", self)
         self.btnZoom.clicked.connect(self.openZoomPlot)
         self.btnZoom.setToolTip("Click to open the zoom window")
-        grid_lt.addWidget(self.btnZoom, 10, 0)
+        grid_lt.addWidget(self.btnZoom, 14, 0)
+
+        buttonChgSpec = QPushButton("Power spectrum", self)
+        buttonChgSpec.clicked.connect(self.loadSpec)
+        buttonChgSpec.setToolTip("Click to plot the spectrogram of a signal")
+        grid_lt.addWidget(buttonChgSpec, 14, 1)
 
         labelAmp = QLabel("Change amplitude:", self)
-        grid_lt.addWidget(labelAmp, 11, 0)
+        grid_lt.addWidget(labelAmp, 15, 0)
 
         buttonAmpInc = QPushButton("+", self)
         buttonAmpInc.clicked.connect(self.incAmp)
         buttonAmpInc.setToolTip("Click to increase signal amplitude")
-        grid_lt.addWidget(buttonAmpInc, 11, 1)
+        grid_lt.addWidget(buttonAmpInc, 15, 1)
 
         buttonAmpDec = QPushButton("-", self)
         buttonAmpDec.clicked.connect(self.decAmp)
         buttonAmpDec.setToolTip("Click to decrease signal amplitude")
-        grid_lt.addWidget(buttonAmpDec, 12, 1)
+        grid_lt.addWidget(buttonAmpDec, 16, 1)
 
         labelWS = QLabel("Window size:", self)
-        grid_lt.addWidget(labelWS, 13, 0)
+        grid_lt.addWidget(labelWS, 17, 0)
 
         self.wsComboBox = QComboBox()
         self.wsComboBox.addItems(["1s","5s","10s","15s","20s","25s","30s"])
         self.wsComboBox.setCurrentIndex(2)
         self.wsComboBox.currentIndexChanged['int'].connect(self.chgWindow_size)
-        grid_lt.addWidget(self.wsComboBox, 13, 1)
+        grid_lt.addWidget(self.wsComboBox, 18, 1)
+
+        vbox3 = QGridLayout()
+        vbox3.addWidget(self.btnZoom, 0, 0)
+        vbox3.addWidget(buttonChgSpec, 0, 1)
+        vbox3.addWidget(QLabel("", self),1,0)
+        vbox3.addWidget(labelAmp, 2, 0)
+        vbox3.addWidget(buttonAmpInc, 2, 1)
+        vbox3.addWidget(buttonAmpDec, 3, 1)
+        vbox3.addWidget(labelWS, 4, 0)
+        vbox3.addWidget(self.wsComboBox, 4, 1)
+        # vbox.addStretch(1)
+        groupBox3.setLayout(vbox3)
+        # grid_lt.addWidget(groupBox3,10,0,4,2)
+
+        test2 = QLabel("", self)
+        grid_lt.addWidget(test2, 19, 0)
+
+        grid_lt.addWidget(QHLine(), 20, 0, 1, 2)
+
+        test11 = QLabel("", self)
+        grid_lt.addWidget(test11, 21, 0)
 
         """buttonWSInc = QPushButton("+", self)
         buttonWSInc.clicked.connect(self.incWindow_size)
@@ -167,16 +234,54 @@ class MainPage(QMainWindow):
         buttonWSDec.setToolTip("Click to decrease amount of seconds plotted")
         grid_lt.addWidget(buttonWSDec, 14, 1)"""
 
+        groupBox4 = QGroupBox()
+
         buttonPrint = QPushButton("Export to .png", self)
         buttonPrint.clicked.connect(self.print_graph)
         buttonPrint.setToolTip("Click to print a copy of the graph")
-        grid_lt.addWidget(buttonPrint, 15, 0)
+        grid_lt.addWidget(buttonPrint, 22, 0)
 
         buttonSaveEDF = QPushButton("Save to .edf", self)
         buttonSaveEDF.clicked.connect(self.save_to_edf)
         buttonSaveEDF.setToolTip(
             "Click to save current signals to an .edf file")
-        grid_lt.addWidget(buttonSaveEDF, 16, 0)
+        grid_lt.addWidget(buttonSaveEDF, 22, 1)
+
+        """
+        popupButton = QPushButton("Export")
+        menu = QMenu(self)
+        menu.addAction("...to .png")
+        menu.addAction("...to .edf")
+        popupButton.setMenu(menu)
+        grid_lt.addWidget(popupButton,15,1)"""
+
+        vbox4 = QGridLayout()
+        vbox4.addWidget(buttonPrint, 0, 0)
+        vbox4.addWidget(buttonSaveEDF, 0, 1)
+        # vbox.addStretch(1)
+        groupBox4.setLayout(vbox4)
+        # grid_lt.addWidget(groupBox4,16,0,2,2)
+
+        test3 = QLabel("", self)
+        grid_lt.addWidget(test3, 23, 0)
+
+        test4 = QLabel("", self)
+        grid_lt.addWidget(test4, 24, 0)
+
+        test5 = QLabel("", self)
+        grid_lt.addWidget(test5, 25, 0)
+
+        test6 = QLabel("", self)
+        grid_lt.addWidget(test6, 26, 0)
+
+        btn0 = QPushButton('Help')
+        btn0.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarContextHelpButton')))
+        btn0.clicked.connect(self.openHelp)
+        grid_lt.addWidget(btn0,27,0)
+        # icon  = QtGui.QPixmap('add.gif')
+        # button = QtGui.QPushButton()
+        # button.setIcon(icon)
+
 
         # Right side of the screen
         # self.m = PlotCanvas(self, width=5, height=5)
@@ -429,7 +534,7 @@ class MainPage(QMainWindow):
         self.predLabel.setText("")  # reset text of predictions
         self.thresh = 0.5  # threshold for plotting
         self.threshLblVal.setText(
-            "(threshold = " + str(self.thresh) + ")")  # reset label
+            "Change threshold of prediction:  (threshold = " + str(self.thresh) + ")")  # reset label
         self.filteredData = []  # set filteredData
         self.si = SpecInfo()
 
@@ -478,6 +583,8 @@ class MainPage(QMainWindow):
         else:
             self.btnOpenEditAnn.setText("Open annotation editor")
             self.annEditDock.hide()
+            if len(self.edf_info.annotations[0]) == 0:
+                self.populateAnnDock()
 
     def openAnnDock(self):
         self.scroll.show()
@@ -513,7 +620,12 @@ class MainPage(QMainWindow):
         self.edf_info.annotations = np.delete(self.edf_info.annotations,self.ann_qlist.currentRow(),axis = 1)
         self.btnAnnEdit.setEnabled(False)
         self.btnAnnDel.setEnabled(False)
+        self.annEditDock.hide()
         self.populateAnnDock()
+        if len(self.edf_info.annotations[0]) == 0:
+            self.scroll.show()
+            self.btnOpenAnnDock.hide()
+        self.annEditDock.show()
         self.callmovePlot(0,0)
 
     def annEditorCreate(self):
@@ -669,15 +781,22 @@ class MainPage(QMainWindow):
         self.zoomPlot.setYRange(roiPos[1], roiPos[1] + roiSize[1])
         self.zoomPlot.getAxis('left').setPen(blackPen)
         self.zoomPlot.getAxis('left').setTicks(y_ticks)
-        self.zoomPlot.getAxis("left").tickFont = font
+        self.zoomPlot.getAxis('left').setTextPen(blackPen)
         self.zoomPlot.getAxis("left").setStyle(tickTextOffset = 10)
         self.zoomPlot.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
         self.zoomPlot.setXRange(roiPos[0], roiPos[0] + roiSize[0], padding=0)
         self.zoomPlot.getAxis('bottom').setTicks(x_ticks)
+        self.zoomPlot.getAxis('bottom').setTextPen(blackPen)
         self.zoomPlot.getAxis("bottom").tickFont = font
         self.zoomPlot.getAxis('bottom').setPen(blackPen)
         self.zoomPlot.setLabel('bottom', 'Time (s)', pen = blackPen)
         self.zoomPlot.getAxis('top').setWidth(200)
+
+    def openHelp(self):
+        """
+        Called when you click the help button.
+        """
+        QDesktopServices.openUrl(QUrl("https://github.com/jcraley/jhu-eeg"))
 
     def valuechange(self):
         """
@@ -696,7 +815,7 @@ class MainPage(QMainWindow):
         """
         val = self.threshSlider.value()
         self.thresh = val / 100
-        self.threshLblVal.setText("(threshold = " + str(self.thresh) + ")")
+        self.threshLblVal.setText("Change threshold of prediction:  (threshold = " + str(self.thresh) + ")")
         if self.predicted == 1:
             self.callmovePlot(0, 0)
 
@@ -738,18 +857,23 @@ class MainPage(QMainWindow):
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
                 self.throwAlert("If filter values have since been changed, filter history will not be saved.\n"  +
                             "If you would like to append some record of previous filters, please add an annotation.")
-            file = QFileDialog.getSaveFileName(self, 'Save File')
+            if self.argv.save_edf_fn is None:
+                file = QFileDialog.getSaveFileName(self, 'Save File')
+                file = file[0]
+            else:
+                file = self.argv.save_edf_fn
+
             nchns = self.ci.nchns_to_plot
             labels = self.ci.labels_to_plot
 
             # if predictions, save them as well
             if self.predicted == 1:
                 if self.pi.pred_by_chn:
-                    savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns * 2)
+                    savedEDF = pyedflib.EdfWriter(file + '.edf', nchns * 2)
                 else:
-                    savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns + 1)
+                    savedEDF = pyedflib.EdfWriter(file + '.edf', nchns + 1)
             else:
-                savedEDF = pyedflib.EdfWriter(file[0] + '.edf', nchns)
+                savedEDF = pyedflib.EdfWriter(file + '.edf', nchns)
 
             self.sei.convertToHeader()
             savedEDF.setHeader(self.sei.pyedf_header)
@@ -810,6 +934,12 @@ class MainPage(QMainWindow):
 
             # Close file
             savedEDF.close()
+
+            # if you are just saving to edf, close the window
+            if not self.argv.save_edf_fn is None:
+                self.argv.save_edf_fn = None
+                if self.argv.show == 0:
+                    sys.exit()
 
 
     def load_data(self, name=""):
@@ -887,6 +1017,10 @@ class MainPage(QMainWindow):
         else:
             # profile.runctx('self.movePlot(0, 0, self.ylim[0], 0)', globals(), locals())
             self.movePlot(0, 0, self.ylim[0], 0)
+
+        if not self.argv.save_edf_fn is None and self.init == 0:
+            self.init = 1
+            self.save_to_edf()
 
         self.init = 1
 
@@ -1198,16 +1332,17 @@ class MainPage(QMainWindow):
         font.setPixelSize(16)
 
         self.mainPlot.setYRange(-y_lim, (nchns + 1) * y_lim)
-        self.mainPlot.getAxis('left').setPen(blackPen)
+        self.mainPlot.getAxis('left').setStyle(tickFont = font)
+        self.mainPlot.getAxis('left').setTextPen(blackPen)
         self.mainPlot.getAxis('left').setTicks(y_ticks)
-        self.mainPlot.getAxis("left").tickFont = font
         self.mainPlot.getAxis("left").setStyle(tickTextOffset = 10)
         self.mainPlot.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
+        # self.mainPlot.getAxis("left").setScale(y_lim * (nchns + 2))
 
         self.mainPlot.setXRange(0 * fs, (0 + self.window_size) * fs, padding=0)
         self.mainPlot.getAxis('bottom').setTicks(x_ticks)
-        self.mainPlot.getAxis("bottom").tickFont = font
-        self.mainPlot.getAxis('bottom').setPen(blackPen)
+        self.mainPlot.getAxis('bottom').setStyle(tickFont = font)
+        self.mainPlot.getAxis('bottom').setTextPen(blackPen)
         self.mainPlot.setLabel('bottom', 'Time (s)', pen = blackPen)
         self.mainPlot.getAxis('top').setWidth(200)
 
@@ -1270,34 +1405,40 @@ class MainPage(QMainWindow):
 
         if self.si.plotSpec:
             # dataForSpec = self.si.data
-            f, t, Sxx = scipy.signal.spectrogram(self.si.data[self.count * fs:(self.count + self.window_size) * fs], fs=fs, nperseg=fs, noverlap=0)
+            # f, t, Sxx = scipy.signal.spectrogram(self.si.data[self.count * fs:(self.count + self.window_size) * fs], fs=fs, nperseg=fs, noverlap=0)
             # Fit the min and max levels of the histogram to the data available
-            self.hist.axis.setPen(blackPen)
+            # self.hist.axis.setPen(blackPen)
             # self.hist.setLevels(0,200)#np.min(Sxx), np.max(Sxx))
             # This gradient is roughly comparable to the gradient used by Matplotlib
             # You can adjust it and then save it using hist.gradient.saveState()
-            self.hist.gradient.restoreState(
-                {'mode': 'rgb',
-                'ticks': [(0.5, (0, 182, 188, 255)),
-                       (1.0, (246, 111, 0, 255)),
-                       (0.0, (75, 0, 113, 255))]})
+            # self.hist.gradient.restoreState(
+            #     {'mode': 'rgb',
+            #     'ticks': [(0.5, (0, 182, 188, 255)),
+            #            (1.0, (246, 111, 0, 255)),
+            #            (0.0, (75, 0, 113, 255))]})
             # Sxx contains the amplitude for each pixel
-            self.img.setImage(Sxx)
+            # self.img.setImage(Sxx)
             # Scale the X and Y Axis to time and frequency (standard is pixels)
-            self.img.scale(self.window_size/np.size(Sxx, axis=1),
-                    f[-1]/np.size(Sxx, axis=0))
+            # self.img.scale(self.window_size/np.size(Sxx, axis=1),
+            #         f[-1]/np.size(Sxx, axis=0))
             # Limit panning/zooming to the spectrogram
-            self.specPlot.setLimits(xMin=0, xMax=self.window_size, yMin=self.si.minFs, yMax=self.si.maxFs)
-            self.specPlot.getAxis('bottom').setPen(blackPen)
-            self.specPlot.getAxis('bottom').setTicks(spec_x_ticks)
+            # self.specPlot.setLimits(xMin=0, xMax=self.window_size, yMin=self.si.minFs, yMax=self.si.maxFs)
+            self.specTimeSelectChanged()
+            self.specPlot.getAxis('bottom').setTextPen(blackPen)
+            # self.specPlot.getAxis('bottom').setTicks(spec_x_ticks)
             # Add labels to the axis
-            self.specPlot.setLabel('bottom', "Time", units='s')
+            self.specPlot.setLabel('bottom', "Frequency", units='Hz')
             # pyqtgraph automatically scales the axis and adjusts the SI prefix (in this case kHz)
-            self.specPlot.getAxis('left').setPen(blackPen)
-            self.specPlot.setLabel('left', "Frequency", units='Hz')
+            self.specPlot.getAxis('left').setTextPen(blackPen)
+            self.specPlot.setLabel('left', "PSD", units='V**2/Hz')
+            self.specPlot.setXRange(self.si.minFs,self.si.maxFs,padding=0)
+            # self.specPlot.setLogMode(False, True)
+            # self.specPlot.setYRange(self.si.minFs,self.si.maxFs,padding=0)
             self.specPlot.setTitle(self.si.chnName,color='k',size='16pt')
+        if self.btnZoom.text() == "Close zoom":
+            self.updateZoomPlot()
 
-        if self.init == 0 and self.show:
+        if self.init == 0 and self.argv.show:
             self.throwAlert("Data has been plotted.")
 
     def printVal(self):
@@ -1364,33 +1505,67 @@ class MainPage(QMainWindow):
         Creates the spectrogram plot.
         """
         self.specPlot = self.plotLayout.addPlot(row=1, col=0)
+        fs = self.edf_info.fs
+        f, Pxx_den = signal.welch(self.si.data[(1) * fs:(4) * fs], fs)
+        self.specPlot.clear()
+        self.spec_plot_lines = []
+        pen = QPen(QColor(0,0,0))
+        # pen = pg.mkPen(color=self.ci.colors[i], width=2, style=QtCore.Qt.SolidLine)
+        self.spec_plot_lines.append(self.specPlot.plot(f,Pxx_den, clickable=False, pen=pen))
+
+
         self.specPlot.setMouseEnabled(x=False, y=False)
         qGraphicsGridLayout = self.plotLayout.ci.layout
         qGraphicsGridLayout.setRowStretchFactor(0, 2)
         qGraphicsGridLayout.setRowStretchFactor(1, 1)
-        pg.setConfigOptions(imageAxisOrder='row-major')
-        self.img = pg.ImageItem() # Item for displaying image data
-        self.specPlot.addItem(self.img)
-        self.hist = pg.HistogramLUTItem() # Add a histogram with which to control the gradient of the image
-        self.hist.setImageItem(self.img) # Link the histogram to the image
-        self.plotLayout.addItem(self.hist, row = 1, col = 1) # To make visible, add the histogram
-        self.hist.setLevels(0,200)
-
-        # TODO: Update spectrograms to new power spectrum
-        """redBrush = QBrush(QColor(217, 43, 24,50))
-        fs = self.edf_info.fs
-        self.selectTimeRect = pg.LinearRegionItem(values=((self.count + 1) * fs, (self.count + 4) * fs),
+        # pg.setConfigOptions(imageAxisOrder='row-major')
+        # self.img = pg.ImageItem() # Item for displaying image data
+        # self.specPlot.addItem(self.img)
+        # self.hist = pg.HistogramLUTItem() # Add a histogram with which to control the gradient of the image
+        # self.hist.setImageItem(self.img) # Link the histogram to the image
+        # self.plotLayout.addItem(self.hist, row = 1, col = 1) # To make visible, add the histogram
+        # self.hist.setLevels(0,200)
+        redBrush = QBrush(QColor(217, 43, 24,50))
+        nchns = self.ci.nchns_to_plot
+        self.selectTimeRect = pg.LinearRegionItem(values=(fs, 4 * fs),
                         brush=redBrush, movable=True, orientation=pg.LinearRegionItem.Vertical)
+        self.selectTimeRect.setSpan((self.si.chnPlotted + 2) / (nchns + 3),(self.si.chnPlotted + 3) / (nchns + 3))
+        self.selectTimeRect.setBounds([0,fs * self.window_size])
+        self.mainPlot.addItem(self.selectTimeRect)
+        self.selectTimeRect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
 
-        self.selectTimeRect.setSpan(0.25,0.5)
-        self.mainPlot.addItem(self.selectTimeRect)"""
+    def specTimeSelectChanged(self):
+        """
+        Function called when the user changes the region that selects where in
+        time to compute the power spectrum
+        """
+        fs = self.edf_info.fs
+        bounds = self.selectTimeRect.getRegion()
+        bounds = bounds + self.count * fs
+        # f, Pxx_den = signal.welch(self.si.data[int(bounds[0]):int(bounds[1])], fs)
+        f, Pxx_den = signal.periodogram(self.si.data[int(bounds[0]):int(bounds[1])], fs)
+        pen = pg.mkPen(color=(178, 7, 245), width=3, style=QtCore.Qt.SolidLine)
+        # pen = pg.mkPen(color=self.ci.colors[i], width=2, style=QtCore.Qt.SolidLine)
+        self.spec_plot_lines[0].setData(f,Pxx_den, clickable=False, pen=pen)
+
+    def updateSpecChn(self):
+        self.mainPlot.removeItem(self.selectTimeRect)
+        redBrush = QBrush(QColor(217, 43, 24,50))
+        nchns = self.ci.nchns_to_plot
+        fs = self.edf_info.fs
+        self.selectTimeRect = pg.LinearRegionItem(values=(fs, 4 * fs),
+                        brush=redBrush, movable=True, orientation=pg.LinearRegionItem.Vertical)
+        self.selectTimeRect.setSpan((self.si.chnPlotted + 2) / (nchns + 3),(self.si.chnPlotted + 3) / (nchns + 3))
+        self.mainPlot.addItem(self.selectTimeRect)
+        self.selectTimeRect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
 
     def removeSpecPlot(self):
         """
         Removes the spectrogram plot.
         """
         self.plotLayout.removeItem(self.specPlot)
-        self.plotLayout.removeItem(self.hist)
+        # self.plotLayout.removeItem(self.hist)
+        self.mainPlot.removeItem(self.selectTimeRect)
 
     def loadSpec(self):
         """
@@ -1426,6 +1601,12 @@ class PlotCanvas(FigureCanvas):
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
 
+class QHLine(QFrame):
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)
+
 def get_args():
     p = ap.ArgumentParser()
 
@@ -1449,6 +1630,8 @@ def get_args():
     p.add_argument("--line-thickness",type=float, default=0.5)
     p.add_argument("--font-size",type=int, default=12)
     p.add_argument("--plot-title", type=str, default="")
+    p.add_argument("--save-edf-fn", type=str, default=None)
+    p.add_argument("--anonymize-edf", type=int, default=1, choices=[0,1])
 
     return p.parse_args()
 
@@ -1493,6 +1676,10 @@ def check_args(args):
     if not args.font_size is None:
         if args.font_size < 5 or args.line_thickness > 20:
             raise Exception("Please choose a font size between 5 and 20.")
+
+    if not args.save_edf_fn is None:
+        if not mandatory_args.issubset(set(dir(args))):
+            raise Exception(("You're missing essential arguments!"))
 
 
 if __name__ == '__main__':

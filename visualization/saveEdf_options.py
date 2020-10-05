@@ -23,7 +23,6 @@ class SaveEdfOptions(QWidget):
 
     def setupUI(self):
         # self.sio_ui.resize(self.parent.width / 1.5, self.parent.height / 1.5)
-
         # Reset fields
         self.data.ptId = "X X X X" + " " * 730
         self.data.recInfo = "Startdate X X X X" + " " * 63
@@ -40,8 +39,14 @@ class SaveEdfOptions(QWidget):
         self.seo_ui.btn_anonAndSave.clicked.connect(self.saveAndClose)
 
         self.seo_ui.cbox_anon.setChecked(1)
-
-        self.show()
+        if not self.parent.argv.save_edf_fn is None:
+            if self.parent.argv.anonymize_edf:
+                self.seo_ui.cbox_anon.setChecked(1)
+            else:
+                self.seo_ui.cbox_anon.setChecked(0)
+            self.saveAndClose()
+        else:
+            self.show()
 
         """if (not self.parent.argv.export_png_file is None) and self.parent.init == 0:
             self.data.plotAnn = self.parent.argv.print_annotations

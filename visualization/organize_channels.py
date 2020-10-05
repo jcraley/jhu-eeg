@@ -7,6 +7,9 @@ from PyQt5.QtWidgets import (QVBoxLayout, QMessageBox, QWidget, QListWidget,
 import numpy as np
 from channel_info import ChannelInfo
 
+from matplotlib.backends.qt_compat import QtWidgets
+
+
 class OrganizeChannels(QWidget):
     def __init__(self,data,parent):
         super().__init__()
@@ -44,7 +47,8 @@ class OrganizeChannels(QWidget):
         self.populateChnList()
 
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
+        self.setGeometry(centerPoint.x() - self.width / 2, centerPoint.y() - self.height / 2, self.width, self.height)
 
         lblInfo = QLabel("Drag and drop channels \n to change their order: ")
         grid_lt.addWidget(lblInfo,0,0)
