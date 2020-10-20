@@ -95,6 +95,8 @@ class EpilepsyDataset(Dataset):
         # Create the labels for the dataset
         self.labels = []
         self.start_windows = []
+        self.onset_zones = []
+        self.patient_numbers = []
         window_idx = 0
         for recording in self.manifest_files:
             self.labels.append(
@@ -105,6 +107,9 @@ class EpilepsyDataset(Dataset):
                              self.overlap, post_sz_state=self.post_sz))
             self.start_windows.append(window_idx)
             window_idx += len(self.labels[-1])
+
+            self.onset_zones.append(int(recording['onset_zone']))
+            self.patient_numbers.append(recording['pt_num'])
         self.nwindows = window_idx
 
         # Get the total duration and number of seizures
@@ -137,9 +142,9 @@ class EpilepsyDataset(Dataset):
         self.filenames = []
         self.buffer_windows = []
 
-        for file in self.manifest_files:
+        for eeg in self.manifest_files:
             # Load the relevant file
-            fn = file['fn'].split('.')[0] + '.pt'
+            fn = eeg['fn'].split('.')[0] + '.pt'
             curr_file = torch.load(os.path.join(self.data_dir, fn),
                                    map_location=self.device)
 
@@ -148,7 +153,7 @@ class EpilepsyDataset(Dataset):
             self.buffer_list.append(curr_file)
 
             # Keep track of what window index starts with each file
-            nwindows = compute_nwindows(int(file['duration']),
+            nwindows = compute_nwindows(int(eeg['duration']),
                                         self.window_length,
                                         self.overlap)
             self.buffer_windows.append(nwindows)
@@ -228,6 +233,8 @@ class EpilepsyDataset(Dataset):
         if self.as_sequences:
             sample['labels'] = self.labels[idx]
             sample['filename'] = self.filenames[idx]
+            sample['onset zone'] = self.onset_zones[idx]
+            sample['patient number'] = self.patient_numbers[idx]
             if self.features:
                 start_idx, end_idx = self.sequence_indices[idx]
                 sample['buffers'] = self.data[start_idx:end_idx]
