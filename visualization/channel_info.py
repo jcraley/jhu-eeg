@@ -359,7 +359,6 @@ class ChannelInfo():
             elif mont_type == 3:
                 ar = self.canDoBIP_AR_idx(idxs,1,1) # must have all AR chns to convert to bipolar
                 if ar:
-                    print("here")
                     bip_idx = np.zeros((len(self.labelsBIP1010),2))
                     for k in range(len(self.labelsBIP1010)):
                         str0 = self.labelsBIP1010[k].split('-')[0]
