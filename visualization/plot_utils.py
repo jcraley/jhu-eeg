@@ -117,7 +117,7 @@ def filterData(data, fs, fi):
             break
         # BPF
         if bp1 > 0:
-            filt_bufs[chn] = applyBandPass(filt_bufs[chn], fs, [bp1, bp2]) 
+            filt_bufs[chn] = applyBandPass(filt_bufs[chn], fs, [bp1, bp2])
         i += 1
         progress.setValue(i)
         if progress.wasCanceled():
@@ -200,7 +200,6 @@ def loadSignals(data, fsArray):
     nchns = len(data)
     if nchns == 1:
         return fsArray, np.array(data)
-
     same_fs = 1
     try:
         if len(fsArray) > 1:

@@ -201,7 +201,7 @@ class MainPage(QMainWindow):
         self.wsComboBox.addItems(["1s","5s","10s","15s","20s","25s","30s"])
         self.wsComboBox.setCurrentIndex(2)
         self.wsComboBox.currentIndexChanged['int'].connect(self.chgWindow_size)
-        grid_lt.addWidget(self.wsComboBox, 18, 1)
+        grid_lt.addWidget(self.wsComboBox, 17, 1)
 
         vbox3 = QGridLayout()
         vbox3.addWidget(self.btnZoom, 0, 0)
@@ -1432,7 +1432,7 @@ class MainPage(QMainWindow):
             self.specPlot.getAxis('left').setTextPen(blackPen)
             self.specPlot.setLabel('left', "PSD", units='V**2/Hz')
             self.specPlot.setXRange(self.si.minFs,self.si.maxFs,padding=0)
-            # self.specPlot.setLogMode(False, True)
+            self.specPlot.setLogMode(False, True)
             # self.specPlot.setYRange(self.si.minFs,self.si.maxFs,padding=0)
             self.specPlot.setTitle(self.si.chnName,color='k',size='16pt')
         if self.btnZoom.text() == "Close zoom":
