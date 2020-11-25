@@ -6,5 +6,5 @@ class SpecInfo():
         self.plotSpec = 0 # whether or not to plot spectrograms
         self.chnPlotted = -1
         self.chnName = ""
-        self.minFs = 0
+        self.minFs = 1
         self.maxFs = 30

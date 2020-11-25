@@ -3,8 +3,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QVBoxLayout, QMessageBox, QWidget, QListWidget,
                                 QPushButton, QCheckBox, QLabel, QGridLayout,
                                 QScrollArea, QListWidgetItem, QAbstractItemView,
-                                QFileDialog, QSpinBox, QComboBox)
+                                QFileDialog, QSpinBox, QComboBox, QDoubleSpinBox)
 from PyQt5.QtGui import QFont
+from matplotlib.backends.qt_compat import QtWidgets
 
 import numpy as np
 
@@ -22,19 +23,11 @@ class SpecOptions(QWidget):
 
     def setupUI(self):
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
+
+        self.setGeometry(centerPoint.x() - self.width / 2, centerPoint.y() - self.height / 2, self.width, self.height)
 
         grid = QGridLayout()
-
-        """self.scroll = QScrollArea()
-        self.scroll.setMinimumWidth(120)
-        self.scroll.setMinimumHeight(200) # would be better if resizable
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.chn_qlist = QListWidget()
-        self.chn_qlist.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.scroll.setWidget(self.chn_qlist)"""
 
         self.chnComboBox = QComboBox()
         self.chnComboBox.addItems(["<select channel>"])
@@ -50,15 +43,17 @@ class SpecOptions(QWidget):
         # grid.addWidget(self.scroll,1,0)
         grid.addWidget(self.chnComboBox,1,1,1,3)
 
-        lblfsaxis = QLabel("y-axis (Hz): ")
+        lblfsaxis = QLabel("y-axis (V**2/Hz): ")
         grid.addWidget(lblfsaxis,2,0)
-        self.btnGetMinFs = QSpinBox(self)
+        self.btnGetMinFs = QDoubleSpinBox(self)
         self.btnGetMinFs.setRange(0, self.parent.edf_info.fs / 2)
         self.btnGetMinFs.setValue(self.data.minFs)
+        self.btnGetMinFs.setDecimals(3)
         grid.addWidget(self.btnGetMinFs,2,1)
         lblfsto = QLabel(" to ")
         grid.addWidget(lblfsto,2,2)
-        self.btnGetMaxFs = QSpinBox(self)
+        self.btnGetMaxFs = QDoubleSpinBox(self)
+        self.btnGetMaxFs.setDecimals(3)
         self.btnGetMaxFs.setRange(0, self.parent.edf_info.fs / 2)
         self.btnGetMaxFs.setValue(self.data.maxFs)
         grid.addWidget(self.btnGetMaxFs,2,3)
@@ -132,6 +127,8 @@ class SpecOptions(QWidget):
             if not self.data.plotSpec:
                 self.data.plotSpec = 1
                 self.parent.makeSpecPlot()
+            else:
+                self.parent.updateSpecChn()
         elif self.data.plotSpec:
             self.data.plotSpec = 0
             self.parent.removeSpecPlot()

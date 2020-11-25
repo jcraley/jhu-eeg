@@ -115,18 +115,19 @@ class SaveImgOptions(QWidget):
                 self.ax.plot(self.plotData[i, :]
                              + (i + 1) * self.y_lim, '-', linewidth=self.data.linethick, color=self.data.ci.colors[i])
                 self.ax.set_ylim([-self.y_lim, self.y_lim * (self.nchns + 1)])
-                self.ax.set_yticks(np.arange(0, (self.nchns + 2)*self.y_lim, step=self.y_lim))
+                self.ax.set_yticks(np.arange(0, (self.nchns + 1)*self.y_lim, step=self.y_lim))
                 self.ax.set_yticklabels(
                     self.data.ci.labels_to_plot, fontdict=None, minor=False, fontsize=self.data.fontSize)
+                width = 1 / (self.nchns + 2)
             else:
                 self.ax.plot(self.plotData[i, :]
                              + (i) * self.y_lim, '-', linewidth=self.data.linethick, color=self.data.ci.colors[i])
                 self.ax.set_ylim([-self.y_lim, self.y_lim * (self.nchns)])
-                self.ax.set_yticks(np.arange(0, (self.nchns + 1)*self.y_lim, step=self.y_lim))
+                self.ax.set_yticks(np.arange(0, (self.nchns)*self.y_lim, step=self.y_lim))
                 self.ax.set_yticklabels(
                     self.data.ci.labels_to_plot[1:], fontdict=None, minor=False, fontsize=self.data.fontSize)
+                width = 1 / (self.nchns + 1)
 
-            width = 1 / (self.nchns + 2)
             if self.predicted == 1:
                 starts, ends, chns = self.data.pi.compute_starts_ends_chns(self.thresh,
                                                                       self.count, self.window_size, self.fs, self.nchns)
@@ -134,13 +135,25 @@ class SaveImgOptions(QWidget):
                     if self.data.pi.pred_by_chn:
                         if chns[k][i]:
                             if i == self.plotData.shape[0] - 1:
-                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs, ends[k] - self.count * self.fs,
+                                if self.data.plotAnn:
+                                    self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs, ends[k] - self.count * self.fs,
                                                                        ymin=width*(i+1.5), ymax=1, color='paleturquoise', alpha=1))
+                                else:
+                                    self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs, ends[k] - self.count * self.fs,
+                                                                       ymin=width*(i+0.5), ymax=1, color='paleturquoise', alpha=1))
                             else:
-                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs, ends[k] - self.count * self.fs,
+                                if self.data.plotAnn:
+                                    self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs, ends[k] - self.count * self.fs,
                                                                        ymin=width*(i+1.5), ymax=width*(i+2.5), color='paleturquoise', alpha=1))
+                                else:
+                                    self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs, ends[k] - self.count * self.fs,
+                                                                       ymin=width*(i+0.5), ymax=width*(i+1.5), color='paleturquoise', alpha=1))
                             x_vals = range(int(starts[k]) - self.count * self.fs, int(ends[k]) - self.count * self.fs)
-                            self.ax.plot(x_vals, self.plotData[i, int(starts[k]) - self.count * self.fs:int(ends[k]) - self.count * self.fs] + i*self.y_lim + self.y_lim,
+                            if self.data.plotAnn:
+                                self.ax.plot(x_vals, self.plotData[i, int(starts[k]) - self.count * self.fs:int(ends[k]) - self.count * self.fs] + i*self.y_lim + self.y_lim,
+                                         '-', linewidth=self.data.linethick * 2, color=self.data.ci.colors[i])
+                            else:
+                                self.ax.plot(x_vals, self.plotData[i, int(starts[k]) - self.count * self.fs:int(ends[k]) - self.count * self.fs] + (i - 1) *self.y_lim + self.y_lim,
                                          '-', linewidth=self.data.linethick * 2, color=self.data.ci.colors[i])
                     else:
                         self.aspan_list.append(self.ax.axvspan(
@@ -220,7 +233,7 @@ class SaveImgOptions(QWidget):
         self.data.title = ""
 
     def closeWindow(self):
-        self.parent.spec_win_open = 0
+        self.parent.saveimg_win_open = 0
         self.resetInitialState()
         self.close()
 

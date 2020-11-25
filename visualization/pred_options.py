@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QFileDialog, QVBoxLayout, QMessageBox, QWidget,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
                                 QSlider, QGridLayout, QSpinBox)
 
+from matplotlib.backends.qt_compat import QtWidgets
 
 class PredictionOptions(QWidget):
     def __init__(self,pi,parent):
@@ -24,7 +25,8 @@ class PredictionOptions(QWidget):
         layout.setSpacing(4)
 
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
+        self.setGeometry(centerPoint.x() - self.width / 2, centerPoint.y() - self.height / 2, self.width, self.height)
 
         btnExit = QPushButton('Ok', self)
         btnExit.clicked.connect(self.check)

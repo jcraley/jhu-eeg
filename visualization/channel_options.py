@@ -59,7 +59,7 @@ class ChannelOptions(QWidget):
         self.data.total_nchns = len(self.data.chns2labels)
 
         self.setWindowTitle(self.title)
-        self.setGeometry(self.left, self.top, self.width, self.height)
+        self.setGeometry(self.parent.width / 3, self.parent.height / 3, self.width, self.height)
 
         lblInfo = QLabel("Select channels to plot: ")
         grid_lt.addWidget(lblInfo,0,0)
@@ -381,6 +381,7 @@ class ChannelOptions(QWidget):
         self.parent.pi.write_data(self.pi)
         self.parent.ci.write_data(self.data)
         self.data = self.parent.ci
+        self.parent.sei.fn = self.parent.fn_full_temp
         if len(self.unprocessed_data) > 0: # new load
             self.parent.count = 0
             self.parent.lblFn.setText("Plotting: " + self.parent.fn_temp)
