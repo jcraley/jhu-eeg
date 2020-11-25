@@ -99,12 +99,13 @@ class EpilepsyDataset(Dataset):
         self.patient_numbers = []
         window_idx = 0
         for recording in self.manifest_files:
-            self.labels.append(
-                create_label(float(recording['duration']),
-                             json.loads(recording['sz_starts']),
-                             json.loads(recording['sz_ends']
-                                        ), self.window_length,
-                             self.overlap, post_sz_state=self.post_sz))
+            label = create_label(float(recording['duration']),
+                                 json.loads(recording['sz_starts']),
+                                 json.loads(recording['sz_ends']
+                                            ), self.window_length,
+                                 self.overlap, post_sz_state=self.post_sz)
+            label = label.to(self.device)
+            self.labels.append(label)
             self.start_windows.append(window_idx)
             window_idx += len(self.labels[-1])
 
@@ -117,7 +118,7 @@ class EpilepsyDataset(Dataset):
         self.total_sz = 0
         for recording in self.manifest_files:
             self.total_duration += float(recording['duration'])
-            self.total_sz += int(recording['nsz'])
+            self.total_sz += len(json.loads(recording['sz_starts']))
 
         # Load features
         if not no_load:
@@ -240,7 +241,9 @@ class EpilepsyDataset(Dataset):
                 sample['buffers'] = self.data[start_idx:end_idx]
             else:
                 windowed_buffer = self.buffer_list[0].new_zeros(
-                    (self.buffer_windows[idx], self.nchns, self.window_samples))
+                    (self.buffer_windows[idx],
+                     self.nchns, self.window_samples),
+                    device=self.device)
                 for ii in range(self.buffer_windows[idx]):
                     start = ii * self.window_advance_samples
                     end = ii * self.window_advance_samples + self.window_samples
