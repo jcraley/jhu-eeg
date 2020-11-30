@@ -267,25 +267,71 @@ class Pipeline():
 
         # If visualize, output pngs for each
         if visualize:
-            viz.make_images(all_fns, all_preds, all_labels,
-                            self.paths['figures'], prefix, '')
+            if threshold is None:
+                viz.make_images(all_fns, all_preds, all_labels,
+                                self.paths['figures'], prefix, '',)
+            else:
+                viz.make_images(all_fns, all_preds, all_labels,
+                                self.paths['figures'], prefix, '',
+                                threshold=threshold)
 
         print("Unsmoothed results")
-        # Compute windowise statistics and write out
-        evaluation.iid_window_report(all_preds, all_labels,
-                                     self.paths['results'], prefix, '')
 
         # Perform the threshold sweep
-        evaluation.threshold_sweep(
-            all_preds, all_labels, self.paths['results'], prefix, '',
-            self.params['max samples before sz'], total_sz, total_duration,
-            window_advance_seconds, self.params['count post sz']
+        # evaluation.threshold_sweep(
+        #     all_preds, all_labels, self.paths['results'], prefix, '',
+        #     self.params['max samples before sz'], total_sz, total_duration,
+        #     window_advance_seconds, self.params['count post sz']
+        # )
+
+        # Perform the threshold sweep on the smoothed predictions.
+        sweep_results = evaluation.threshold_sweep(
+            all_preds, all_labels, self.paths['results'], prefix,
+            '', self.params['max samples before sz'],
+            total_sz, total_duration, window_advance_seconds,
+            self.params['count post sz']
         )
+
+        # If a threshold is not specified and an allowable fps_per_hour is,
+        # compute the corresponding threshold
+        if (threshold is None and self.params['smoothing'] == 0
+                and (fps_per_hr > 0 or fp_time_per_hr > 0)):
+            # Decrease the threshold until the fp criteria is met
+            threshold_idx = len(sweep_results['thresholds']) - 1
+            stop = False
+            while not stop:
+                # Check if fps per hour is set and exceeds limit
+                if (fps_per_hr > 0 and
+                    sweep_results['fps_per_hour'][threshold_idx]
+                        > fps_per_hr):
+                    stop = True
+                # Check if fp time per hour is set and exceeds limit
+                elif (fp_time_per_hr > 0 and
+                        sweep_results['fp_time_per_hour'][threshold_idx]
+                        > fp_time_per_hr):
+                    stop = True
+                elif threshold_idx == 10:
+                    stop = True
+                else:
+                    threshold_idx -= 1
+            # Get the threshold
+            threshold = sweep_results['thresholds'][threshold_idx]
+            fn = '{}threshold{}.txt'.format(prefix, '')
+            with open(os.path.join(self.paths['results'], fn), 'w') as f:
+                f.write(str(threshold) + '\n')
+
+        # Compute windowise statistics and write out
+        evaluation.iid_window_report(all_preds, all_labels,
+                                     self.paths['results'], prefix, '',
+                                     threshold=threshold)
 
         # Score based on sequences
         evaluation.sequence_report(
             all_fns, all_preds, all_labels, self.paths['results'], prefix, '',
+            threshold=threshold,
             max_samples_before_sz=self.params['max samples before sz'],
+            nsz=total_sz, total_duration=total_duration,
+            window_advance_seconds=window_advance_seconds,
             count_post_sz=self.params['count post sz']
         )
 

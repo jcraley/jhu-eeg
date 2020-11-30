@@ -7,7 +7,6 @@ def _check_label(label, label_list):
     """
     Checks if a label is in the label list
     """
-
     # If the label is not present, try splitting it
     if label.upper() not in label_list:
         label = label[4:].split('-')[0].upper()
