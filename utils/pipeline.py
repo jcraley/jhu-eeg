@@ -278,13 +278,6 @@ class Pipeline():
         print("Unsmoothed results")
 
         # Perform the threshold sweep
-        # evaluation.threshold_sweep(
-        #     all_preds, all_labels, self.paths['results'], prefix, '',
-        #     self.params['max samples before sz'], total_sz, total_duration,
-        #     window_advance_seconds, self.params['count post sz']
-        # )
-
-        # Perform the threshold sweep on the smoothed predictions.
         sweep_results = evaluation.threshold_sweep(
             all_preds, all_labels, self.paths['results'], prefix,
             '', self.params['max samples before sz'],

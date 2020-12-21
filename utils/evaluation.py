@@ -18,6 +18,78 @@ def smooth(all_preds, smoothing):
     return smoothed_preds
 
 
+# def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
+#                     count_post_sz=False):
+#     """Score a single recording"""
+#     # Find the true onsets and offsets
+#     true_onsets = np.where(np.diff(labels) == 1)[0] + 1
+#     true_offsets = np.where(np.diff(labels) == -1)[0] + 1
+
+#     # Find the true positives
+#     T = preds.shape[0]
+#     y_hat = np.zeros(T)
+#     y_hat[np.where(preds[:, 1] >= threshold)] = 1
+#     tp_samples = y_hat * labels
+#     fp_samples = y_hat * (1 - labels)
+
+#     # Find beginning of seizure detections
+#     detections = np.where(np.diff(y_hat) == 1)[0] + 1
+
+#     # Loop over the seizures
+#     ncorrect = 0
+#     latency_samples = 0
+#     nfps = 0
+#     for onset, offset in zip(true_onsets, true_offsets):
+
+#         # Check for an accurate sample
+#         if np.sum(tp_samples[onset:offset]) > 0:
+#             # If max_samples_before_sz are all fps, detection is too early
+#             if (max_samples_before_sz > 0
+#                     and fp_samples[onset-max_samples_before_sz-1:onset].all()):
+#                 nfps += 1
+
+#             ncorrect += 1
+#             # Find the onset
+#             if tp_samples[onset] == 1:
+#                 # Detection occurs at or before onset annotation
+#                 idx = onset
+#                 if max_samples_before_sz == 0:
+#                     while (y_hat[idx] == 1 and idx >= 0):
+#                         tp_samples[idx] = 1
+#                         fp_samples[idx] = 0
+#                         idx = idx - 1
+#                 else:
+#                     while (y_hat[idx] == 1 and idx >= 0 and
+#                            idx >= onset-max_samples_before_sz):
+#                         tp_samples[idx] = 1
+#                         fp_samples[idx] = 0
+#                         idx = idx - 1
+#                 first_tp = idx + 1
+#                 latency_samples += first_tp - onset
+#             else:
+#                 # Detection is after onset, find the first tp in the sz period
+#                 latency_samples += np.where(
+#                     tp_samples[onset:offset] == 1)[0][0]
+
+#             # Ignore post sz FP
+#             if not count_post_sz:
+#                 idx = offset - 1
+#                 while idx < T and y_hat[idx] == 1:
+#                     tp_samples[idx] = 1
+#                     fp_samples[idx] = 0
+#                     idx = idx + 1
+
+#     nfps += np.sum(fp_samples[detections])
+
+#     return {
+#         'nfps': nfps,
+#         'nfp_samples': np.sum(fp_samples),
+#         'ntp_samples': np.sum(tp_samples),
+#         'latency_samples': latency_samples,
+#         'ncorrect': ncorrect,
+#     }
+
+
 def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
                     count_post_sz=False):
     """Score a single recording"""
@@ -25,15 +97,13 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
     true_onsets = np.where(np.diff(labels) == 1)[0] + 1
     true_offsets = np.where(np.diff(labels) == -1)[0] + 1
 
-    # Find the true positives
+    # Find the positive predictions
     T = preds.shape[0]
     y_hat = np.zeros(T)
     y_hat[np.where(preds[:, 1] >= threshold)] = 1
+    y_hat_onsets = np.where(np.diff(y_hat) == 1)[0] + 1
     tp_samples = y_hat * labels
     fp_samples = y_hat * (1 - labels)
-
-    # Find beginning of seizure detections
-    detections = np.where(np.diff(y_hat) == 1)[0] + 1
 
     # Loop over the seizures
     ncorrect = 0
@@ -41,45 +111,23 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
     nfps = 0
     for onset, offset in zip(true_onsets, true_offsets):
 
-        # Check for an accurate sample
-        if np.sum(tp_samples[onset:offset]) > 0:
-            # If max_samples_before_sz are all fps, detection is too early
-            if (max_samples_before_sz > 0
-                    and fp_samples[onset-max_samples_before_sz-1:onset].all()):
-                nfps += 1
+        # Check for an accurate onset within the seizure
+        for y_hat_onset in y_hat_onsets:
+            if (y_hat_onset >= onset - max_samples_before_sz and
+                    y_hat_onset <= offset):
+                ncorrect += 1
+                latency_samples += y_hat_onset - onset
 
-            ncorrect += 1
-            # Find the onset
-            if tp_samples[onset] == 1:
-                # Detection occurs at or before onset annotation
-                idx = onset
-                if max_samples_before_sz == 0:
-                    while (y_hat[idx] == 1 and idx >= 0):
+                # Ignore post sz FP
+                if not count_post_sz:
+                    idx = offset - 1
+                    while idx < T and y_hat[idx] == 1:
                         tp_samples[idx] = 1
                         fp_samples[idx] = 0
-                        idx = idx - 1
-                else:
-                    while (y_hat[idx] == 1 and idx >= 0 and
-                           idx >= onset-max_samples_before_sz):
-                        tp_samples[idx] = 1
-                        fp_samples[idx] = 0
-                        idx = idx - 1
-                first_tp = idx + 1
-                latency_samples += first_tp - onset
-            else:
-                # Detection is after onset, find the first tp in the sz period
-                latency_samples += np.where(
-                    tp_samples[onset:offset] == 1)[0][0]
+                        idx = idx + 1
+                break
 
-            # Ignore post sz FP
-            if not count_post_sz:
-                idx = offset - 1
-                while idx < T and y_hat[idx] == 1:
-                    tp_samples[idx] = 1
-                    fp_samples[idx] = 0
-                    idx = idx + 1
-
-    nfps += np.sum(fp_samples[detections])
+    nfps += np.sum(fp_samples[y_hat_onsets])
 
     return {
         'nfps': nfps,
