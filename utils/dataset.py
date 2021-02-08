@@ -259,6 +259,9 @@ class EpilepsyDataset(Dataset):
             # Calculate the indexes of the start and end of the window
             window_number = idx - self.start_windows[buffer_idx]
             sample['labels'] = self.labels[buffer_idx][window_number]
+            sample['filename'] = self.filenames[buffer_idx]
+            sample['onset zones'] = self.onset_zones[buffer_idx]
+            sample['patient numbers'] = self.patient_numbers[buffer_idx]
             if self.features:
                 sample['buffers'] = self.data[idx]
             else:
