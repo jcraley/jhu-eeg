@@ -90,6 +90,54 @@ def smooth(all_preds, smoothing):
 #     }
 
 
+# def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
+#                     count_post_sz=False):
+#     """Score a single recording"""
+#     # Find the true onsets and offsets
+#     onsets = np.where(np.diff(labels) == 1)[0] + 1
+#     offsets = np.where(np.diff(labels) == -1)[0] + 1
+
+#     # Find the positive predictions
+#     T = preds.shape[0]
+#     y_hat = np.zeros(T)
+#     y_hat[np.where(preds[:, 1] >= threshold)] = 1
+#     y_hat_onsets = np.where(np.diff(y_hat) == 1)[0] + 1
+#     tp_samples = y_hat * labels
+#     fp_samples = y_hat * (1 - labels)
+
+#     # Loop over the seizures
+#     ncorrect = 0
+#     latency_samples = 0
+#     nfps = 0
+#     for onset, offset in zip(onsets, offsets):
+
+#         # Check for an accurate onset within the seizure
+#         for y_hat_onset in y_hat_onsets:
+#             if (y_hat_onset >= onset - max_samples_before_sz and
+#                     y_hat_onset <= offset):
+#                 ncorrect += 1
+#                 latency_samples += y_hat_onset - onset
+
+#                 # Ignore post sz FP
+#                 if not count_post_sz:
+#                     idx = offset - 1
+#                     while idx < T and y_hat[idx] == 1:
+#                         tp_samples[idx] = 1
+#                         fp_samples[idx] = 0
+#                         idx = idx + 1
+#                 break
+
+#     nfps += np.sum(fp_samples[y_hat_onsets])
+
+#     return {
+#         'nfps': nfps,
+#         'nfp_samples': np.sum(fp_samples),
+#         'ntp_samples': np.sum(tp_samples),
+#         'latency_samples': latency_samples,
+#         'ncorrect': ncorrect,
+#     }
+
+
 def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
                     count_post_sz=False):
     """Score a single recording"""
@@ -102,6 +150,7 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
     y_hat = np.zeros(T)
     y_hat[np.where(preds[:, 1] >= threshold)] = 1
     y_hat_onsets = np.where(np.diff(y_hat) == 1)[0] + 1
+    # y_hat_offsets = np.where(np.diff(y_hat) == -1)[0] + 1
     tp_samples = y_hat * labels
     fp_samples = y_hat * (1 - labels)
 
@@ -109,14 +158,43 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
     ncorrect = 0
     latency_samples = 0
     nfps = 0
-    for onset, offset in zip(true_onsets, true_offsets):
+    # Check if max samples before sz is set
+    if max_samples_before_sz >= 0:
+        for onset, offset in zip(true_onsets, true_offsets):
+            # Check for an accurate onset within the seizure
+            for y_hat_onset in y_hat_onsets:
+                if (y_hat_onset >= onset - max_samples_before_sz and
+                        y_hat_onset <= offset):
+                    ncorrect += 1
+                    latency_samples += y_hat_onset - onset
 
-        # Check for an accurate onset within the seizure
-        for y_hat_onset in y_hat_onsets:
-            if (y_hat_onset >= onset - max_samples_before_sz and
-                    y_hat_onset <= offset):
+                    # Ignore post sz FP
+                    if not count_post_sz:
+                        idx = offset - 1
+                        while idx < T and y_hat[idx] == 1:
+                            tp_samples[idx] = 1
+                            fp_samples[idx] = 0
+                            idx = idx + 1
+                    break
+    # Any overlap is considered a true positive
+    else:
+        # Loop over seizures
+        for onset, offset in zip(true_onsets, true_offsets):
+            # Check for a detection
+            if np.sum(y_hat[onset:offset]) > 0:
                 ncorrect += 1
-                latency_samples += y_hat_onset - onset
+
+                # If annotation begins before onset
+                if y_hat[onset] == 1:
+                    sz_onset = onset
+                    while sz_onset > 0 and y_hat[sz_onset] == 1:
+                        sz_onset -= 1
+                    sz_onset += 1
+
+                else:
+                    sz_onset = y_hat_onsets[np.where(
+                        y_hat_onsets > onset)[0][0]]
+                latency_samples += sz_onset - onset
 
                 # Ignore post sz FP
                 if not count_post_sz:
@@ -126,7 +204,6 @@ def score_recording(labels, preds, threshold=0.5, max_samples_before_sz=0,
                         fp_samples[idx] = 0
                         idx = idx + 1
                 break
-
     nfps += np.sum(fp_samples[y_hat_onsets])
 
     return {
