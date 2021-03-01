@@ -171,37 +171,42 @@ class MainPage(QMainWindow):
 
         groupBox3 = QGroupBox()
 
+        self.btnStats = QPushButton("Signal Statistics",self)
+        self.btnStats.clicked.connect(self.openStats)
+        self.btnStats.setToolTip("Click to open the signal statistsics window")
+        grid_lt.addWidget(self.btnStats, 14, 0, 1, 2)
+
         self.btnZoom = QPushButton("Open zoom", self)
         self.btnZoom.clicked.connect(self.openZoomPlot)
         self.btnZoom.setToolTip("Click to open the zoom window")
-        grid_lt.addWidget(self.btnZoom, 14, 0)
+        grid_lt.addWidget(self.btnZoom, 15, 0)
 
         buttonChgSpec = QPushButton("Power spectrum", self)
         buttonChgSpec.clicked.connect(self.loadSpec)
         buttonChgSpec.setToolTip("Click to plot the spectrogram of a signal")
-        grid_lt.addWidget(buttonChgSpec, 14, 1)
+        grid_lt.addWidget(buttonChgSpec, 16, 1)
 
         labelAmp = QLabel("Change amplitude:", self)
-        grid_lt.addWidget(labelAmp, 15, 0)
+        grid_lt.addWidget(labelAmp, 16, 0)
 
         buttonAmpInc = QPushButton("+", self)
         buttonAmpInc.clicked.connect(self.incAmp)
         buttonAmpInc.setToolTip("Click to increase signal amplitude")
-        grid_lt.addWidget(buttonAmpInc, 15, 1)
+        grid_lt.addWidget(buttonAmpInc, 16, 1)
 
         buttonAmpDec = QPushButton("-", self)
         buttonAmpDec.clicked.connect(self.decAmp)
         buttonAmpDec.setToolTip("Click to decrease signal amplitude")
-        grid_lt.addWidget(buttonAmpDec, 16, 1)
+        grid_lt.addWidget(buttonAmpDec, 17, 1)
 
         labelWS = QLabel("Window size:", self)
-        grid_lt.addWidget(labelWS, 17, 0)
+        grid_lt.addWidget(labelWS, 18, 0)
 
         self.wsComboBox = QComboBox()
         self.wsComboBox.addItems(["1s","5s","10s","15s","20s","25s","30s"])
         self.wsComboBox.setCurrentIndex(2)
         self.wsComboBox.currentIndexChanged['int'].connect(self.chgWindow_size)
-        grid_lt.addWidget(self.wsComboBox, 17, 1)
+        grid_lt.addWidget(self.wsComboBox, 18, 1)
 
         vbox3 = QGridLayout()
         vbox3.addWidget(self.btnZoom, 0, 0)
@@ -217,12 +222,12 @@ class MainPage(QMainWindow):
         # grid_lt.addWidget(groupBox3,10,0,4,2)
 
         test2 = QLabel("", self)
-        grid_lt.addWidget(test2, 19, 0)
+        grid_lt.addWidget(test2, 20, 0)
 
-        grid_lt.addWidget(QHLine(), 20, 0, 1, 2)
+        grid_lt.addWidget(QHLine(), 21, 0, 1, 2)
 
         test11 = QLabel("", self)
-        grid_lt.addWidget(test11, 21, 0)
+        grid_lt.addWidget(test11, 22, 0)
 
         """buttonWSInc = QPushButton("+", self)
         buttonWSInc.clicked.connect(self.incWindow_size)
@@ -239,13 +244,13 @@ class MainPage(QMainWindow):
         buttonPrint = QPushButton("Export to .png", self)
         buttonPrint.clicked.connect(self.print_graph)
         buttonPrint.setToolTip("Click to print a copy of the graph")
-        grid_lt.addWidget(buttonPrint, 22, 0)
+        grid_lt.addWidget(buttonPrint, 23, 0)
 
         buttonSaveEDF = QPushButton("Save to .edf", self)
         buttonSaveEDF.clicked.connect(self.save_to_edf)
         buttonSaveEDF.setToolTip(
             "Click to save current signals to an .edf file")
-        grid_lt.addWidget(buttonSaveEDF, 22, 1)
+        grid_lt.addWidget(buttonSaveEDF, 23, 1)
 
         """
         popupButton = QPushButton("Export")
@@ -263,21 +268,21 @@ class MainPage(QMainWindow):
         # grid_lt.addWidget(groupBox4,16,0,2,2)
 
         test3 = QLabel("", self)
-        grid_lt.addWidget(test3, 23, 0)
+        grid_lt.addWidget(test3, 24, 0)
 
         test4 = QLabel("", self)
-        grid_lt.addWidget(test4, 24, 0)
+        grid_lt.addWidget(test4, 25, 0)
 
         test5 = QLabel("", self)
-        grid_lt.addWidget(test5, 25, 0)
+        grid_lt.addWidget(test5, 26, 0)
 
         test6 = QLabel("", self)
-        grid_lt.addWidget(test6, 26, 0)
+        grid_lt.addWidget(test6, 27, 0)
 
         btn0 = QPushButton('Help')
         btn0.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarContextHelpButton')))
         btn0.clicked.connect(self.openHelp)
-        grid_lt.addWidget(btn0,27,0)
+        grid_lt.addWidget(btn0,28,0)
         # icon  = QtGui.QPixmap('add.gif')
         # button = QtGui.QPushButton()
         # button.setIcon(icon)
@@ -1579,6 +1584,10 @@ class MainPage(QMainWindow):
                 self.spec_ops = SpecOptions(self.si, self)
                 self.spec_ops.show()
 
+    def openStats(self):
+        # TODO
+        pass
+
     def throwAlert(self, msg):
         """
         Throws an alert to the user.
@@ -1666,7 +1675,7 @@ def check_args(args):
     if not args.predictions_file is None:
         if not path.exists(args.predictions_file):
             raise Exception("The --predictions_file that you specifed does not exist.")
-        elif not args.montage_file[len(args.montage_file) - 3:] == ".pt":
+        elif not args.predictions_file[len(args.predictions_file) - 3:] == ".pt":
             raise Exception("The --predictions_file must be a .pt file.")
 
     if not args.line_thickness is None:
