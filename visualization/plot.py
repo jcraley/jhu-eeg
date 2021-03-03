@@ -10,6 +10,7 @@ from saveImg_info import SaveImgInfo
 from saveImg_options import SaveImgOptions
 from saveEdf_info import SaveEdfInfo
 from saveEdf_options import SaveEdfOptions
+from signalStats_info import SignalStatsInfo
 
 import pyedflib
 from plot_utils import *
@@ -171,10 +172,10 @@ class MainPage(QMainWindow):
 
         groupBox3 = QGroupBox()
 
-        self.btnStats = QPushButton("Signal Statistics",self)
-        self.btnStats.clicked.connect(self.openStats)
-        self.btnStats.setToolTip("Click to open the signal statistsics window")
-        grid_lt.addWidget(self.btnStats, 14, 0, 1, 2)
+        # self.btnStats = QPushButton("Signal Statistics",self)
+        # self.btnStats.clicked.connect(self.openStats)
+        # self.btnStats.setToolTip("Click to open the signal statistsics window")
+        # grid_lt.addWidget(self.btnStats, 14, 0, 1, 2)
 
         self.btnZoom = QPushButton("Open zoom", self)
         self.btnZoom.clicked.connect(self.openZoomPlot)
@@ -184,7 +185,7 @@ class MainPage(QMainWindow):
         buttonChgSpec = QPushButton("Power spectrum", self)
         buttonChgSpec.clicked.connect(self.loadSpec)
         buttonChgSpec.setToolTip("Click to plot the spectrogram of a signal")
-        grid_lt.addWidget(buttonChgSpec, 16, 1)
+        grid_lt.addWidget(buttonChgSpec, 15, 1)
 
         labelAmp = QLabel("Change amplitude:", self)
         grid_lt.addWidget(labelAmp, 16, 0)
@@ -307,7 +308,7 @@ class MainPage(QMainWindow):
         self.slider.sliderReleased.connect(self.valuechange)
         self.grid_rt.addWidget(self.slider, 6, 0, 1, 8)
 
-        self.btnOpenAnnDock = QPushButton("Add annotations", self)
+        self.btnOpenAnnDock = QPushButton("Statistics / annotations", self)
         self.btnOpenAnnDock.clicked.connect(self.openAnnDock)
         self.btnOpenAnnDock.setToolTip("Click to open annotations dock")
         self.grid_rt.addWidget(self.btnOpenAnnDock, 7, 0)
@@ -352,8 +353,7 @@ class MainPage(QMainWindow):
         self.ann_qlist = QListWidget()
         self.scroll.setWidget(self.ann_qlist)
         self.scroll.setFloating(False)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.scroll)
-        self.scroll.hide()
+        # self.scroll.hide()
         self.ann_qlist.itemClicked.connect(self.ann_clicked)
 
         # Annotation editor dock
@@ -395,11 +395,75 @@ class MainPage(QMainWindow):
         self.annEditLayout.addWidget(self.btnAnnCreate,3,2)
         self.annEditMainWidget.setLayout(self.annEditLayout)
         self.annEditDock.setWidget(self.annEditMainWidget)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.annEditDock)
-        self.annEditDock.hide()
+        # self.addDockWidget(Qt.RightDockWidgetArea, self.annEditDock)
+        # self.annEditDock.hide()
+
+        # ------ working on stats doc ------- #
+        # Stats dock
+        self.statsDock = QDockWidget()
+        self.btnOpenStats = QPushButton("Open signal stats", self)
+        self.btnOpenStats.clicked.connect(self.openStatWindow)
+        self.btnOpenStats.setToolTip("Click to open stats")
+        self.statsDock.setTitleBarWidget(self.btnOpenStats)
+
+        self.verticalLayout = QtWidgets.QVBoxLayout(self)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.gridLayout = QtWidgets.QGridLayout()
+        self.gridLayout.setObjectName("gridLayout")
+        self.mean_lbl = QtWidgets.QLabel(self)
+        self.mean_lbl.setObjectName("mean_lbl")
+        self.mean_lbl.setText("Mean: ")
+        self.gridLayout.addWidget(self.mean_lbl, 0, 1, 1, 2)
+        self.var_lbl = QtWidgets.QLabel(self)
+        self.var_lbl.setObjectName("var_lbl")
+        self.var_lbl.setText("Var: ")
+        self.gridLayout.addWidget(self.var_lbl, 1, 1, 1, 2)
+        self.line_len_lbl = QtWidgets.QLabel(self)
+        # self.var_lbl.setObjectName("var_lbl")
+        self.line_len_lbl.setText("Line length: ")
+        self.gridLayout.addWidget(self.line_len_lbl, 2, 1, 1, 2)
+        self.qscroll = QtWidgets.QScrollArea(self)
+        self.qscroll.setWidgetResizable(True)
+        self.qscroll.setObjectName("qscroll")
+        self.qscroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.qscroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.chn_qlist = QListWidget()
+        # self.chn_qlist.setGeometry(QtCore.QRect(0, 0, 50, 10))
+        self.chn_qlist.setObjectName("chn_qlist")
+        self.chn_qlist.itemClicked.connect(self.statChnClicked)
+        self.qscroll.setWidget(self.chn_qlist)
+        self.gridLayout.addWidget(self.qscroll, 0, 0, 6, 1)
+        self.mean_sel_lbl = QtWidgets.QLabel(self)
+        self.mean_sel_lbl.setObjectName("mean_sel_lbl")
+        self.mean_sel_lbl.setText("Region mean: ")
+        self.gridLayout.addWidget(self.mean_sel_lbl, 3, 1, 1, 2)
+        self.var_sel_lbl = QtWidgets.QLabel(self)
+        self.var_sel_lbl.setObjectName("var_sel_lbl")
+        self.var_sel_lbl.setText("Region var: ")
+        self.gridLayout.addWidget(self.var_sel_lbl, 4, 1, 1, 2)
+        self.line_len_sel_lbl = QtWidgets.QLabel(self)
+        # self.line_len_sel_lbl.setObjectName("var_sel_lbl")
+        self.line_len_sel_lbl.setText("Region line length: ")
+        self.gridLayout.addWidget(self.line_len_sel_lbl, 5, 1, 1, 2)
+        self.verticalLayout.addLayout(self.gridLayout)
+        self.statsMainWidget = QWidget()
+        self.statsMainWidget.setLayout(self.verticalLayout)
+        self.statsDock.setWidget(self.statsMainWidget)
+
+         # ------ working on stats doc ------- #
+
 
         #self.tabifyDockWidget(self.scroll,self.annEditDock)
+        # self.splitDockWidget(self.annEditDock, self.scroll, Qt.Vertical)
+        # self.splitDockWidget(self.annEditDock, self.statsDock, Qt.Vertical)
+        self.scroll.hide()
+        self.annEditDock.hide()
+        self.statsDock.hide()
+        self.addDockWidget(Qt.RightDockWidgetArea, self.scroll)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.annEditDock)
         self.splitDockWidget(self.annEditDock, self.scroll, Qt.Vertical)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.statsDock)
+        self.splitDockWidget(self.scroll, self.statsDock, Qt.Vertical)
 
         wid = QWidget(self)
         self.setCentralWidget(wid)
@@ -430,6 +494,7 @@ class MainPage(QMainWindow):
         self.si = SpecInfo() # holds spectrogram information
         self.sii = SaveImgInfo() # holds info to save the img
         self.sei = SaveEdfInfo() # holds header for edf saving
+        self.ssi = SignalStatsInfo() # holds info for stats window
 
         if self.argv.show:
             self.show()
@@ -442,9 +507,8 @@ class MainPage(QMainWindow):
             self.load_data(fn)
 
     def closeEvent(self, event):
-        """
-        Called when the main window is closed to act as a destructor and close
-        any window that is still open.
+        """ Called when the main window is closed to act as a destructor and close
+            any window that is still open.
         """
         if self.filter_win_open:
             self.filter_ops.closeWindow()
@@ -466,9 +530,8 @@ class MainPage(QMainWindow):
         event.accept()
 
     def initGraph(self):
-        """
-        Function to properly initialize everything when new data
-        is loaded.
+        """ Function to properly initialize everything when new data
+            is loaded.
         """
         # self.init = 1 # set in load_data to prevent issues with slider
         self.fi = FilterInfo()  # holds data needed to filter
@@ -543,9 +606,8 @@ class MainPage(QMainWindow):
         self.filteredData = []  # set filteredData
         self.si = SpecInfo()
 
-    def ann_clicked(self, item):
-        """
-        Moves the plot when annotations in the dock are clicked.
+    def ann_clicked(self):
+        """ Moves the plot when annotations in the dock are clicked.
         """
         self.count = int(
             float(self.edf_info.annotations[0][self.ann_qlist.currentRow()]))
@@ -566,8 +628,7 @@ class MainPage(QMainWindow):
             # a1.sigPositionChangeFinished.connect(self.printVal)
 
     def openAnnEditor(self):
-        """
-        Create and open the annotation editor.
+        """ Create and open the annotation editor.
         """
         if self.btnOpenEditAnn.text() == "Open annotation editor":
             self.annTxtEdit.clear()
@@ -592,23 +653,35 @@ class MainPage(QMainWindow):
                 self.populateAnnDock()
 
     def openAnnDock(self):
+        """ Opens the annotation and stats dock when the button below
+            plot is clicked.
+        """
         self.scroll.show()
+        self.statsDock.show()
+        self.statsMainWidget.hide()
         self.btnOpenAnnDock.hide()
         self.openAnnEditor()
 
     def populateAnnDock(self):
-        """
-        Fills the annotation dock with annotations if they exist.
+        """ Fills the annotation dock with annotations if they exist.
         """
         self.ann_qlist.clear()
         ann = self.edf_info.annotations
         if len(ann[0]) == 0:
-            self.scroll.hide()
-            self.btnOpenAnnDock.show()
+            self.annEditDock.hide()
+            if self.btnOpenStats.text() == "Open signal stats":
+                self.scroll.hide()
+                self.statsDock.hide()
+                self.btnOpenAnnDock.show()
+            else:
+                self.scroll.show()
+                self.btnOpenAnnDock.hide()
         else:
             for i in range(len(ann[0])):
                 self.ann_qlist.addItem(ann[2][i])
             self.scroll.show()
+            self.statsDock.show()
+            self.statsMainWidget.hide()
             self.btnOpenAnnDock.hide()
 
     def annEditorUpdate(self):
@@ -1584,9 +1657,80 @@ class MainPage(QMainWindow):
                 self.spec_ops = SpecOptions(self.si, self)
                 self.spec_ops.show()
 
-    def openStats(self):
-        # TODO
-        pass
+    def openStatWindow(self):
+        if self.btnOpenStats.text() == "Open signal stats":
+            self.btnOpenStats.setText("Close signal stats")
+            self.statsMainWidget.show()
+            self.populateStatList()
+            self.ssi.chn = 0
+            self.ssi.chn_items[self.ssi.chn].setSelected(True)
+            self.createStatSelectTimeRect(self.ssi.chn)
+            self.statChnClicked()
+        else:
+            self.btnOpenStats.setText("Open signal stats")
+            self.removeStatSelectTimeRect()
+            self.statsMainWidget.hide()
+            if self.btnOpenEditAnn.text() == "Open annotation editor":
+                self.populateAnnDock()
+
+    def populateStatList(self):
+        """ Fill the stats window with channels.
+        """
+        # Remove old channels if they exist
+        self.chn_qlist.clear()
+        chns = self.ci.labels_to_plot
+        self.ssi.chn_items = []
+        for i in range(1, len(chns)):
+            self.ssi.chn_items.append(QListWidgetItem(chns[i], self.chn_qlist))
+            self.chn_qlist.addItem(self.ssi.chn_items[i - 1])
+        # self.qscroll.show()
+
+    def statChnClicked(self):
+        """ When a channel is clicked.
+        """
+        self.removeStatSelectTimeRect()
+        self.ssi.chn = self.chn_qlist.currentRow()
+        self.createStatSelectTimeRect(self.ssi.chn)
+        mean_str = self.ci.data_to_plot[self.ssi.chn,:].mean()
+        mean_str = "Mean: " + "{:.2f}".format(mean_str)
+        self.mean_lbl.setText(mean_str)
+        var_str = self.ci.data_to_plot[self.ssi.chn,:].var()
+        var_str = "Var: " + "{:.2f}".format(var_str)
+        self.var_lbl.setText(var_str)
+        line_len_str = np.sqrt(np.sum(np.diff(self.ci.data_to_plot[self.ssi.chn,:]) ** 2 + 1))
+        line_len_str = "Line Length: " + "{:.2f}".format(line_len_str)
+        self.line_len_lbl.setText(line_len_str)
+
+    def createStatSelectTimeRect(self, chn):
+        """ Create the rectangle selector item.
+        """
+        redBrush = QBrush(QColor(217, 43, 24,50))
+        self.statSelectTimeRect = pg.LinearRegionItem(values=(self.edf_info.fs, 4 * self.edf_info.fs),
+                        brush=redBrush, movable=True, orientation=pg.LinearRegionItem.Vertical)
+        self.statSelectTimeRect.setSpan((chn + 2) / (self.ci.nchns_to_plot + 3),(chn + 3) / (self.ci.nchns_to_plot + 3))
+        self.mainPlot.addItem(self.statSelectTimeRect)
+        self.statSelectTimeRect.sigRegionChangeFinished.connect(self.statTimeSelectChanged)
+        self.statTimeSelectChanged()
+
+    def removeStatSelectTimeRect(self):
+        """ Remove the rectangle selector item.
+        """
+        self.mainPlot.removeItem(self.statSelectTimeRect)
+
+    def statTimeSelectChanged(self):
+        """ Called when the stats bar is moved. 
+        """
+        bounds = self.statSelectTimeRect.getRegion()
+        bounds = bounds + self.count * self.edf_info.fs
+        mean_str = self.ci.data_to_plot[self.ssi.chn,int(bounds[0]):int(bounds[1])].mean()
+        mean_str = "Region mean: " + "{:.2f}".format(mean_str)
+        self.mean_sel_lbl.setText(mean_str)
+        var_str = self.ci.data_to_plot[self.ssi.chn,int(bounds[0]):int(bounds[1])].var()
+        var_str = "Region var: " + "{:.2f}".format(var_str)
+        self.var_sel_lbl.setText(var_str)
+        line_len_str = np.sqrt(np.sum(np.diff(self.ci.data_to_plot[self.ssi.chn,int(bounds[0]):int(bounds[1])]) ** 2 + 1))
+        line_len_str = "Region var: " + "{:.2f}".format(line_len_str)
+        self.line_len_sel_lbl.setText(line_len_str)
 
     def throwAlert(self, msg):
         """
@@ -1604,7 +1748,7 @@ class PlotCanvas(FigureCanvas):
 
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         self.fig = Figure(figsize=(width, height), dpi=dpi,
-                          constrained_layout=False)
+                          con_rained_layout=False)
         self.gs = self.fig.add_gridspec(1, 1, wspace=0.0, hspace=0.0)
 
         FigureCanvas.__init__(self, self.fig)
@@ -1654,10 +1798,10 @@ def check_args(args):
         if args.fn is None:
             raise Exception("--fn must be specified")
         if args.montage_file is None:
-            raise Exception("--montage_file must be specified")
+            raise Exception("--montage-file must be specified")
 
     if not args.fn is None and args.montage_file is None:
-        raise Exception("--montage_file must be specified if --fn is specified")
+        raise Exception("--montage-file must be specified if --fn is specified")
 
     if args.fn is None and not args.montage_file is None:
         raise Exception("--fn must be specified if --montage-file is specified")
@@ -1668,9 +1812,9 @@ def check_args(args):
 
     if not args.montage_file is None:
         if not path.exists(args.montage_file):
-            raise Exception("The --montage_file that you specifed does not exist.")
+            raise Exception("The --montage-file that you specifed does not exist.")
         elif not args.montage_file[len(args.montage_file) - 4:] == ".txt":
-            raise Exception("The --montage_file must be a .txt file.")
+            raise Exception("The --montage-file must be a .txt file.")
 
     if not args.predictions_file is None:
         if not path.exists(args.predictions_file):
