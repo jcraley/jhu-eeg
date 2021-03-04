@@ -342,6 +342,9 @@ class MainPage(QMainWindow):
         self.time_lbl = QLabel("0:00:00", self)
         self.grid_rt.addWidget(self.time_lbl, 7, 7)
 
+        # Right side dock
+        self.dockWidth = self.width * 0.22
+
         # Annotation dock
         self.scroll = QDockWidget()
         #ann_title = QLabel("Annotations")
@@ -353,7 +356,7 @@ class MainPage(QMainWindow):
         self.ann_qlist = QListWidget()
         self.scroll.setWidget(self.ann_qlist)
         self.scroll.setFloating(False)
-        # self.scroll.hide()
+        self.scroll.setFixedWidth(self.dockWidth)
         self.ann_qlist.itemClicked.connect(self.ann_clicked)
 
         # Annotation editor dock
@@ -394,6 +397,7 @@ class MainPage(QMainWindow):
         self.annEditLayout.addWidget(self.btnAnnDel,3,1)
         self.annEditLayout.addWidget(self.btnAnnCreate,3,2)
         self.annEditMainWidget.setLayout(self.annEditLayout)
+        self.annEditMainWidget.setFixedWidth(self.dockWidth)
         self.annEditDock.setWidget(self.annEditMainWidget)
         # self.addDockWidget(Qt.RightDockWidgetArea, self.annEditDock)
         # self.annEditDock.hide()
@@ -402,53 +406,44 @@ class MainPage(QMainWindow):
         # Stats dock
         self.statsDock = QDockWidget()
         self.btnOpenStats = QPushButton("Open signal stats", self)
-        self.btnOpenStats.clicked.connect(self.openStatWindow)
         self.btnOpenStats.setToolTip("Click to open stats")
+        self.btnOpenStats.clicked.connect(self.openStatWindow)
         self.statsDock.setTitleBarWidget(self.btnOpenStats)
-
-        self.verticalLayout = QtWidgets.QVBoxLayout(self)
-        self.verticalLayout.setObjectName("verticalLayout")
+        self.statsDock.setFixedWidth(self.dockWidth)
+        
         self.gridLayout = QtWidgets.QGridLayout()
-        self.gridLayout.setObjectName("gridLayout")
         self.mean_lbl = QtWidgets.QLabel(self)
-        self.mean_lbl.setObjectName("mean_lbl")
         self.mean_lbl.setText("Mean: ")
         self.gridLayout.addWidget(self.mean_lbl, 0, 1, 1, 2)
         self.var_lbl = QtWidgets.QLabel(self)
-        self.var_lbl.setObjectName("var_lbl")
         self.var_lbl.setText("Var: ")
         self.gridLayout.addWidget(self.var_lbl, 1, 1, 1, 2)
         self.line_len_lbl = QtWidgets.QLabel(self)
-        # self.var_lbl.setObjectName("var_lbl")
         self.line_len_lbl.setText("Line length: ")
         self.gridLayout.addWidget(self.line_len_lbl, 2, 1, 1, 2)
         self.qscroll = QtWidgets.QScrollArea(self)
         self.qscroll.setWidgetResizable(True)
-        self.qscroll.setObjectName("qscroll")
         self.qscroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.qscroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.chn_qlist = QListWidget()
-        # self.chn_qlist.setGeometry(QtCore.QRect(0, 0, 50, 10))
-        self.chn_qlist.setObjectName("chn_qlist")
         self.chn_qlist.itemClicked.connect(self.statChnClicked)
         self.qscroll.setWidget(self.chn_qlist)
         self.gridLayout.addWidget(self.qscroll, 0, 0, 6, 1)
         self.mean_sel_lbl = QtWidgets.QLabel(self)
-        self.mean_sel_lbl.setObjectName("mean_sel_lbl")
         self.mean_sel_lbl.setText("Region mean: ")
         self.gridLayout.addWidget(self.mean_sel_lbl, 3, 1, 1, 2)
         self.var_sel_lbl = QtWidgets.QLabel(self)
-        self.var_sel_lbl.setObjectName("var_sel_lbl")
         self.var_sel_lbl.setText("Region var: ")
         self.gridLayout.addWidget(self.var_sel_lbl, 4, 1, 1, 2)
         self.line_len_sel_lbl = QtWidgets.QLabel(self)
-        # self.line_len_sel_lbl.setObjectName("var_sel_lbl")
         self.line_len_sel_lbl.setText("Region line length: ")
         self.gridLayout.addWidget(self.line_len_sel_lbl, 5, 1, 1, 2)
-        self.verticalLayout.addLayout(self.gridLayout)
+        
         self.statsMainWidget = QWidget()
-        self.statsMainWidget.setLayout(self.verticalLayout)
+        self.statsMainWidget.setLayout(self.gridLayout)
         self.statsDock.setWidget(self.statsMainWidget)
+        
+        
 
          # ------ working on stats doc ------- #
 
