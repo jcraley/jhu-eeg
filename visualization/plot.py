@@ -57,7 +57,6 @@ class MainPage(QMainWindow):
         self.top = 10
         self.title = 'EEG Visualization'
         sizeObject = QtWidgets.QDesktopWidget().screenGeometry(-1)
-        # print(" Screen size : "  + str(sizeObject.height()) + "x"  + str(sizeObject.width()))
         self.width = sizeObject.width() * 0.9
         self.height = sizeObject.height() * 0.9
         self.app = app
@@ -71,50 +70,27 @@ class MainPage(QMainWindow):
         layout.setSpacing(10)
         grid_lt = QGridLayout()
         self.grid_rt = QGridLayout()
-        #grid_lt.setSpacing(12)
-        #self.grid_rt.setSpacing(8)
 
-        # left side of the screen
+        #---- left side of the screen ----#
 
-        groupBox = QGroupBox()
-
-
-        # radio1 = QRadioButton("&Radio button 1")
-        # radio2 = QRadioButton("R&adio button 2")
-        # radio3 = QRadioButton("Ra&dio button 3")
-
-        button = QPushButton('Select file', self)
-        button.clicked.connect(self.load_data)
-        button.setToolTip('Click to select EDF file')
-        grid_lt.addWidget(button, 0, 0, 1, 2)
+        self.buttonSelectFile = QPushButton('Select file', self)
+        self.buttonSelectFile.setToolTip('Click to select EDF file')
+        grid_lt.addWidget(self.buttonSelectFile, 0, 0, 1, 2)
 
         self.lblFn = QLabel("No file loaded.",self)
         grid_lt.addWidget(self.lblFn, 1, 0, 1, 2)
 
         self.buttonChgSig = QPushButton("Change signals", self)
-        self.buttonChgSig.clicked.connect(self.chgSig)
         self.buttonChgSig.setToolTip("Click to change signals")
         grid_lt.addWidget(self.buttonChgSig, 2, 1)
 
         self.cbox_filter = QCheckBox("Filter signals", self)
-        self.cbox_filter.toggled.connect(self.filterChecked)
         self.cbox_filter.setToolTip("Click to filter")
         grid_lt.addWidget(self.cbox_filter, 3, 0)
 
-        buttonChgFilt = QPushButton("Change Filter", self)
-        buttonChgFilt.clicked.connect(self.changeFilter)
-        buttonChgFilt.setToolTip("Click to change filter")
-        grid_lt.addWidget(buttonChgFilt, 3, 1)
-
-        vbox = QGridLayout()
-        vbox.addWidget(button,0,0,1,2)
-        vbox.addWidget(self.lblFn, 1, 0, 1, 2)
-        vbox.addWidget(self.buttonChgSig, 2, 1)
-        vbox.addWidget(self.cbox_filter, 3, 0)
-        vbox.addWidget(buttonChgFilt, 3, 1)
-        # vbox.addStretch(1)
-        groupBox.setLayout(vbox)
-        # grid_lt.addWidget(groupBox,0,0,3,2)
+        self.buttonChgFilt = QPushButton("Change Filter", self)
+        self.buttonChgFilt.setToolTip("Click to change filter")
+        grid_lt.addWidget(self.buttonChgFilt, 3, 1)
 
         test01 = QLabel("", self)
         grid_lt.addWidget(test01, 4, 0)
@@ -124,43 +100,22 @@ class MainPage(QMainWindow):
         test0 = QLabel("", self)
         grid_lt.addWidget(test0, 6, 0)
 
-        groupBox2 = QGroupBox()
-
-        buttonPredict = QPushButton("Load model / predictions", self)
-        buttonPredict.clicked.connect(self.changePredictions)
-        buttonPredict.setToolTip("Click load data, models, and predictions")
-        grid_lt.addWidget(buttonPredict, 7, 0, 1, 2)
+        self.buttonPredict = QPushButton("Load model / predictions", self)
+        self.buttonPredict.setToolTip("Click load data, models, and predictions")
+        grid_lt.addWidget(self.buttonPredict, 7, 0, 1, 2)
 
         self.predLabel = QLabel("", self)
         grid_lt.addWidget(self.predLabel, 8, 0, 1, 1)
 
-        #test22 = QLabel("", self)
-        #grid_lt.addWidget(test22, 8, 1)
-
         self.threshLblVal = QLabel("Change threshold of prediction:  (threshold = 0.5)", self)
         grid_lt.addWidget(self.threshLblVal, 9, 0,1,2)
 
-        # self.threshLblVal = QLabel("(threshold = 0.5)", self)
-        # grid_lt.addWidget(self.threshLblVal, 7, 1)
 
         self.threshSlider = QSlider(Qt.Horizontal, self)
         self.threshSlider.setMinimum(0)
         self.threshSlider.setMaximum(100)
         self.threshSlider.setValue(50)
-        # self.threshSlider.setTickPosition(QSlider.TicksBelow)
-        # self.threshSlider.setTickInterval(5)
-        self.threshSlider.sliderReleased.connect(self.changeThreshSlider)
         grid_lt.addWidget(self.threshSlider, 10, 0, 1, 2)
-
-        vbox2 = QGridLayout()
-        vbox2.addWidget(buttonPredict, 0, 0, 1, 2)
-        vbox2.addWidget(self.predLabel, 0, 1)
-        # vbox2.addWidget(threshLbl, 1, 0)
-        vbox2.addWidget(self.threshLblVal, 1, 0, 1, 2)
-        vbox2.addWidget(self.threshSlider, 2, 0, 1, 2)
-        # vbox.addStretch(1)
-        groupBox2.setLayout(vbox2)
-        # grid_lt.addWidget(groupBox2,6,0,3,2)
 
         test = QLabel("", self)
         grid_lt.addWidget(test, 11, 0)
@@ -170,35 +125,24 @@ class MainPage(QMainWindow):
         test11 = QLabel("", self)
         grid_lt.addWidget(test11, 13, 0)
 
-        groupBox3 = QGroupBox()
-
-        # self.btnStats = QPushButton("Signal Statistics",self)
-        # self.btnStats.clicked.connect(self.openStats)
-        # self.btnStats.setToolTip("Click to open the signal statistsics window")
-        # grid_lt.addWidget(self.btnStats, 14, 0, 1, 2)
-
         self.btnZoom = QPushButton("Open zoom", self)
-        self.btnZoom.clicked.connect(self.openZoomPlot)
         self.btnZoom.setToolTip("Click to open the zoom window")
         grid_lt.addWidget(self.btnZoom, 15, 0)
 
-        buttonChgSpec = QPushButton("Power spectrum", self)
-        buttonChgSpec.clicked.connect(self.loadSpec)
-        buttonChgSpec.setToolTip("Click to plot the spectrogram of a signal")
-        grid_lt.addWidget(buttonChgSpec, 15, 1)
+        self.buttonChgSpec = QPushButton("Power spectrum", self)
+        self.buttonChgSpec.setToolTip("Click to plot the spectrogram of a signal")
+        grid_lt.addWidget(self.buttonChgSpec, 15, 1)
 
         labelAmp = QLabel("Change amplitude:", self)
         grid_lt.addWidget(labelAmp, 16, 0)
 
-        buttonAmpInc = QPushButton("+", self)
-        buttonAmpInc.clicked.connect(self.incAmp)
-        buttonAmpInc.setToolTip("Click to increase signal amplitude")
-        grid_lt.addWidget(buttonAmpInc, 16, 1)
+        self.buttonAmpInc = QPushButton("+", self)
+        self.buttonAmpInc.setToolTip("Click to increase signal amplitude")
+        grid_lt.addWidget(self.buttonAmpInc, 16, 1)
 
-        buttonAmpDec = QPushButton("-", self)
-        buttonAmpDec.clicked.connect(self.decAmp)
-        buttonAmpDec.setToolTip("Click to decrease signal amplitude")
-        grid_lt.addWidget(buttonAmpDec, 17, 1)
+        self.buttonAmpDec = QPushButton("-", self)
+        self.buttonAmpDec.setToolTip("Click to decrease signal amplitude")
+        grid_lt.addWidget(self.buttonAmpDec, 17, 1)
 
         labelWS = QLabel("Window size:", self)
         grid_lt.addWidget(labelWS, 18, 0)
@@ -206,21 +150,8 @@ class MainPage(QMainWindow):
         self.wsComboBox = QComboBox()
         self.wsComboBox.addItems(["1s","5s","10s","15s","20s","25s","30s"])
         self.wsComboBox.setCurrentIndex(2)
-        self.wsComboBox.currentIndexChanged['int'].connect(self.chgWindow_size)
         grid_lt.addWidget(self.wsComboBox, 18, 1)
 
-        vbox3 = QGridLayout()
-        vbox3.addWidget(self.btnZoom, 0, 0)
-        vbox3.addWidget(buttonChgSpec, 0, 1)
-        vbox3.addWidget(QLabel("", self),1,0)
-        vbox3.addWidget(labelAmp, 2, 0)
-        vbox3.addWidget(buttonAmpInc, 2, 1)
-        vbox3.addWidget(buttonAmpDec, 3, 1)
-        vbox3.addWidget(labelWS, 4, 0)
-        vbox3.addWidget(self.wsComboBox, 4, 1)
-        # vbox.addStretch(1)
-        groupBox3.setLayout(vbox3)
-        # grid_lt.addWidget(groupBox3,10,0,4,2)
 
         test2 = QLabel("", self)
         grid_lt.addWidget(test2, 20, 0)
@@ -230,68 +161,31 @@ class MainPage(QMainWindow):
         test11 = QLabel("", self)
         grid_lt.addWidget(test11, 22, 0)
 
-        """buttonWSInc = QPushButton("+", self)
-        buttonWSInc.clicked.connect(self.incWindow_size)
-        buttonWSInc.setToolTip("Click to increase amount of seconds plotted")
-        grid_lt.addWidget(buttonWSInc, 13, 1)"""
+        self.buttonPrint = QPushButton("Export to .png", self)
+        self.buttonPrint.setToolTip("Click to print a copy of the graph")
+        grid_lt.addWidget(self.buttonPrint, 23, 0)
 
-        """buttonWSDec = QPushButton("-", self)
-        buttonWSDec.clicked.connect(self.decWindow_size)
-        buttonWSDec.setToolTip("Click to decrease amount of seconds plotted")
-        grid_lt.addWidget(buttonWSDec, 14, 1)"""
-
-        groupBox4 = QGroupBox()
-
-        buttonPrint = QPushButton("Export to .png", self)
-        buttonPrint.clicked.connect(self.print_graph)
-        buttonPrint.setToolTip("Click to print a copy of the graph")
-        grid_lt.addWidget(buttonPrint, 23, 0)
-
-        buttonSaveEDF = QPushButton("Save to .edf", self)
-        buttonSaveEDF.clicked.connect(self.save_to_edf)
-        buttonSaveEDF.setToolTip(
-            "Click to save current signals to an .edf file")
-        grid_lt.addWidget(buttonSaveEDF, 23, 1)
-
-        """
-        popupButton = QPushButton("Export")
-        menu = QMenu(self)
-        menu.addAction("...to .png")
-        menu.addAction("...to .edf")
-        popupButton.setMenu(menu)
-        grid_lt.addWidget(popupButton,15,1)"""
-
-        vbox4 = QGridLayout()
-        vbox4.addWidget(buttonPrint, 0, 0)
-        vbox4.addWidget(buttonSaveEDF, 0, 1)
-        # vbox.addStretch(1)
-        groupBox4.setLayout(vbox4)
-        # grid_lt.addWidget(groupBox4,16,0,2,2)
+        self.buttonSaveEDF = QPushButton("Save to .edf", self)
+        self.buttonSaveEDF.setToolTip("Click to save current signals to an .edf file")
+        grid_lt.addWidget(self.buttonSaveEDF, 23, 1)
 
         test3 = QLabel("", self)
         grid_lt.addWidget(test3, 24, 0)
-
         test4 = QLabel("", self)
         grid_lt.addWidget(test4, 25, 0)
-
         test5 = QLabel("", self)
         grid_lt.addWidget(test5, 26, 0)
-
         test6 = QLabel("", self)
         grid_lt.addWidget(test6, 27, 0)
 
-        btn0 = QPushButton('Help')
-        btn0.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarContextHelpButton')))
-        btn0.clicked.connect(self.openHelp)
-        grid_lt.addWidget(btn0,28,0)
-        # icon  = QtGui.QPixmap('add.gif')
-        # button = QtGui.QPushButton()
-        # button.setIcon(icon)
+        self.btnHelp = QPushButton('Help')
+        self.btnHelp.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarContextHelpButton')))
+        grid_lt.addWidget(self.btnHelp,28,0)
+
+        #---- end left side ----#
 
 
-        # Right side of the screen
-        # self.m = PlotCanvas(self, width=5, height=5)
-        # self.grid_rt.addWidget(self.m, 0, 0, 6, 8)
+        #---- Right side of the screen ----#
         self.plotLayout = pg.GraphicsLayoutWidget()
         self.mainPlot = self.plotLayout.addPlot(row=0, col=0)
         self.mainPlot.setMouseEnabled(x=False, y=False)
@@ -305,59 +199,48 @@ class MainPage(QMainWindow):
         self.slider.setValue(0)
         # self.slider.setTickPosition(QSlider.TicksBelow)
         # self.slider.setTickInterval(100)
-        self.slider.sliderReleased.connect(self.valuechange)
         self.grid_rt.addWidget(self.slider, 6, 0, 1, 8)
 
         self.btnOpenAnnDock = QPushButton("Statistics / annotations", self)
-        self.btnOpenAnnDock.clicked.connect(self.openAnnDock)
         self.btnOpenAnnDock.setToolTip("Click to open annotations dock")
         self.grid_rt.addWidget(self.btnOpenAnnDock, 7, 0)
         self.btnOpenAnnDock.hide()
 
-        buttonLt10s = QPushButton("<10", self)
-        buttonLt10s.clicked.connect(self.leftPlot10s)
-        buttonLt10s.setToolTip("Click to go back")
-        self.grid_rt.addWidget(buttonLt10s, 7, 1)
+        self.buttonLt10s = QPushButton("<10", self)
+        self.buttonLt10s.setToolTip("Click to go back")
+        self.grid_rt.addWidget(self.buttonLt10s, 7, 1)
 
-        buttonLt1s = QPushButton("<<1", self)
-        buttonLt1s.clicked.connect(self.leftPlot1s)
-        buttonLt1s.setToolTip("Click to go back")
-        self.grid_rt.addWidget(buttonLt1s, 7, 2)
+        self.buttonLt1s = QPushButton("<<1", self)
+        self.buttonLt1s.setToolTip("Click to go back")
+        self.grid_rt.addWidget(self.buttonLt1s, 7, 2)
 
-        buttonChgCount = QPushButton("Jump to...", self)
-        buttonChgCount.clicked.connect(self.getCount)
-        buttonChgCount.setToolTip("Click to select time for graph")
-        self.grid_rt.addWidget(buttonChgCount, 7, 3, 1, 2)
+        self.buttonChgCount = QPushButton("Jump to...", self)
+        self.buttonChgCount.setToolTip("Click to select time for graph")
+        self.grid_rt.addWidget(self.buttonChgCount, 7, 3, 1, 2)
 
-        buttonRt1s = QPushButton("1>>", self)
-        buttonRt1s.clicked.connect(self.rightPlot1s)
-        buttonRt1s.setToolTip("Click to advance")
-        self.grid_rt.addWidget(buttonRt1s, 7, 5)
+        self.buttonRt1s = QPushButton("1>>", self)
+        self.buttonRt1s.setToolTip("Click to advance")
+        self.grid_rt.addWidget(self.buttonRt1s, 7, 5)
 
-        buttonRt10s = QPushButton("10>", self)
-        buttonRt10s.clicked.connect(self.rightPlot10s)
-        buttonRt10s.setToolTip("Click to advance")
-        self.grid_rt.addWidget(buttonRt10s, 7, 6)
+        self.buttonRt10s = QPushButton("10>", self)
+        self.buttonRt10s.setToolTip("Click to advance")
+        self.grid_rt.addWidget(self.buttonRt10s, 7, 6)
 
         self.time_lbl = QLabel("0:00:00", self)
         self.grid_rt.addWidget(self.time_lbl, 7, 7)
 
-        # Right side dock
+        #---- Right side dock ----#
         self.dockWidth = self.width * 0.22
 
         # Annotation dock
         self.scroll = QDockWidget()
-        #ann_title = QLabel("Annotations")
-        #self.scroll.setTitleBarWidget(ann_title)
         self.btnOpenEditAnn = QPushButton("Open annotation editor", self)
-        self.btnOpenEditAnn.clicked.connect(self.openAnnEditor)
         self.btnOpenEditAnn.setToolTip("Click to open annotation editor")
         self.scroll.setTitleBarWidget(self.btnOpenEditAnn)
         self.ann_qlist = QListWidget()
         self.scroll.setWidget(self.ann_qlist)
         self.scroll.setFloating(False)
         self.scroll.setFixedWidth(self.dockWidth)
-        self.ann_qlist.itemClicked.connect(self.ann_clicked)
 
         # Annotation editor dock
         self.annEditDock = QDockWidget()
@@ -371,20 +254,13 @@ class MainPage(QMainWindow):
         self.annTimeEditTime = QTimeEdit(self)
         self.annTimeEditTime.setMinimumTime(QTime(0,0,0))
         self.annTimeEditTime.setDisplayFormat("hh:mm:ss")
-        self.annTimeEditTime.timeChanged.connect(self.updateCountTime)
         self.annTimeEditCount = QSpinBox(self)
-        self.annTimeEditCount.valueChanged.connect(self.updateNormalTime)
-        # self.annTimeEditCount.setValue()
-        # self.btnGetLP.setRange(0, self.data.fs / 2)
         self.annDuration = QSpinBox(self)
         self.btnAnnEdit = QPushButton("Update", self)
-        self.btnAnnEdit.clicked.connect(self.annEditorUpdate)
         self.btnAnnEdit.setToolTip("Click to modify selected annotation")
         self.btnAnnDel = QPushButton("Delete", self)
-        self.btnAnnDel.clicked.connect(self.annEditorDel)
         self.btnAnnDel.setToolTip("Click to delete selected annotation")
         self.btnAnnCreate = QPushButton("Create", self)
-        self.btnAnnCreate.clicked.connect(self.annEditorCreate)
         self.btnAnnCreate.setToolTip("Click to create new annotation")
         self.annEditLayout.addWidget(annTxtLabel,0,0)
         self.annEditLayout.addWidget(self.annTxtEdit,0,1,1,2)
@@ -399,15 +275,11 @@ class MainPage(QMainWindow):
         self.annEditMainWidget.setLayout(self.annEditLayout)
         self.annEditMainWidget.setFixedWidth(self.dockWidth)
         self.annEditDock.setWidget(self.annEditMainWidget)
-        # self.addDockWidget(Qt.RightDockWidgetArea, self.annEditDock)
-        # self.annEditDock.hide()
 
-        # ------ working on stats doc ------- #
         # Stats dock
         self.statsDock = QDockWidget()
         self.btnOpenStats = QPushButton("Open signal stats", self)
         self.btnOpenStats.setToolTip("Click to open stats")
-        self.btnOpenStats.clicked.connect(self.openStatWindow)
         self.statsDock.setTitleBarWidget(self.btnOpenStats)
         self.statsDock.setFixedWidth(self.dockWidth)
         
@@ -426,7 +298,6 @@ class MainPage(QMainWindow):
         self.qscroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.qscroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.chn_qlist = QListWidget()
-        self.chn_qlist.itemClicked.connect(self.statChnClicked)
         self.qscroll.setWidget(self.chn_qlist)
         self.gridLayout.addWidget(self.qscroll, 0, 0, 6, 1)
         self.mean_sel_lbl = QtWidgets.QLabel(self)
@@ -442,15 +313,7 @@ class MainPage(QMainWindow):
         self.statsMainWidget = QWidget()
         self.statsMainWidget.setLayout(self.gridLayout)
         self.statsDock.setWidget(self.statsMainWidget)
-        
-        
 
-         # ------ working on stats doc ------- #
-
-
-        #self.tabifyDockWidget(self.scroll,self.annEditDock)
-        # self.splitDockWidget(self.annEditDock, self.scroll, Qt.Vertical)
-        # self.splitDockWidget(self.annEditDock, self.statsDock, Qt.Vertical)
         self.scroll.hide()
         self.annEditDock.hide()
         self.statsDock.hide()
@@ -459,6 +322,10 @@ class MainPage(QMainWindow):
         self.splitDockWidget(self.annEditDock, self.scroll, Qt.Vertical)
         self.addDockWidget(Qt.RightDockWidgetArea, self.statsDock)
         self.splitDockWidget(self.scroll, self.statsDock, Qt.Vertical)
+        
+        #---- end right side dock ----#
+
+        #---- end right side of screen ----#
 
         wid = QWidget(self)
         self.setCentralWidget(wid)
@@ -469,6 +336,63 @@ class MainPage(QMainWindow):
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
 
+        self.setSignalsSlots()
+        self.init_values()
+
+        if self.argv.show:
+            self.show()
+            if not self.argv.fn is None:
+                self.load_data(self.argv.fn)
+        else:
+            fn = self.argv.fn
+            self.argv_pred_fn = self.argv.predictions_file
+            self.argv_mont_fn = self.argv.montage_file
+            self.load_data(fn)
+
+    def setSignalsSlots(self):
+        """ Sets signals and slots for the main window. 
+        """
+        # ---- left side of the screen ---- #
+        self.buttonSelectFile.clicked.connect(self.load_data)
+        self.buttonChgSig.clicked.connect(self.chgSig)
+        self.cbox_filter.toggled.connect(self.filterChecked)
+        self.buttonChgFilt.clicked.connect(self.changeFilter)
+        self.buttonPredict.clicked.connect(self.changePredictions)
+        self.threshSlider.sliderReleased.connect(self.changeThreshSlider)
+        self.btnZoom.clicked.connect(self.openZoomPlot)
+        self.buttonChgSpec.clicked.connect(self.loadSpec)
+        self.buttonAmpInc.clicked.connect(self.incAmp)
+        self.buttonAmpDec.clicked.connect(self.decAmp)
+        self.wsComboBox.currentIndexChanged['int'].connect(self.chgWindow_size)
+        self.buttonPrint.clicked.connect(self.print_graph)
+        self.buttonSaveEDF.clicked.connect(self.save_to_edf)
+        self.btnHelp.clicked.connect(self.openHelp)
+
+        # ---- right side of the screen ---- #
+        self.slider.sliderReleased.connect(self.valuechange)
+        self.btnOpenAnnDock.clicked.connect(self.openAnnDock)
+        self.buttonLt10s.clicked.connect(self.leftPlot10s)
+        self.buttonLt1s.clicked.connect(self.leftPlot1s)
+        self.buttonChgCount.clicked.connect(self.getCount)
+        self.buttonRt1s.clicked.connect(self.rightPlot1s)
+        self.buttonRt10s.clicked.connect(self.rightPlot10s)
+
+        # ---- right side dock ---- #
+        self.btnOpenEditAnn.clicked.connect(self.openAnnEditor)
+        self.ann_qlist.itemClicked.connect(self.ann_clicked)
+        self.annTimeEditTime.timeChanged.connect(self.updateCountTime)
+        self.annTimeEditCount.valueChanged.connect(self.updateNormalTime)
+        self.btnAnnEdit.clicked.connect(self.annEditorUpdate)
+        self.btnAnnDel.clicked.connect(self.annEditorDel)
+        self.btnAnnCreate.clicked.connect(self.annEditorCreate)
+        self.btnOpenStats.clicked.connect(self.openStatWindow)
+        self.chn_qlist.itemClicked.connect(self.statChnClicked)
+
+
+
+    def init_values(self):
+        """ Set some initial values and create Info objects. 
+        """
         self.count = 0  # the current location in time we are plotting
         self.init = 0  # if any data has been loaded in yet
         self.window_size = 10  # number of seconds to display at a time
@@ -491,15 +415,6 @@ class MainPage(QMainWindow):
         self.sei = SaveEdfInfo() # holds header for edf saving
         self.ssi = SignalStatsInfo() # holds info for stats window
 
-        if self.argv.show:
-            self.show()
-            if not self.argv.fn is None:
-                self.load_data(self.argv.fn)
-        else:
-            fn = self.argv.fn
-            self.argv_pred_fn = self.argv.predictions_file
-            self.argv_mont_fn = self.argv.montage_file
-            self.load_data(fn)
 
     def closeEvent(self, event):
         """ Called when the main window is closed to act as a destructor and close
@@ -537,7 +452,6 @@ class MainPage(QMainWindow):
         ann = self.edf_info.annotations
         if len(ann[0]) > 0 and ann[2][0] == "filtered":
             self.filter_checked = 1  # whether or not filter checkbox is checked
-            # strFilt = ann[2][1].split("Hz")
             strLP = ann[2][1].split("Hz")[0][4:]
             strHP = ann[2][2].split("Hz")[0][4:]
             strN = ann[2][3].split("Hz")[0][3:]
@@ -617,10 +531,6 @@ class MainPage(QMainWindow):
             self.btnAnnEdit.setEnabled(True)
             self.btnAnnDel.setEnabled(True)
             blackPen = QPen(QColor(0,0,0))
-            # a1 = pg.InfiniteLine(pos=0,movable=True, bounds=None, hoverPen=blackPen)
-            # self.mainPlot.addItem(a1)
-            # a1.sigDragged.connect(self.printVal)
-            # a1.sigPositionChangeFinished.connect(self.printVal)
 
     def openAnnEditor(self):
         """ Create and open the annotation editor.
@@ -646,6 +556,7 @@ class MainPage(QMainWindow):
             self.annEditDock.hide()
             if len(self.edf_info.annotations[0]) == 0:
                 self.populateAnnDock()
+                self.showAnnStatsDock()
 
     def openAnnDock(self):
         """ Opens the annotation and stats dock when the button below
@@ -662,6 +573,14 @@ class MainPage(QMainWindow):
         """
         self.ann_qlist.clear()
         ann = self.edf_info.annotations
+        if len(ann[0]) > 0:
+            for i in range(len(ann[0])):
+                self.ann_qlist.addItem(ann[2][i])
+    
+    def showAnnStatsDock(self):
+        """ Properly show the stats and annotation dock. 
+        """
+        ann = self.edf_info.annotations
         if len(ann[0]) == 0:
             self.annEditDock.hide()
             if self.btnOpenStats.text() == "Open signal stats":
@@ -672,14 +591,14 @@ class MainPage(QMainWindow):
                 self.scroll.show()
                 self.btnOpenAnnDock.hide()
         else:
-            for i in range(len(ann[0])):
-                self.ann_qlist.addItem(ann[2][i])
             self.scroll.show()
             self.statsDock.show()
             self.statsMainWidget.hide()
             self.btnOpenAnnDock.hide()
 
     def annEditorUpdate(self):
+        """ Called when the update annotation button is pressed. 
+        """
         annTxt = self.annTxtEdit.text()
         loc = self.annTimeEditCount.value()
         dur = self.annDuration.value()
@@ -690,34 +609,38 @@ class MainPage(QMainWindow):
         self.callmovePlot(0,0)
 
     def annEditorDel(self):
+        """ Called when the delete selected annotation button is pressed. 
+        """
         self.edf_info.annotations = np.delete(self.edf_info.annotations,self.ann_qlist.currentRow(),axis = 1)
         self.btnAnnEdit.setEnabled(False)
         self.btnAnnDel.setEnabled(False)
-        self.annEditDock.hide()
+        # self.annEditDock.hide()
         self.populateAnnDock()
-        if len(self.edf_info.annotations[0]) == 0:
-            self.scroll.show()
-            self.btnOpenAnnDock.hide()
-        self.annEditDock.show()
+        #if len(self.edf_info.annotations[0]) == 0:
+        #    self.scroll.show()
+        #    self.btnOpenAnnDock.hide()
+        #self.annEditDock.show()
         self.callmovePlot(0,0)
 
     def annEditorCreate(self):
+        """ Called when the create new annotation button is pressed. 
+        """
         annTxt = self.annTxtEdit.text()
-        loc = self.annTimeEditCount.value()
-        dur = self.annDuration.value()
-        i = 0
-        while i < len(self.edf_info.annotations[0]):
-            if int(float(self.edf_info.annotations[0][i])) > loc:
-                # if i > 0:
-                #     i -= 1
-                break
-            i += 1
-        if len(self.edf_info.annotations[0]) == 0:
-            self.edf_info.annotations = np.append(self.edf_info.annotations, np.array([[loc], [dur], [annTxt]]), axis = 1)
-        else:
-            self.edf_info.annotations = np.insert(self.edf_info.annotations, i, [loc, dur, annTxt], axis = 1)
-        self.populateAnnDock()
-        self.callmovePlot(0,0)
+        if len(annTxt) > 0:
+            self.annTxtEdit.setText("")
+            loc = self.annTimeEditCount.value()
+            dur = self.annDuration.value()
+            i = 0
+            while i < len(self.edf_info.annotations[0]):
+                if int(float(self.edf_info.annotations[0][i])) > loc:
+                    break
+                i += 1
+            if len(self.edf_info.annotations[0]) == 0:
+                self.edf_info.annotations = np.append(self.edf_info.annotations, np.array([[loc], [dur], [annTxt]]), axis = 1)
+            else:
+                self.edf_info.annotations = np.insert(self.edf_info.annotations, i, [loc, dur, annTxt], axis = 1)
+            self.populateAnnDock()
+            self.callmovePlot(0,0)
 
     def updateNormalTime(self):
         """
@@ -749,7 +672,6 @@ class MainPage(QMainWindow):
                     qGraphicsGridLayout = self.plotLayout.ci.layout
                     qGraphicsGridLayout.setRowStretchFactor(0, 2)
                     qGraphicsGridLayout.setRowStretchFactor(1, 1)
-                    #pg.setConfigOptions(imageAxisOrder='row-major')
                     self.zoomRoi = pg.RectROI([0,0], [self.edf_info.fs * 2,200], pen=(1,9))
                     self.zoomRoi.addScaleHandle([0.5,1],[0.5,0.5])
                     self.zoomRoi.addScaleHandle([0,0.5],[0.5,0.5])
@@ -1078,6 +1000,7 @@ class MainPage(QMainWindow):
 
         self.ann_qlist.clear()  # Clear annotations
         self.populateAnnDock()  # Add annotations if they exist
+        self.showAnnStatsDock()
 
         nchns = self.ci.nchns_to_plot
         self.plot_lines = []
@@ -1126,28 +1049,6 @@ class MainPage(QMainWindow):
                 self.ylim[0] = self.ylim[0] + 15
                 self.ylim[1] = self.ylim[1] + 10
                 self.callmovePlot(0, 0)
-
-    """def incWindow_size(self):
-        if self.init == 1:
-            if self.window_size + 5 <= 30:
-                if self.window_size == 1:
-                    self.window_size = 5
-                else:
-                    self.window_size = self.window_size + 5
-                self.slider.setMaximum(self.max_time - self.window_size)
-                if self.count + self.window_size > self.max_time:
-                    self.count = self.max_time - self.window_size
-                self.callmovePlot(0, 0)
-
-    def decWindow_size(self):
-        if self.init == 1:
-            if self.window_size - 5 >= 5:
-                self.window_size = self.window_size - 5
-                self.slider.setMaximum(self.max_time - self.window_size)
-                self.callmovePlot(0, 0)
-            else:
-                self.window_size = 1
-                self.callmovePlot(0, 0)"""
 
     def chgWindow_size(self):
         if self.init == 1:
@@ -1233,99 +1134,6 @@ class MainPage(QMainWindow):
             self.predLabel.setText("Predictions plotted.")
         else:
             self.predLabel.setText("")
-        # Clear plot
-        """del(self.ax.lines[:])
-        for i, a in enumerate(self.ann_list):
-            a.remove()
-        self.ann_list[:] = []
-        for aspan in self.aspan_list:
-            aspan.remove()
-        self.aspan_list[:] = []
-
-        for i in range(nchns):
-            self.ax.plot(plotData[i, self.count * fs:(self.count + 1) * fs*self.window_size]
-                         + (i + 1) * y_lim, '-', linewidth=0.5, color=self.ci.colors[i])
-            self.ax.set_ylim([-y_lim, y_lim * (nchns + 1)])
-            self.ax.set_yticks(np.arange(0, (nchns + 2)*y_lim, step=y_lim))
-            self.ax.set_yticklabels(
-                self.ci.labels_to_plot, fontdict=None, minor=False, fontsize=12)
-
-            width = 1 / (nchns + 2)
-            if self.predicted == 1:
-                starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh,
-                                                                      self.count, self.window_size, fs, nchns)
-                for k in range(len(starts)):
-                    if self.pi.pred_by_chn:
-                        if chns[k][i]:
-                            if i == plotData.shape[0] - 1:
-                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs, ends[k] - self.count * fs,
-                                                                       ymin=width*(i+1.5), ymax=1, color='paleturquoise', alpha=1))
-                            else:
-                                self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * fs, ends[k] - self.count * fs,
-                                                                       ymin=width*(i+1.5), ymax=width*(i+2.5), color='paleturquoise', alpha=1))
-                            x_vals = range(
-                                int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
-                            self.ax.plot(x_vals, plotData[i, int(starts[k]):int(ends[k])] + i*y_lim + y_lim,
-                                         '-', linewidth=1, color=self.ci.colors[i])
-                    else:
-                        self.aspan_list.append(self.ax.axvspan(
-                            starts[k] - self.count * fs, ends[k] - self.count * fs, color='paleturquoise', alpha=0.5))
-
-        self.ax.set_xlim([0, self.edf_info.fs*self.window_size])
-        step_size = self.edf_info.fs  # Updating the x labels with scaling
-        step_width = 1
-        if self.window_size >= 15 and self.window_size <= 25:
-            step_size = step_size * 2
-            step_width = step_width * 2
-        elif self.window_size > 25:
-            step_size = step_size * 3
-            step_width = step_width * 3
-        self.ax.set_xticks(np.arange(0, self.window_size *
-                                     self.edf_info.fs + 1, step=step_size))
-        self.ax.set_xticklabels(np.arange(self.count, self.count + self.window_size + 1,
-                                          step=step_width), fontdict=None, minor=False, fontsize=12)
-        self.ax.set_xlabel("Time (s)")
-
-        ann, idx_w_ann = checkAnnotations(
-            self.count, self.window_size, self.edf_info)
-        font_size = 10 - self.window_size / 5
-        if font_size < 7:
-            font_size = 7
-        # Add in annotations
-        if len(ann) != 0:
-            ann = np.array(ann).T
-            txt = ""
-            int_prev = int(float(ann[0, 0]))
-            for i in range(ann.shape[1]):
-                int_i = int(float(ann[0, i]))
-                if int_prev == int_i:
-                    txt = txt + "\n" + ann[2, i]
-                else:
-                    if idx_w_ann[int_prev - self.count] and int_prev % 2 == 1:
-                        self.ann_list.append(self.ax.annotate(txt, xy=(
-                            (int_prev - self.count)*fs, -y_lim / 2 + y_lim), color='black', size=font_size))
-                    else:
-                        self.ann_list.append(self.ax.annotate(txt, xy=(
-                            (int_prev - self.count)*fs, -y_lim / 2), color='black', size=font_size))
-                    txt = ann[2, i]
-                int_prev = int_i
-            if txt != "":
-                if idx_w_ann[int_i - self.count] and int_i % 2 == 1:
-                    self.ann_list.append(self.ax.annotate(txt, xy=(
-                        (int_i - self.count)*fs, -y_lim / 2 + y_lim), color='black', size=font_size))
-                else:
-                    self.ann_list.append(self.ax.annotate(
-                        txt, xy=((int_i - self.count)*fs, -y_lim / 2), color='black', size=font_size))
-
-        if print_graph == 1:
-            file = QFileDialog.getSaveFileName(self, 'Save File')
-            self.ax.figure.savefig(file[0] + ".png", bbox_inches='tight')
-        elif len(self.argv) > 0:
-            self.ax.figure.savefig(print_fn, bbox_inches='tight')
-            sys.exit()
-
-        self.m.draw()"""
-        # self.mainPlot.disableAutoRange()
 
         if not (len(self.plot_lines) > 0 and len(self.plot_lines) == nchns):
             # self.plotWidget.clear()
@@ -1514,12 +1322,8 @@ class MainPage(QMainWindow):
         if self.init == 0 and self.argv.show:
             self.throwAlert("Data has been plotted.")
 
-    def printVal(self):
-        print(self.sender().value())
-
     def filterChecked(self):
-        """
-        Function for when the filterbox is checked
+        """ Function for when the filterbox is checked
 
         sets self.filter_checked to the appropriate value, generates filteredData
         if needed and re-plots data with the correct type
@@ -1544,8 +1348,7 @@ class MainPage(QMainWindow):
             cbox.setChecked(False)
 
     def prep_filter_ws(self):
-        """
-        Does filtering for one window of size window_size
+        """ Does filtering for one window of size window_size
         """
         fs = self.edf_info.fs
         if len(self.filteredData) == 0 or self.filteredData.shape != self.ci.data_to_plot[:,self.count*fs:(self.count + self.window_size)*fs].shape:
@@ -1556,8 +1359,7 @@ class MainPage(QMainWindow):
         self.filteredData = filt_window_size
 
     def changeFilter(self):
-        """
-        Opens the FilterOptions window
+        """ Opens the FilterOptions window
         """
         if self.init == 1:
             self.filter_win_open = 1
@@ -1565,8 +1367,7 @@ class MainPage(QMainWindow):
             self.filter_ops.show()
 
     def changePredictions(self):
-        """
-        Take loaded model and data and compute predictions
+        """ Take loaded model and data and compute predictions
         """
         if self.init == 1:
             self.preds_win_open = 1
@@ -1574,8 +1375,7 @@ class MainPage(QMainWindow):
             self.pred_ops.show()
 
     def makeSpecPlot(self):
-        """
-        Creates the spectrogram plot.
+        """ Creates the spectrogram plot.
         """
         self.specPlot = self.plotLayout.addPlot(row=1, col=0)
         fs = self.edf_info.fs
@@ -1608,9 +1408,8 @@ class MainPage(QMainWindow):
         self.selectTimeRect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
 
     def specTimeSelectChanged(self):
-        """
-        Function called when the user changes the region that selects where in
-        time to compute the power spectrum
+        """ Function called when the user changes the region that selects where in
+            time to compute the power spectrum
         """
         fs = self.edf_info.fs
         bounds = self.selectTimeRect.getRegion()
@@ -1622,6 +1421,8 @@ class MainPage(QMainWindow):
         self.spec_plot_lines[0].setData(f,Pxx_den, clickable=False, pen=pen)
 
     def updateSpecChn(self):
+        """ Updates spectrogram plot. 
+        """
         self.mainPlot.removeItem(self.selectTimeRect)
         redBrush = QBrush(QColor(217, 43, 24,50))
         nchns = self.ci.nchns_to_plot
@@ -1633,16 +1434,14 @@ class MainPage(QMainWindow):
         self.selectTimeRect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
 
     def removeSpecPlot(self):
-        """
-        Removes the spectrogram plot.
+        """ Removes the spectrogram plot.
         """
         self.plotLayout.removeItem(self.specPlot)
         # self.plotLayout.removeItem(self.hist)
         self.mainPlot.removeItem(self.selectTimeRect)
 
     def loadSpec(self):
-        """
-        Opens the SpecOptions window
+        """ Opens the SpecOptions window
         """
         if self.init == 1:
             if self.btnZoom.text() == "Close zoom":
@@ -1653,11 +1452,13 @@ class MainPage(QMainWindow):
                 self.spec_ops.show()
 
     def openStatWindow(self):
+        """ Opens the statistics window in the sidebar. 
+        """
         if self.btnOpenStats.text() == "Open signal stats":
             self.btnOpenStats.setText("Close signal stats")
             self.statsMainWidget.show()
             self.populateStatList()
-            self.ssi.chn = 0
+            self.ssi.chn = 1
             self.ssi.chn_items[self.ssi.chn].setSelected(True)
             self.createStatSelectTimeRect(self.ssi.chn)
             self.statChnClicked()
@@ -1667,6 +1468,7 @@ class MainPage(QMainWindow):
             self.statsMainWidget.hide()
             if self.btnOpenEditAnn.text() == "Open annotation editor":
                 self.populateAnnDock()
+                self.showAnnStatsDock()
 
     def populateStatList(self):
         """ Fill the stats window with channels.
@@ -1678,7 +1480,6 @@ class MainPage(QMainWindow):
         for i in range(1, len(chns)):
             self.ssi.chn_items.append(QListWidgetItem(chns[i], self.chn_qlist))
             self.chn_qlist.addItem(self.ssi.chn_items[i - 1])
-        # self.qscroll.show()
 
     def statChnClicked(self):
         """ When a channel is clicked.
@@ -1728,8 +1529,7 @@ class MainPage(QMainWindow):
         self.line_len_sel_lbl.setText(line_len_str)
 
     def throwAlert(self, msg):
-        """
-        Throws an alert to the user.
+        """ Throws an alert to the user.
         """
         alert = QMessageBox()
         alert.setIcon(QMessageBox.Information)
@@ -1738,16 +1538,6 @@ class MainPage(QMainWindow):
         alert.setWindowTitle("Warning")
         alert.exec_()
 
-
-class PlotCanvas(FigureCanvas):
-
-    def __init__(self, parent=None, width=5, height=4, dpi=100):
-        self.fig = Figure(figsize=(width, height), dpi=dpi,
-                          con_rained_layout=False)
-        self.gs = self.fig.add_gridspec(1, 1, wspace=0.0, hspace=0.0)
-
-        FigureCanvas.__init__(self, self.fig)
-        self.setParent(parent)
 
 class QHLine(QFrame):
     def __init__(self):
