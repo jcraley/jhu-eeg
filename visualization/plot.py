@@ -230,7 +230,7 @@ class MainPage(QMainWindow):
         self.grid_rt.addWidget(self.time_lbl, 7, 7)
 
         #---- Right side dock ----#
-        self.dockWidth = self.width * 0.22
+        self.dockWidth = self.width * 0.23
 
         # Annotation dock
         self.scroll = QDockWidget()
@@ -283,32 +283,173 @@ class MainPage(QMainWindow):
         self.statsDock.setTitleBarWidget(self.btnOpenStats)
         self.statsDock.setFixedWidth(self.dockWidth)
         
+        """
         self.gridLayout = QtWidgets.QGridLayout()
+        ud = 0
+        all_lbl = QtWidgets.QLabel(self)
+        all_lbl.setText("Total")
+        self.gridLayout.addWidget(all_lbl,ud,2,1,1)
+        region_lbl = QtWidgets.QLabel(self)
+        region_lbl.setText("Region")
+        self.gridLayout.addWidget(region_lbl,ud,3,1,1)
+        ud += 1
+        mean_l = QtWidgets.QLabel(self)
+        mean_l.setText("")
         self.mean_lbl = QtWidgets.QLabel(self)
-        self.mean_lbl.setText("Mean: ")
-        self.gridLayout.addWidget(self.mean_lbl, 0, 1, 1, 2)
+        self.mean_lbl.setText("")
+        self.gridLayout.addWidget(self.mean_lbl, ud, 1, 1, 2)
+        ud += 1
         self.var_lbl = QtWidgets.QLabel(self)
         self.var_lbl.setText("Var: ")
-        self.gridLayout.addWidget(self.var_lbl, 1, 1, 1, 2)
+        self.gridLayout.addWidget(self.var_lbl, ud, 1, 1, 2)
+        ud += 1
         self.line_len_lbl = QtWidgets.QLabel(self)
         self.line_len_lbl.setText("Line length: ")
-        self.gridLayout.addWidget(self.line_len_lbl, 2, 1, 1, 2)
+        self.gridLayout.addWidget(self.line_len_lbl, ud, 1, 1, 2)
+        ud += 1
+        self.mean_sel_lbl = QtWidgets.QLabel(self)
+        self.mean_sel_lbl.setText("Region mean: ")
+        self.gridLayout.addWidget(self.mean_sel_lbl, ud, 1, 1, 2)
+        ud += 1
+        self.var_sel_lbl = QtWidgets.QLabel(self)
+        self.var_sel_lbl.setText("Region var: ")
+        self.gridLayout.addWidget(self.var_sel_lbl, ud, 1, 1, 2)
+        ud += 1
+        self.line_len_sel_lbl = QtWidgets.QLabel(self)
+        self.line_len_sel_lbl.setText("Region line length: ")
+        self.gridLayout.addWidget(self.line_len_sel_lbl, ud, 1, 1, 2)
+        ud += 1
+        self.gridLayout.addWidget(QHLine(), ud, 1, 1, 2)
+        ud += 1
+        self.alpha_lbl = QtWidgets.QLabel(self)
+        self.alpha_lbl.setText("Alpha power: ")
+        self.gridLayout.addWidget(self.alpha_lbl, ud, 1, 1, 2)
+        ud += 1
+        self.beta_lbl = QtWidgets.QLabel(self)
+        self.beta_lbl.setText("Beta power: ")
+        self.gridLayout.addWidget(self.beta_lbl, ud, 1, 1, 2)
+        ud += 1
+        self.gamma_lbl = QtWidgets.QLabel(self)
+        self.gamma_lbl.setText("Gamma power: ")
+        self.gridLayout.addWidget(self.gamma_lbl, ud, 1, 1, 2)
+        ud += 1
+        self.delta_lbl = QtWidgets.QLabel(self)
+        self.delta_lbl.setText("Delta power: ")
+        self.gridLayout.addWidget(self.delta_lbl, ud, 1, 1, 2)
+        ud += 1
+        self.theta_lbl = QtWidgets.QLabel(self)
+        self.theta_lbl.setText("Theta power: ")
+        self.gridLayout.addWidget(self.theta_lbl, ud, 1, 1, 2)
+        ud += 1
         self.qscroll = QtWidgets.QScrollArea(self)
         self.qscroll.setWidgetResizable(True)
         self.qscroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.qscroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.chn_qlist = QListWidget()
         self.qscroll.setWidget(self.chn_qlist)
-        self.gridLayout.addWidget(self.qscroll, 0, 0, 6, 1)
+        self.gridLayout.addWidget(self.qscroll, 0, 0, ud, 1)
+        """
+        ### playing with UI ####
+        self.gridLayout = QtWidgets.QGridLayout()
+        ud = 0
+        all_lbl = QtWidgets.QLabel(self)
+        all_lbl.setText("Overall")
+        self.gridLayout.addWidget(all_lbl,ud,2,1,1)
+        region_lbl = QtWidgets.QLabel(self)
+        region_lbl.setText("Region")
+        self.gridLayout.addWidget(region_lbl,ud,3,1,1)
+        ud += 1
+        mean_l = QtWidgets.QLabel(self)
+        mean_l.setText("Mean:")
+        self.gridLayout.addWidget(mean_l, ud, 1, 1, 1)
+        self.mean_lbl = QtWidgets.QLabel(self)
+        self.mean_lbl.setText("")
+        self.gridLayout.addWidget(self.mean_lbl, ud, 2, 1, 1)
         self.mean_sel_lbl = QtWidgets.QLabel(self)
-        self.mean_sel_lbl.setText("Region mean: ")
-        self.gridLayout.addWidget(self.mean_sel_lbl, 3, 1, 1, 2)
+        self.mean_sel_lbl.setText("")
+        self.gridLayout.addWidget(self.mean_sel_lbl, ud, 3, 1, 1)
+        ud += 1
+        var_l = QtWidgets.QLabel(self)
+        var_l.setText("Var:")
+        self.gridLayout.addWidget(var_l, ud, 1, 1, 1)
+        self.var_lbl = QtWidgets.QLabel(self)
+        self.var_lbl.setText("")
+        self.gridLayout.addWidget(self.var_lbl, ud, 2, 1, 1)
         self.var_sel_lbl = QtWidgets.QLabel(self)
-        self.var_sel_lbl.setText("Region var: ")
-        self.gridLayout.addWidget(self.var_sel_lbl, 4, 1, 1, 2)
+        self.var_sel_lbl.setText("")
+        self.gridLayout.addWidget(self.var_sel_lbl, ud, 3, 1, 2)
+        ud += 1
+        line_len_l = QtWidgets.QLabel(self)
+        line_len_l.setText("Line\nlength:")
+        self.gridLayout.addWidget(line_len_l, ud, 1, 1, 1)
+        self.line_len_lbl = QtWidgets.QLabel(self)
+        self.line_len_lbl.setText("")
+        self.gridLayout.addWidget(self.line_len_lbl, ud, 2, 1, 1)
         self.line_len_sel_lbl = QtWidgets.QLabel(self)
-        self.line_len_sel_lbl.setText("Region line length: ")
-        self.gridLayout.addWidget(self.line_len_sel_lbl, 5, 1, 1, 2)
+        self.line_len_sel_lbl.setText("")
+        self.gridLayout.addWidget(self.line_len_sel_lbl, ud, 3, 1, 1)
+        ud += 1
+        self.gridLayout.addWidget(QHLine(), ud, 1, 1, 3)
+        ud += 1
+        alpha_l = QtWidgets.QLabel(self)
+        alpha_l.setText("Alpha:")
+        self.gridLayout.addWidget(alpha_l, ud, 1, 1,1)
+        self.alpha_lbl = QtWidgets.QLabel(self)
+        self.alpha_lbl.setText("")
+        self.gridLayout.addWidget(self.alpha_lbl, ud, 2, 1, 1)
+        self.alpha_sel_lbl = QtWidgets.QLabel(self)
+        self.alpha_sel_lbl.setText("")
+        self.gridLayout.addWidget(self.alpha_sel_lbl, ud, 3, 1, 1)
+        ud += 1
+        beta_l = QtWidgets.QLabel(self)
+        beta_l.setText("Beta:")
+        self.gridLayout.addWidget(beta_l, ud, 1, 1, 1)
+        self.beta_lbl = QtWidgets.QLabel(self)
+        self.beta_lbl.setText("")
+        self.gridLayout.addWidget(self.beta_lbl, ud, 2, 1, 1)
+        self.beta_sel_lbl = QtWidgets.QLabel(self)
+        self.beta_sel_lbl.setText("")
+        self.gridLayout.addWidget(self.beta_sel_lbl, ud, 3, 1, 2)
+        ud += 1
+        gamma_l = QtWidgets.QLabel(self)
+        gamma_l.setText("Gamma:")
+        self.gridLayout.addWidget(gamma_l, ud, 1, 1, 1)
+        self.gamma_lbl = QtWidgets.QLabel(self)
+        self.gamma_lbl.setText("")
+        self.gridLayout.addWidget(self.gamma_lbl, ud, 2, 1, 1)
+        self.gamma_sel_lbl = QtWidgets.QLabel(self)
+        self.gamma_sel_lbl.setText("")
+        self.gridLayout.addWidget(self.gamma_sel_lbl, ud, 3, 1, 1)
+        ud += 1
+        delta_l = QtWidgets.QLabel(self)
+        delta_l.setText("Delta:")
+        self.gridLayout.addWidget(delta_l, ud, 1, 1, 1)
+        self.delta_lbl = QtWidgets.QLabel(self)
+        self.delta_lbl.setText("")
+        self.gridLayout.addWidget(self.delta_lbl, ud, 2, 1, 1)
+        self.delta_sel_lbl = QtWidgets.QLabel(self)
+        self.delta_sel_lbl.setText("")
+        self.gridLayout.addWidget(self.delta_sel_lbl, ud, 3, 1, 1)
+        ud += 1
+        theta_l = QtWidgets.QLabel(self)
+        theta_l.setText("Theta:")
+        self.gridLayout.addWidget(theta_l, ud, 1, 1, 1)
+        self.theta_lbl = QtWidgets.QLabel(self)
+        self.theta_lbl.setText("")
+        self.gridLayout.addWidget(self.theta_lbl, ud, 2, 1, 1)
+        self.theta_sel_lbl = QtWidgets.QLabel(self)
+        self.theta_sel_lbl.setText("")
+        self.gridLayout.addWidget(self.theta_sel_lbl, ud, 3, 1, 1)
+        ud += 1
+        self.qscroll = QtWidgets.QScrollArea(self)
+        self.qscroll.setWidgetResizable(True)
+        self.qscroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.qscroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.chn_qlist = QListWidget()
+        self.qscroll.setWidget(self.chn_qlist)
+        self.gridLayout.addWidget(self.qscroll, 0, 0, ud, 1)
+
+        ### end playing with UI ####
         
         self.statsMainWidget = QWidget()
         self.statsMainWidget.setLayout(self.gridLayout)
@@ -387,7 +528,6 @@ class MainPage(QMainWindow):
         self.btnAnnCreate.clicked.connect(self.annEditorCreate)
         self.btnOpenStats.clicked.connect(self.openStatWindow)
         self.chn_qlist.itemClicked.connect(self.statChnClicked)
-
 
 
     def init_values(self):
@@ -1458,8 +1598,9 @@ class MainPage(QMainWindow):
             self.btnOpenStats.setText("Close signal stats")
             self.statsMainWidget.show()
             self.populateStatList()
-            self.ssi.chn = 1
-            self.ssi.chn_items[self.ssi.chn].setSelected(True)
+            self.chn_qlist.setCurrentRow(0)
+            self.ssi.chn = 0
+            self.ssi.fs = self.edf_info.fs
             self.createStatSelectTimeRect(self.ssi.chn)
             self.statChnClicked()
         else:
@@ -1487,15 +1628,17 @@ class MainPage(QMainWindow):
         self.removeStatSelectTimeRect()
         self.ssi.chn = self.chn_qlist.currentRow()
         self.createStatSelectTimeRect(self.ssi.chn)
-        mean_str = self.ci.data_to_plot[self.ssi.chn,:].mean()
-        mean_str = "Mean: " + "{:.2f}".format(mean_str)
+        mean_str, var_str, line_len_str = self.get_stats(0,self.max_time * self.edf_info.fs)
+
+        mean_str = "" + "{:.2f}".format(mean_str)
         self.mean_lbl.setText(mean_str)
-        var_str = self.ci.data_to_plot[self.ssi.chn,:].var()
-        var_str = "Var: " + "{:.2f}".format(var_str)
+
+        var_str = "" + "{:.2f}".format(var_str)
         self.var_lbl.setText(var_str)
-        line_len_str = np.sqrt(np.sum(np.diff(self.ci.data_to_plot[self.ssi.chn,:]) ** 2 + 1))
-        line_len_str = "Line Length: " + "{:.2f}".format(line_len_str)
+
+        line_len_str = "" + "{:.2f}".format(line_len_str)
         self.line_len_lbl.setText(line_len_str)
+        self.set_fs_band_lbls()
 
     def createStatSelectTimeRect(self, chn):
         """ Create the rectangle selector item.
@@ -1518,15 +1661,87 @@ class MainPage(QMainWindow):
         """
         bounds = self.statSelectTimeRect.getRegion()
         bounds = bounds + self.count * self.edf_info.fs
-        mean_str = self.ci.data_to_plot[self.ssi.chn,int(bounds[0]):int(bounds[1])].mean()
-        mean_str = "Region mean: " + "{:.2f}".format(mean_str)
+        mean_str, var_str, line_len_str = self.get_stats(int(bounds[0]), int(bounds[1]))
+        mean_str = "" + "{:.2f}".format(mean_str)
         self.mean_sel_lbl.setText(mean_str)
-        var_str = self.ci.data_to_plot[self.ssi.chn,int(bounds[0]):int(bounds[1])].var()
-        var_str = "Region var: " + "{:.2f}".format(var_str)
+        var_str = "" + "{:.2f}".format(var_str)
         self.var_sel_lbl.setText(var_str)
-        line_len_str = np.sqrt(np.sum(np.diff(self.ci.data_to_plot[self.ssi.chn,int(bounds[0]):int(bounds[1])]) ** 2 + 1))
-        line_len_str = "Region var: " + "{:.2f}".format(line_len_str)
+        line_len_str = "" + "{:.2f}".format(line_len_str)
         self.line_len_sel_lbl.setText(line_len_str)
+
+        alpha, beta, theta, gamma, delta = self.get_power_band_stats(int(bounds[0]), int(bounds[1]))
+        alpha_str = "" + "{:.2e}".format(alpha)
+        self.alpha_sel_lbl.setText(alpha_str)
+        beta_str = "" + "{:.2e}".format(beta)
+        self.beta_sel_lbl.setText(beta_str)
+        theta_str = "" + "{:.2e}".format(theta)
+        self.theta_sel_lbl.setText(theta_str)
+        gamma_str = "" + "{:.2e}".format(gamma)
+        self.gamma_sel_lbl.setText(gamma_str)
+        delta_str = "" + "{:.2e}".format(delta)
+        self.delta_sel_lbl.setText(delta_str)
+
+    def get_stats(self, s, f):
+        """ Get mean, var, and line length.
+
+        Args:
+            chn: the channel to compute stats
+            s: start time in samples
+            f: end time in samples
+        Returns:
+            The mean
+            var
+            line length (for the part of the signal specified)
+        """
+
+        if self.filter_checked == 1:
+            self.prep_filter_ws()
+            mean_str = self.filteredData[self.ssi.chn,s:f].mean()
+            var_str = self.filteredData[self.ssi.chn,s:f].var()
+            line_len_str = np.sqrt(np.sum(np.diff(self.filteredData[self.ssi.chn,s:f]) ** 2 + 1))
+        else:
+            mean_str = self.ci.data_to_plot[self.ssi.chn,s:f].mean()
+            var_str = self.ci.data_to_plot[self.ssi.chn,s:f].var()
+            line_len_str = np.sqrt(np.sum(np.diff(self.ci.data_to_plot[self.ssi.chn,s:f]) ** 2 + 1))
+        
+        return mean_str, var_str, line_len_str
+
+    def get_power_band_stats(self, s, f):
+        """ Get power band stats
+
+        Args:
+            chn: the channel to compute stats
+            s: start time in samples
+            f: end time in samples
+        Returns:
+            alpha, beta, gamma, theta, delta 
+            (for the part of the signal specified)
+        """
+        if self.filter_checked == 1:
+            self.prep_filter_ws()
+            data = self.filteredData
+        else:
+            data = self.ci.data_to_plot[self.ssi.chn,:]
+        alpha, beta, theta, gamma, delta = self.ssi.get_power(data, s, f)
+        return alpha, beta, theta, gamma, delta        
+
+
+    def set_fs_band_lbls(self):
+        """ Sets alpha, beta, gamma, delta, theta lbls for stats.
+        """
+        alpha, beta, theta, gamma, delta = self.get_power_band_stats(0, self.max_time * self.edf_info.fs)
+        alpha_str = "" + "{:.2e}".format(alpha)
+        self.alpha_lbl.setText(alpha_str)
+        beta_str = "" + "{:.2e}".format(beta)
+        self.beta_lbl.setText(beta_str)
+        theta_str = "" + "{:.2e}".format(theta)
+        self.theta_lbl.setText(theta_str)
+        gamma_str = "" + "{:.2e}".format(gamma)
+        self.gamma_lbl.setText(gamma_str)
+        delta_str = "" + "{:.2e}".format(delta)
+        self.delta_lbl.setText(delta_str)
+
+
 
     def throwAlert(self, msg):
         """ Throws an alert to the user.
