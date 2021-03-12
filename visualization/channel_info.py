@@ -1,4 +1,5 @@
 import numpy as np
+import pyedflib
 
 def _check_label(label, label_list):
     """
@@ -57,6 +58,7 @@ class ChannelInfo():
         self.labels2chns = []
         self.fs = 0
         self.max_time = 0
+        self.edf_fn = ""
 
         self.total_nchns = 0
         self.list_of_chns = []
@@ -66,14 +68,16 @@ class ChannelInfo():
                               "F8-T8","FP2-F8","P7-O1","T7-P7","F7-T7","FP1-F7"]
         self.labelsAR1020 = ["O2","O1","PZ","CZ","FZ","P8","P7","T8","T7","F8",
                              "F7","P4","P3","C4","C3","F4","F3","FP2","FP1"]
-        """self.labelsBIP1010 = ["P10-O2","T10-P10","F10-T10","FP2-F10","P8-O2",
+        """
+        self.labelsBIP1010 = ["P10-O2","T10-P10","F10-T10","FP2-F10","P8-O2",
                                "T8-P8","F8-T8","FP2-F8","P4-O2","C4-P4","F4-C4",
                                "Fp2-F4","PZ-OZ","CZ-PZ","FZ-CZ","FPZ-FZ",
                                "P3-O1","C3-P3","F3-C3","FP1-F3","P7-O1","T7-P7",
                                "F7-T7","FP1-F7","P9-O1","T9-P9","F9-T9","FP1-F9"]
         self.labelsAR1010 = ["P10","T10","F10","O2","P8","T8","F8","FP2","P4",
                              "C4","F4","OZ","PZ","CZ","FZ","FPZ","P3","C3","F3",
-                             "O1","P7","T7","F7","FP1","P9","T9","F9"]"""
+                             "O1","P7","T7","F7","FP1","P9","T9","F9"]
+        """
         self.labelsBIP1010 = ["F10-T10","FP2-F10","P8-O2","T8-P8","F8-T8",
                               "FP2-F8","P4-O2","C4-P4","F4-C4","Fp2-F4","CZ-PZ",
                               "FZ-CZ","P3-O1","C3-P3","F3-C3","FP1-F3","P7-O1",
@@ -93,12 +97,14 @@ class ChannelInfo():
                             'b','b','b','r','r','r','r','r']
         self.colorsAR1020 = ['b','r',self.g, self.g, self.g,'b','r','b','r','b',
                             'r','b','r','b','r','b','r','b','r','b']
-        """self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b','b','b',
+        """
+        self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b','b','b',
                                 self.g,self.g,self.g,self.g,'r','r','r','r','r',
                                 'r','r','r','r','r','r','r']
         self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b','b',
                                 self.g,self.g,self.g,self.g,self.g'r','r','r',
-                                'r','r','r','r','r','r','r','r']"""
+                                'r','r','r','r','r','r','r','r']
+        """
         self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b',self.g,
                                self.g,'r','r','r','r','r','r','r','r','r','r']
         self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b',self.g,
@@ -127,6 +133,7 @@ class ChannelInfo():
         self.labels2chns = ci2.labels2chns
         self.fs = ci2.fs
         self.max_time = ci2.max_time
+        self.edf_fn = ci2.edf_fn
 
         self.labelsFromTxtFile = ci2.labelsFromTxtFile
         self.use_loaded_txt_file = ci2.use_loaded_txt_file
@@ -263,14 +270,13 @@ class ChannelInfo():
                             ret[i] = 0
         return ret
 
-    def prepareToPlot(self, idxs, data, parent, mont_type, plot_bip_from_ar = 0):
+    def prepareToPlot(self, idxs, parent, mont_type, plot_bip_from_ar = 0):
         """
         Prepares everything needed to plot the data.
 
         inputs:
             idxs - the list of the indices of the channels to be plotted,
                 list is 1 where the chn is selected, otherwise 0
-            data - the data for each channel
             parent - the main window, so that if needed self.predicted can
                 be set to false
             mont_type - what montage is selected (0 = ar1020, 1 = bip1020, 2 = ar1010,
@@ -278,6 +284,9 @@ class ChannelInfo():
             plot_bip_from_ar - 1 if a bipolar montage should be generated
                 from average reference data
         """
+        print(self.edf_fn)
+        f = pyedflib.EdfReader(self.edf_fn)
+
         # Things needed to plot - reset each time
         # see if channels are already loaded and ordered
         ret = 1
@@ -318,9 +327,9 @@ class ChannelInfo():
         ar1010 = 0
         bip1010 = 0
         self.nchns_to_plot = len(idxs)
-        self.data_to_plot = np.zeros((self.nchns_to_plot, data.shape[1]))
+        self.data_to_plot = np.zeros((self.nchns_to_plot, parent.edf_info_temp.nsamples[0])) # np.zeros((self.nchns_to_plot, data.shape[1]))
         if plot_bip_from_ar and self.canDoBIP_AR_idx(idxs,1,0):
-            self.data_to_plot = np.zeros((self.nchns_to_plot - 1, data.shape[1]))
+            self.data_to_plot = np.zeros((self.nchns_to_plot - 1, parent.edf_info_temp.nsamples[0])) # np.zeros((self.nchns_to_plot - 1, data.shape[1]))
         c = 0
 
         if plot_bip_from_ar:
@@ -331,17 +340,17 @@ class ChannelInfo():
                     for k in range(18):
                         str0 = self.labelsBIP1020[k].split('-')[0]
                         str1 = self.labelsBIP1020[k].split('-')[1]
-                        for i, str in enumerate(self.convertedChnNames):
-                            if str == str0:
+                        for i, strg in enumerate(self.convertedChnNames):
+                            if strg == str0:
                                 idx0 = i
-                            if str == str1:
+                            if strg == str1:
                                 idx1 = i
                         bip_idx[k,0] = idx0
                         bip_idx[k,1] = idx1
                     for k in range(18):
                         idx0 = bip_idx[k,0]
                         idx1 = bip_idx[k,1]
-                        self.data_to_plot[k,:] = data[int(idx0),:] - data[int(idx1),:]
+                        self.data_to_plot[k,:] = f.readSignal(int(idx0)) - f.readSignal(int(idx1)) #data[int(idx0),:] - data[int(idx1),:]
                         self.labels_to_plot.append(self.labelsBIP1020[k])
                         self.colors.append(self.colorsBIP1020[k])
                         c += 1
@@ -363,17 +372,17 @@ class ChannelInfo():
                     for k in range(len(self.labelsBIP1010)):
                         str0 = self.labelsBIP1010[k].split('-')[0]
                         str1 = self.labelsBIP1010[k].split('-')[1]
-                        for i, str in enumerate(self.convertedChnNames):
-                            if str == str0:
+                        for i, strg in enumerate(self.convertedChnNames):
+                            if strg == str0:
                                 idx0 = i
-                            if str == str1:
+                            if strg == str1:
                                 idx1 = i
                         bip_idx[k,0] = idx0
                         bip_idx[k,1] = idx1
                     for k in range(len(self.labelsBIP1010)):
                         idx0 = bip_idx[k,0]
                         idx1 = bip_idx[k,1]
-                        self.data_to_plot[k,:] = data[int(idx0),:] - data[int(idx1),:]
+                        self.data_to_plot[k,:] = f.readSignal(int(idx0)) - f.readSignal(int(idx1)) # data[int(idx0),:] - data[int(idx1),:]
                         self.labels_to_plot.append(self.labelsBIP1010[k])
                         self.colors.append(self.colorsBIP1010[k])
                         c += 1
@@ -454,7 +463,7 @@ class ChannelInfo():
                     if self.convertedChnNames[idxs[k]] == labels[i]:
                         self.labels_to_plot.append(labels[i])
                         self.colors.append(colors[i])
-                        self.data_to_plot[c,:] = data[idxs[k],:]
+                        self.data_to_plot[c,:] = f.readSignal(idxs[k]) # data[idxs[k],:]
                         c += 1
                         idxs.pop(k)
                         k = len(idxs)
@@ -473,5 +482,5 @@ class ChannelInfo():
                     self.colors.insert(0,self.otherColors[i])
                 else:
                     self.colors.insert(0,self.g)
-                self.data_to_plot[c,:] = data[idxs[k],:]
+                self.data_to_plot[c,:] = f.readSignal(idxs[k]) # data[idxs[k],:]
                 c -= 1

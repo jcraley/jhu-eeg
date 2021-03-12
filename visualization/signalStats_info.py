@@ -33,6 +33,9 @@ class SignalStatsInfo():
         if hp > 0:
             filt_bufs = dsp.applyHighPass(filt_bufs, self.fs, hp)
 
+        if lp == 0 and hp == 0:
+            return 0
+        
         return np.sum( np.abs( filt_bufs ) ** 2 )
     
     def get_power(self, sig, s, f):

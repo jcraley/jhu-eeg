@@ -10,19 +10,21 @@ from preds_info import PredsInfo
 from channel_info import ChannelInfo
 from organize_channels import OrganizeChannels
 from copy import deepcopy
+import pyedflib
 
 class ChannelOptions(QWidget):
-    def __init__(self,data,parent,data_for_preds = []):
+    def __init__(self,data,parent):
         super().__init__()
         self.left = 10
         self.top = 10
         self.title = 'Select signals'
         self.width = parent.width / 5
         self.height = parent.height / 2.5
-        self.unprocessed_data = data_for_preds
+        # self.unprocessed_data = data_for_preds
         # if loading new data make copies in case user cancels loading channels
         self.new_load = 0
-        if len(self.unprocessed_data) != 0:
+        # if len(self.unprocessed_data) != 0:
+        if data.edf_fn != parent.ci.edf_fn:
             self.pi = PredsInfo()
             self.new_load = 1
         else:
@@ -59,7 +61,8 @@ class ChannelOptions(QWidget):
         self.data.total_nchns = len(self.data.chns2labels)
 
         self.setWindowTitle(self.title)
-        self.setGeometry(self.parent.width / 3, self.parent.height / 3, self.width, self.height)
+        self.setGeometry(self.parent.width / 3, self.parent.height / 3, 
+                                self.width, self.height)
 
         lblInfo = QLabel("Select channels to plot: ")
         grid_lt.addWidget(lblInfo,0,0)
@@ -142,8 +145,9 @@ class ChannelOptions(QWidget):
         chns = self.data.chns2labels
         lbls = self.data.labels2chns
         self.data.pred_chn_data = []
-        if len(self.unprocessed_data) > 0: # reset predicted
-            self.parent.predicted = 0
+        f = pyedflib.EdfReader(self.data.edf_fn)
+        # if len(self.unprocessed_data) > 0: # reset predicted
+        #    self.parent.predicted = 0
         if len(chns) == 0:
             self.parent.throwAlert("There are no named channels in the file.")
             self.closeWindow()
@@ -152,15 +156,19 @@ class ChannelOptions(QWidget):
             for i in range(len(chns)):
                 if chns[i].find("PREDICTIONS") == -1:
                     self.chn_items.append(QListWidgetItem(chns[i], self.chn_qlist))
-                    #self.chn_items[i].setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-                    #self.chn_items[i].setCheckState(Qt.Unchecked)
                     self.chn_qlist.addItem(self.chn_items[i])
-                elif len(self.unprocessed_data) > 0:
-                    self.data.pred_chn_data.append(self.unprocessed_data[i])
+                # elif len(self.unprocessed_data) > 0:
+                # load in the prediction channels if they exist
+                # if they do, then the file was saved which
+                # means that there are a reasonable amount of channels
+                elif self.new_load:
+                    # self.data.pred_chn_data.append(self.unprocessed_data[i])
+                    self.data.pred_chn_data.append(f.readSignal(i))
                     lbls.pop(chns[i])
                     chns.pop(i)
 
-            if len(self.unprocessed_data) > 0 and len(self.data.pred_chn_data) != 0:
+            # if len(self.unprocessed_data) > 0 and len(self.data.pred_chn_data) != 0:
+            if self.new_load and len(self.data.pred_chn_data) != 0:
                 self.data.pred_chn_data = np.array(self.data.pred_chn_data)
                 self.data.pred_chn_data = self.data.pred_chn_data.T
                 if self.data.pred_chn_data.shape[1] > 1:
@@ -176,7 +184,8 @@ class ChannelOptions(QWidget):
                     self.pi.pred_width = (self.data.fs * self.data.max_time) / self.pi.preds.shape[0]
                     self.parent.predicted = 1
 
-            if len(self.data.list_of_chns) != 0:
+            # select the previously selected channels if they exist
+            if len(self.data.list_of_chns) != 0 and not self.new_load:
                 for k in range(len(self.data.list_of_chns)):
                     self.chn_items[self.data.list_of_chns[k]].setSelected(True)
             self.scroll.show()
@@ -376,13 +385,14 @@ class ChannelOptions(QWidget):
             - parent.count (set to 0 if new load)
         """
         self.parent.edf_info = self.parent.edf_info_temp
-        self.parent.data = self.parent.data_temp
+        # self.parent.data = self.parent.data_temp
         self.parent.max_time = self.parent.max_time_temp
         self.parent.pi.write_data(self.pi)
         self.parent.ci.write_data(self.data)
         self.data = self.parent.ci
         self.parent.sei.fn = self.parent.fn_full_temp
-        if len(self.unprocessed_data) > 0: # new load
+        # if len(self.unprocessed_data) > 0: # new load
+        if self.new_load:
             self.parent.count = 0
             self.parent.lblFn.setText("Plotting: " + self.parent.fn_temp)
 
@@ -407,10 +417,15 @@ class ChannelOptions(QWidget):
         """
         selectedListItems = self.chn_qlist.selectedItems()
         idxs = []
+        num_chns = 0
         for k in range(len(self.chn_items)):
             if self.chn_items[k] in selectedListItems:
-            # if self.chn_items[k].checkState():
                 idxs.append(self.data.labels2chns[self.data.chns2labels[k]])
+        if len(idxs) > self.parent.max_channels:
+            self.parent.throwAlert("You may select at most " + 
+                                    str(self.parent.max_channels) + " to plot. " + 
+                                    "You have selected " + str(len(idxs)) + ".")
+            return -1
         if len(idxs) == 0:
             self.parent.throwAlert("Please select channels to plot.")
             return -1
@@ -421,7 +436,7 @@ class ChannelOptions(QWidget):
                 if self.parent.si.plotSpec:
                     self.parent.si.plotSpec = 0
                     self.parent.removeSpecPlot()
-            data = self.parent.data
+            # data = self.parent.data
             plot_bip_from_ar = 0
             if (self.ar1020 and self.cbox_bip.isChecked() or
                     self.ar1010 and self.cbox_bip1010.isChecked()):
@@ -437,7 +452,7 @@ class ChannelOptions(QWidget):
                 mont_type = 3
             elif self.cbox_txtfile.isChecked():
                 mont_type = 4
-            self.data.prepareToPlot(idxs, data, self.parent, mont_type, plot_bip_from_ar)
+            self.data.prepareToPlot(idxs, self.parent, mont_type, plot_bip_from_ar)
         return 0
 
     def okayPressed(self):

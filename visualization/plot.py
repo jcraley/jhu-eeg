@@ -529,7 +529,6 @@ class MainPage(QMainWindow):
         self.btnOpenStats.clicked.connect(self.openStatWindow)
         self.chn_qlist.itemClicked.connect(self.statChnClicked)
 
-
     def init_values(self):
         """ Set some initial values and create Info objects. 
         """
@@ -539,6 +538,7 @@ class MainPage(QMainWindow):
         self.filter_checked = 0  # whether or not to plot filtered data
         self.ylim = [150, 100]  # ylim for unfiltered and filtered data
         self.predicted = 0  # whether or not predictions have been made
+        self.max_channels = 30 # maximum channels you can plot at once
         self.filter_win_open = 0  # whether or not filter options window is open
         self.preds_win_open = 0  # whether or not the predictions window is open
         self.chn_win_open = 0  # whether or not the channel selection window is open
@@ -554,7 +554,6 @@ class MainPage(QMainWindow):
         self.sii = SaveImgInfo() # holds info to save the img
         self.sei = SaveEdfInfo() # holds header for edf saving
         self.ssi = SignalStatsInfo() # holds info for stats window
-
 
     def closeEvent(self, event):
         """ Called when the main window is closed to act as a destructor and close
@@ -1076,7 +1075,6 @@ class MainPage(QMainWindow):
                 if self.argv.show == 0:
                     sys.exit()
 
-
     def load_data(self, name=""):
         """
         Function to load in the data
@@ -1091,6 +1089,7 @@ class MainPage(QMainWindow):
         if name == None or len(name) == 0:
             return
         else:
+            self.edf_file_name_temp = name
             loader = EdfLoader()
             try:
                 self.edf_info_temp = loader.load_metadata(name)
@@ -1100,23 +1099,24 @@ class MainPage(QMainWindow):
             self.edf_info_temp.annotations = np.array(
                 self.edf_info_temp.annotations)
 
-            edf_montages = EdfMontage(self.edf_info_temp)
+            # edf_montages = EdfMontage(self.edf_info_temp)
             # fs_idx = edf_montages.getIndexForFs(self.edf_info_temp.labels2chns)
 
-            self.data_temp = loader.load_buffers(self.edf_info_temp)
-            data_for_preds = self.data_temp
-            self.edf_info_temp.fs, self.data_temp = loadSignals(
-                self.data_temp, self.edf_info_temp.fs)
+            # self.data_temp = loader.load_buffers(self.edf_info_temp)
+            # data_for_preds = self.data_temp
+            # self.edf_info_temp.fs, self.data_temp = loadSignals(
+            #    self.data_temp, self.edf_info_temp.fs)
 
             # setting temporary variables that will be overwritten if
             # the user selects signals to plot
             self.max_time_temp = int(
-                self.data_temp.shape[1] / self.edf_info_temp.fs)
+                self.edf_info_temp.nsamples[0] / self.edf_info_temp.fs)
             self.ci_temp = ChannelInfo()  # holds channel information
             self.ci_temp.chns2labels = self.edf_info_temp.chns2labels
             self.ci_temp.labels2chns = self.edf_info_temp.labels2chns
             self.ci_temp.fs = self.edf_info_temp.fs
             self.ci_temp.max_time = self.max_time_temp
+            self.ci_temp.edf_fn = name
             self.fn_full_temp = name
             if len(name.split('/')[-1]) < 40:
                 self.fn_temp = name.split('/')[-1]
@@ -1124,7 +1124,7 @@ class MainPage(QMainWindow):
                 self.fn_temp = name.split('/')[-1][0:37] + "..."
 
             self.chn_win_open = 1
-            self.chn_ops = ChannelOptions(self.ci_temp, self, data_for_preds)
+            self.chn_ops = ChannelOptions(self.ci_temp, self)
             if self.argv.show and self.argv.montage_file is None:
                 self.chn_ops.show()
 
@@ -1249,7 +1249,7 @@ class MainPage(QMainWindow):
 
         if right == 0 and self.count - num_move >= 0:
             self.count = self.count - num_move
-        elif right == 1 and self.count + num_move + self.window_size <= self.data.shape[1] / fs:
+        elif right == 1 and self.count + num_move + self.window_size <= self.ci.data_to_plot.shape[1] / fs:#self.data.shape[1] / fs:
             self.count = self.count + num_move
         self.slider.setValue(self.count)
         t = getTime(self.count)
@@ -1696,6 +1696,7 @@ class MainPage(QMainWindow):
 
         if self.filter_checked == 1:
             self.prep_filter_ws()
+            array_sum = np.sum(self.filteredData)
             mean_str = self.filteredData[self.ssi.chn,s:f].mean()
             var_str = self.filteredData[self.ssi.chn,s:f].var()
             line_len_str = np.sqrt(np.sum(np.diff(self.filteredData[self.ssi.chn,s:f]) ** 2 + 1))
@@ -1725,7 +1726,6 @@ class MainPage(QMainWindow):
         alpha, beta, theta, gamma, delta = self.ssi.get_power(data, s, f)
         return alpha, beta, theta, gamma, delta        
 
-
     def set_fs_band_lbls(self):
         """ Sets alpha, beta, gamma, delta, theta lbls for stats.
         """
@@ -1740,8 +1740,6 @@ class MainPage(QMainWindow):
         self.gamma_lbl.setText(gamma_str)
         delta_str = "" + "{:.2e}".format(delta)
         self.delta_lbl.setText(delta_str)
-
-
 
     def throwAlert(self, msg):
         """ Throws an alert to the user.

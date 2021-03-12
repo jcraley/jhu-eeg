@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt
 
 from PyQt5.QtWidgets import (QFileDialog, QVBoxLayout, QMessageBox, QWidget,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
-                                QSlider, QGridLayout, QSpinBox)
+                                QSlider, QGridLayout, QSpinBox, QFrame)
 
 from matplotlib.backends.qt_compat import QtWidgets
 
@@ -13,7 +13,7 @@ class PredictionOptions(QWidget):
         self.top = 10
         self.title = 'Prediction Options'
         self.width = parent.width / 3
-        self.height = parent.height / 4
+        self.height = parent.height / 3
         self.data = pi
         self.parent = parent
         self.nchns = self.parent.ci.nchns_to_plot
@@ -28,70 +28,87 @@ class PredictionOptions(QWidget):
         centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
         self.setGeometry(centerPoint.x() - self.width / 2, centerPoint.y() - self.height / 2, self.width, self.height)
 
-        btnExit = QPushButton('Ok', self)
-        btnExit.clicked.connect(self.check)
-        layout.addWidget(btnExit,3,3)
+        info_lbl = QLabel(self)
+        info_lbl.setText("Loading predictions:" +
+                        "\n" + 
+                        "\n - Must be pytorch (.pt) files" +
+                        "\n - Can load either predictions OR preprocessed data and a model" +
+                        "\n - Output is expected to be of length (k * number of samples in the edf file)" +
+                        "\n - Output will be assumed to be for non-overlapping intervals of constant width" + 
+                        "\n - Channel-wise predictions will be plotted starting from the top of the screen")
+        layout.addWidget(info_lbl, 0, 0, 1, 4)
+
+        layout.addWidget(QLabel(), 1, 0, 1, 4)
+
+        layout.addWidget(QHLine(), 2, 0, 1, 4)
+
+        layout.addWidget(QLabel(), 3, 0, 1, 4)
+        ud = 4
+
 
         self.cbox_preds = QCheckBox("Plot predictions from file",self)
 
         self.cbox_model = QCheckBox("Plot model predictions",self)
         self.cbox_model.toggled.connect(self.model_filterChecked)
         self.cbox_model.setToolTip("Click to plot model predictions")
-        #model_preds_valid = 0
-        #if self.data.plot_model_preds == 1:
-        #    model_preds_valid = self.data.check_preds_shape(self.data.model_preds, 1,
-        #                        self.parent.max_time, self.parent.edf_info.fs, self.nchns)
         if self.data.plot_model_preds == 1:
             self.cbox_model.setChecked(True)
         elif self.data.plot_model_preds == 1:
             self.cbox_model.setChecked(False)
             self.data.plot_model_preds = 0
 
-        layout.addWidget(self.cbox_model,0,0)
+        layout.addWidget(self.cbox_model,ud,0)
 
         buttonLoadPtFile = QPushButton("Load preprocessed data",self)
         buttonLoadPtFile.clicked.connect(self.loadPtData)
         buttonLoadPtFile.setToolTip("Click to load preprocessed data (as a torch tensor)")
-        layout.addWidget(buttonLoadPtFile,0,1)
+        layout.addWidget(buttonLoadPtFile,ud,1)
 
         self.labelLoadPtFile = QLabel("No data loaded.",self)
         if self.data.data_loaded == 1:
             self.labelLoadPtFile.setText(self.data.data_fn)
-        layout.addWidget(self.labelLoadPtFile,0,2)
+        layout.addWidget(self.labelLoadPtFile,ud,2)
+        ud += 1
+        layout.addWidget(QLabel(), ud, 0, 1, 4)
+        ud += 1
 
         buttonLoadModel = QPushButton("Load model",self)
         buttonLoadModel.clicked.connect(self.loadModel)
         buttonLoadModel.setToolTip("Click to load model")
-        layout.addWidget(buttonLoadModel,1,1)
+        layout.addWidget(buttonLoadModel,ud,1)
 
         self.labelLoadModel = QLabel("No model loaded.",self)
         if self.data.model_loaded == 1:
             self.labelLoadModel.setText(self.data.model_fn)
-        layout.addWidget(self.labelLoadModel,1,2)
+        layout.addWidget(self.labelLoadModel,ud,2)
+        ud += 1
+        layout.addWidget(QLabel(), ud, 0, 1, 4)
+        ud += 1
 
         self.cbox_preds.toggled.connect(self.preds_filterChecked)
         self.cbox_preds.setToolTip("Click to plot predictions from file")
-        #loaded_preds_valid = 0
-        #if self.data.plot_loaded_preds == 1:
-        #    loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
-        #                        self.parent.max_time, self.parent.edf_info.fs, self.nchns)
         if self.data.plot_loaded_preds == 1:
             self.cbox_preds.setChecked(True)
         elif self.data.plot_loaded_preds == 1:
             self.cbox_preds.setChecked(False)
             self.data.plot_loaded_preds = 0
 
-        layout.addWidget(self.cbox_preds,2,0)
+        layout.addWidget(self.cbox_preds,ud,0)
 
         buttonLoadPreds = QPushButton("Load predictions",self)
         buttonLoadPreds.clicked.connect(self.loadPreds)
         buttonLoadPreds.setToolTip("Click to load predictions")
-        layout.addWidget(buttonLoadPreds,2,1)
+        layout.addWidget(buttonLoadPreds,ud,1)
 
         self.labelLoadPreds = QLabel("No predictions loaded.", self)
         if self.data.preds_loaded == 1:
             self.labelLoadPreds.setText(self.data.preds_fn)
-        layout.addWidget(self.labelLoadPreds,2,2)
+        layout.addWidget(self.labelLoadPreds,ud,2)
+        ud += 1
+
+        btnExit = QPushButton('Ok', self)
+        btnExit.clicked.connect(self.check)
+        layout.addWidget(btnExit,ud,3)
 
         self.setLayout(layout)
 
@@ -227,3 +244,9 @@ class PredictionOptions(QWidget):
             self.parent.openZoomPlot()
         self.parent.preds_win_open = 0
         self.close()
+
+class QHLine(QFrame):
+    def __init__(self):
+        super(QHLine, self).__init__()
+        self.setFrameShape(QFrame.HLine)
+        self.setFrameShadow(QFrame.Sunken)

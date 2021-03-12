@@ -212,7 +212,7 @@ def loadSignals(data, fsArray):
         fs = fsArray
         same_fs = 1
 
-    buf = np.array(data)
+    buf = np.array(data, dtype=object)
     if buf.ndim == 1:
         if same_fs:
             data_temp = np.zeros((buf.shape[0],buf[0].shape[0]))
