@@ -41,7 +41,7 @@ Features:
 Average reference and longitudinal bipolar montages with the typical channel naming conventions are supported. Other channels can be plotted but will not be considered part of the montage. 
 
 ***Loading predictions:***  
-Predictions can be loaded as pytorch (.pt) files or using preprocessed data and a model (also saved as .pt files). In both cases, the output is expected to be of length (number of samples in the edf file / k = c) where k and c are integers. Channel-wise predictions will be plotted starting from the top of the screen. 
+Predictions can be loaded as pytorch (.pt) files or using preprocessed data and a model (also saved as .pt files). In both cases, the output is expected to be of length (number of samples in the edf file / k) = c where k and c are integers. Channel-wise predictions will be plotted starting from the top of the screen. 
 
 ***Saving to .edf:***  
 This will save the signals that are currently being plotted. If the signals are filtered and predictions are plotted, filtered signals will be saved and predictions will be saved as well. 
