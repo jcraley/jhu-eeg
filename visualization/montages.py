@@ -88,7 +88,6 @@ class EdfMontage():
             montage_data - a EdfMontage object with the correctly ordered channels
             idx_0 - the index of the first channel to get the fs in the main window
         """
-        # print(self.eeg_info.labels2chns)
         mont = _check_montage(list(self.eeg_info.labels2chns.keys())[0],self.labels)
         if mont == 1:
             self.nchns = 19
@@ -111,7 +110,6 @@ class EdfMontage():
         outputs:
             the montage
         """
-
         montage_ar= np.zeros((self.nchns, data.shape[1]))
         for chn in range(len(self.labelsAR)):
             edf_chn = _check_label(self.labelsAR[chn],self.eeg_info.labels2chns)
