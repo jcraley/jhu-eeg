@@ -67,7 +67,7 @@ class EpilepsyDataset(Dataset):
     def __init__(self, manifest_fn, data_dir,
                  window_length, overlap, device='cpu', features_dir='',
                  features=[], no_load=False, normalize_windows=False,
-                 post_sz=False):
+                 post_sz=False, transform=None):
         self.as_sequences = False
         self.data_dir = data_dir
 
@@ -76,6 +76,7 @@ class EpilepsyDataset(Dataset):
         self.features = features
         self.normalize_windows = normalize_windows
         self.post_sz = post_sz
+        self.transform = transform
 
         # Read manifest, get number of channels and sample frequency
         self.manifest_files = read.read_manifest(manifest_fn)
@@ -272,6 +273,8 @@ class EpilepsyDataset(Dataset):
                     0, 1)
         if self.normalize_windows:
             sample['buffers'] = normalize(sample['buffers'])
+        if self.transform:
+            sample = self.transform(sample)
         return sample
 
     def get_all_data(self):
@@ -311,3 +314,6 @@ class EpilepsyDataset(Dataset):
 
     def get_window_advance_seconds(self):
         return self.window_advance_seconds
+
+    def get_pt_onset_zone(self, pt):
+        return self.onset_zones[self.patient_numbers.index(pt)]
