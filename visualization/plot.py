@@ -1101,9 +1101,10 @@ class MainPage(QMainWindow):
         data is initially unfiltered
         """
         if self.init or self.argv.fn is None:
-            name = QFileDialog.getOpenFileName(
-                self, 'Open file', '.', 'EDF files (*.edf)')
-            name = name[0]
+            #name = QFileDialog.getOpenFileName(
+            #    self, 'Open file', '.', 'EDF files (*.edf)')
+            #name = name[0]
+            name = "/Users/daniellecurrey/Desktop/GUI/Random_edf_files/00013145_s004_t002.edf"
         if name == None or len(name) == 0:
             return
         else:

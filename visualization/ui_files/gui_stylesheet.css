@@ -15,4 +15,8 @@ QPushButton:pressed {
 }
 QPushButton:hover{      
     border-color: rgb(78, 110, 206);
-} 
+}
+
+QListWidget#chn_cbox_list {
+    background-color: #ffffff;
+}

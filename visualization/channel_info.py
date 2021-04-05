@@ -116,7 +116,7 @@ class ChannelInfo():
                                 'b','b','b','r','r','r','b','b','b','r','r',
                                 self.g,'b','b',self.g,self.g]
         self.pred_chn_data = []
-        self.labelsFromTxtFile = []
+        self.labelsFromTxtFile = {}
         self.use_loaded_txt_file = 0
         self.txtFile_fn = ""
         self.organize = 0
