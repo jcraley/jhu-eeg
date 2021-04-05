@@ -369,6 +369,16 @@ class ChannelOptions(QWidget):
         self.data.labelsFromTxtFile = []
         self.data.txtFile_fn = ""
 
+    def check_multi_chn_preds(self):
+        """ Check if plotting predictions by channel. If so, check
+            whether the number of channels match. 
+
+            Sets parent.predicted to 1 if correct, 0 if incorrect.
+        """
+        if self.parent.pi.pred_by_chn and self.parent.predicted:
+            if self.parent.ci.nchns_to_plot != self.parent.pi.preds_to_plot.shape[1]:
+                self.parent.predicted = 0
+
     def overwriteTempInfo(self):
         """
         If temporary data was created in case the user cancels loading channels,
@@ -453,6 +463,8 @@ class ChannelOptions(QWidget):
             elif self.cbox_txtfile.isChecked():
                 mont_type = 4
             self.data.prepareToPlot(idxs, self.parent, mont_type, plot_bip_from_ar)
+            # check if multi-chn pred and number of chns match
+            self.check_multi_chn_preds()
         return 0
 
     def okayPressed(self):

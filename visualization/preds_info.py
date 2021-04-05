@@ -10,6 +10,7 @@ class PredsInfo():
         self.model_preds = [] # predictions from model/data
         self.preds = [] # loaded predictions
         self.preds_to_plot = [] # predictions that are to be plotted
+                                # preds should be of shape [n_preds, nchns] if multi-chn
         self.model_fn = "" # name of the model file
         self.data_fn = "" # name of the data file
         self.preds_fn = "" # name of the loaded predictions file

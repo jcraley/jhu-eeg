@@ -1174,6 +1174,10 @@ class MainPage(QMainWindow):
             self.count = self.argv.location
 
         ann = self.edf_info.annotations
+        print(self.pi.pred_by_chn)
+        print(self.predicted)
+        if self.pi.pred_by_chn and self.predicted:
+            self.add_topoplot()
         if self.filter_checked == 1 or (len(ann[0]) > 0 and ann[2][0] == "filtered"):
             self.movePlot(0, 0, self.ylim[1], 0)
         else:
