@@ -33,7 +33,8 @@ class PredictionOptions(QWidget):
                         "\n" + 
                         "\n - Must be pytorch (.pt) files" +
                         "\n - Can load either predictions OR preprocessed data and a model" +
-                        "\n - Output is expected to be of length (k * number of samples in the edf file)" +
+                        "\n - Output is expected to be of length (k * number of samples in the edf file) = c" +
+                        "\n    where k and c are integers"
                         "\n - Output will be assumed to be for non-overlapping intervals of constant width" + 
                         "\n - Channel-wise predictions will be plotted starting from the top of the screen")
         layout.addWidget(info_lbl, 0, 0, 1, 4)
@@ -49,7 +50,7 @@ class PredictionOptions(QWidget):
         self.cbox_preds = QCheckBox("Plot predictions from file",self)
 
         self.cbox_model = QCheckBox("Plot model predictions",self)
-        self.cbox_model.toggled.connect(self.model_filterChecked)
+        self.cbox_model.toggled.connect(self.model_checked)
         self.cbox_model.setToolTip("Click to plot model predictions")
         if self.data.plot_model_preds == 1:
             self.cbox_model.setChecked(True)
@@ -85,7 +86,7 @@ class PredictionOptions(QWidget):
         layout.addWidget(QLabel(), ud, 0, 1, 4)
         ud += 1
 
-        self.cbox_preds.toggled.connect(self.preds_filterChecked)
+        self.cbox_preds.toggled.connect(self.preds_checked)
         self.cbox_preds.setToolTip("Click to plot predictions from file")
         if self.data.plot_loaded_preds == 1:
             self.cbox_preds.setChecked(True)
@@ -114,7 +115,7 @@ class PredictionOptions(QWidget):
 
         self.show()
 
-    def model_filterChecked(self):
+    def model_checked(self):
         c = self.sender()
         if c.isChecked():
             if self.cbox_preds.isChecked():
@@ -124,7 +125,7 @@ class PredictionOptions(QWidget):
         else:
             self.data.plot_model_preds = 0
 
-    def preds_filterChecked(self):
+    def preds_checked(self):
         c = self.sender()
         if c.isChecked():
             if self.cbox_model.isChecked():
@@ -211,6 +212,8 @@ class PredictionOptions(QWidget):
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.preds
                     self.parent.predLabel.setText("Predictions plotted.")
+                    if self.data.pred_by_chn:
+                        self.parent.add_topoplot()
                     self.parent.callmovePlot(0,0,0)
                     self.closeWindow()
                 elif loaded_preds_valid == -1:
@@ -229,6 +232,8 @@ class PredictionOptions(QWidget):
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.model_preds
                     self.parent.predLabel.setText("Predictions plotted.")
+                    if self.data.pred_by_chn:
+                        self.parent.add_topoplot()
                     self.parent.callmovePlot(0,0,0)
                     self.closeWindow()
             elif not self.data.data_loaded:
@@ -242,6 +247,9 @@ class PredictionOptions(QWidget):
         if self.parent.btnZoom.text() == "Close zoom":
             self.parent.openZoomPlot()
             self.parent.openZoomPlot()
+        self.parent.close_topoplot()
+        if self.parent.pi.pred_by_chn and self.parent.predicted:
+            self.parent.add_topoplot()
         self.parent.preds_win_open = 0
         self.close()
 

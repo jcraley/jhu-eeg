@@ -24,6 +24,8 @@ from matplotlib.backends.backend_qt5agg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.backends.qt_compat import QtCore, QtWidgets
 import sys
+import mne
+import math
 
 from PyQt5.QtCore import Qt, QTime, QUrl
 
@@ -35,6 +37,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog, QMenu,
                              QTimeEdit, QComboBox, QFrame, QGroupBox, QStyle)
 from PyQt5.QtGui import QIcon, QBrush, QColor, QPen, QFont, QDesktopServices
 import pyqtgraph as pg
+from pyqtgraph.dockarea import *
 import pyqtgraph.exporters
 # pg.setConfigOptions(useOpenGL=True) # To make plotting faster when line width > 1
 
@@ -66,6 +69,7 @@ class MainPage(QMainWindow):
         """
         Setup the UI
         """
+        self.app.setStyleSheet(open('visualization/ui_files/gui_stylesheet.css').read())
         layout = QGridLayout()
         layout.setSpacing(10)
         grid_lt = QGridLayout()
@@ -190,7 +194,19 @@ class MainPage(QMainWindow):
         self.mainPlot = self.plotLayout.addPlot(row=0, col=0)
         self.mainPlot.setMouseEnabled(x=False, y=False)
         self.plotLayout.setBackground('w')
-        self.grid_rt.addWidget(self.plotLayout,0,0,6,8)
+        # self.grid_rt.addWidget(self.plotLayout,0,0,6,8)
+        self.plot_area = DockArea()
+        self.main_dock = Dock("Main plot", size=(500,200))
+        self.main_dock.hideTitleBar()
+        self.topoplot_dock = Dock("Topoplot", size=(250,200))
+        self.m = PlotCanvas(self, width=7, height=7)
+        # self.topoplot_dock.hide()
+        self.topoplot_dock.addWidget(self.m)
+        self.plot_area.addDock(self.main_dock, 'left')     ## place d4 at right edge of dock area
+        self.plot_area.addDock(self.topoplot_dock, 'right', self.main_dock)
+        self.topoplot_dock.hide()
+        self.main_dock.addWidget(self.plotLayout)
+        self.grid_rt.addWidget(self.plot_area,0,0,6,8)
 
 
         self.slider = QSlider(Qt.Horizontal, self)
@@ -537,7 +553,6 @@ class MainPage(QMainWindow):
         self.window_size = 10  # number of seconds to display at a time
         self.filter_checked = 0  # whether or not to plot filtered data
         self.ylim = [150, 100]  # ylim for unfiltered and filtered data
-        self.predicted = 0  # whether or not predictions have been made
         self.max_channels = 30 # maximum channels you can plot at once
         self.filter_win_open = 0  # whether or not filter options window is open
         self.preds_win_open = 0  # whether or not the predictions window is open
@@ -632,6 +647,9 @@ class MainPage(QMainWindow):
             self.plotLayout.removeItem(self.zoomPlot)
             self.mainPlot.removeItem(self.zoomRoi)
 
+        if not self.topoplot_dock.isHidden():
+            self.close_topoplot()
+        
         if self.si.plotSpec:
             self.si.plotSpec = 0
             self.removeSpecPlot()
@@ -1106,6 +1124,13 @@ class MainPage(QMainWindow):
             # data_for_preds = self.data_temp
             # self.edf_info_temp.fs, self.data_temp = loadSignals(
             #    self.data_temp, self.edf_info_temp.fs)
+            try:
+                if len(self.edf_info_temp.fs) > 1:
+                    self.edf_info_temp.fs = np.max(self.edf_info_temp.fs)
+                elif len(self.edf_info_temp.fs) == 1:
+                    self.edf_info_temp.fs = self.edf_info_temp.fs[0]
+            except:
+                pass
 
             # setting temporary variables that will be overwritten if
             # the user selects signals to plot
@@ -1124,6 +1149,7 @@ class MainPage(QMainWindow):
                 self.fn_temp = name.split('/')[-1][0:37] + "..."
 
             self.chn_win_open = 1
+            self.predicted = 0  # whether or not predictions have been made
             self.chn_ops = ChannelOptions(self.ci_temp, self)
             if self.argv.show and self.argv.montage_file is None:
                 self.chn_ops.show()
@@ -1254,6 +1280,10 @@ class MainPage(QMainWindow):
         self.slider.setValue(self.count)
         t = getTime(self.count)
         self.time_lbl.setText(t)
+
+        # update the topoplot
+        if not self.topoplot_dock.isHidden():
+            self.update_topoplot()
 
         plotData = np.zeros((self.ci.nchns_to_plot,self.window_size * fs))
         if self.filter_checked == 1:
@@ -1458,9 +1488,89 @@ class MainPage(QMainWindow):
             self.specPlot.setTitle(self.si.chnName,color='k',size='16pt')
         if self.btnZoom.text() == "Close zoom":
             self.updateZoomPlot()
+        if self.btnOpenStats.text() == "Close signal stats":
+            self.statTimeSelectChanged()
 
         if self.init == 0 and self.argv.show:
             self.throwAlert("Data has been plotted.")
+
+    def close_topoplot(self):
+        """ Function to close the topoplot. 
+        """
+        self.topoplot_dock.hide()
+
+    def add_topoplot(self):
+        """ Function called when pred options loads and pred_by_chn == 1
+        """
+        self.topoplot_dock.show()
+        self.update_topoplot()
+
+    def update_topoplot(self):
+        """ Update the topoplot if pred_by_chn == 1
+        """
+        # TODO: make window be able to open and close
+        # TODO: create plot axes
+        # TODO: use mne to create plot
+
+        # How will this work?
+        # 1) create some fake data for the file, say 1s each
+        # 2) once you load it in, plot for each second of data
+        # 3) assume it is by second (but should probably make this custom)
+        # 4) set this up so this plot opens when predictions are loaded
+        # 5) consider making this custom so that it can be toggled on / off by user
+
+        #def topoplot(scores, label_list, title=None, fn='',
+        #     plot_hemisphere=False, plot_lobe=False, zone=None,
+        #     lobe_correct=None, lat_correct=None):
+        # open dock window
+        # self.topoplot_dock.show()
+
+        # clear figure
+        self.m.fig.clf()
+        scores = self.pi.preds_to_plot
+        #scores = np.zeros((73,18))
+        #for i in range(len(scores[0])):
+        #    for j in range(len(scores[1])):
+        #        scores[i][j] = np.random.random()
+        
+
+        curr_score = scores[self.count,:]
+        #for i in range(len(curr_score)):
+        #    curr_score[i] = np.random.random()
+
+        # Create the layout
+        layout = mne.channels.read_layout('EEG1005')
+        # positions = []
+        pos2d = []
+        layout_names = [name.upper() for name in layout.names]
+        for ch in self.ci.labels_to_plot:
+            if ch != "Notes":
+                if '-' in ch:
+                    anode, cathode = ch.split('-')
+                    anode_idx = layout_names.index(anode)
+                    cathode_idx = layout_names.index(cathode)
+                    anode_pos = layout.pos[anode_idx, 0:2]
+                    cathode_pos = layout.pos[cathode_idx, 0:2]
+                    pos2d.append([(a + c) / 2 for a, c in zip(anode_pos, cathode_pos)])
+                else:
+                    idx = layout_names.index(ch)
+                    # positions.append(layout.pos[idx, :])
+                    pos2d.append(layout.pos[idx, 0:2])
+        # positions = np.asarray(positions)
+        pos2d = np.asarray(pos2d)
+        # Scale locations from [-1, 1]
+        pos2d = 2 * (pos2d - 0.5)
+
+        # fig = plt.figure()
+        #ax = plt.gca()
+        # self.ax = self.m.fig.gca()
+        self.ax = self.m.fig.add_subplot(self.m.gs[0])
+        im, cn = mne.viz.plot_topomap(curr_score, pos2d, sphere=1,
+                                  axes=self.ax, vmin=0, vmax=1, show=False,
+                                  outlines='head')
+        self.m.draw()
+
+
 
     def filterChecked(self):
         """ Function for when the filterbox is checked
@@ -1478,6 +1588,9 @@ class MainPage(QMainWindow):
                 self.filter_checked = 1
             else:
                 self.filter_checked = 0
+            # if you start / stop filtering, need to update the stats
+            if self.btnOpenStats.text() == "Close signal stats":
+                self.statChnClicked()
             # if data was already filtered do not uncheck box
             ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
@@ -1610,7 +1723,7 @@ class MainPage(QMainWindow):
             if self.btnOpenEditAnn.text() == "Open annotation editor":
                 self.populateAnnDock()
                 self.showAnnStatsDock()
-
+    
     def populateStatList(self):
         """ Fill the stats window with channels.
         """
@@ -1718,12 +1831,14 @@ class MainPage(QMainWindow):
             alpha, beta, gamma, theta, delta 
             (for the part of the signal specified)
         """
+        data = self.ci.data_to_plot[self.ssi.chn,:]
+        lp = 0
+        hp = 0
         if self.filter_checked == 1:
-            self.prep_filter_ws()
-            data = self.filteredData
-        else:
-            data = self.ci.data_to_plot[self.ssi.chn,:]
-        alpha, beta, theta, gamma, delta = self.ssi.get_power(data, s, f)
+            print("in stat - filter checked")
+            lp = self.fi.lp
+            hp = self.fi.hp
+        alpha, beta, theta, gamma, delta = self.ssi.get_power(data, s, f, hp, lp)
         return alpha, beta, theta, gamma, delta        
 
     def set_fs_band_lbls(self):
@@ -1757,6 +1872,16 @@ class QHLine(QFrame):
         super(QHLine, self).__init__()
         self.setFrameShape(QFrame.HLine)
         self.setFrameShadow(QFrame.Sunken)
+
+class PlotCanvas(FigureCanvas):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        self.fig = Figure(figsize=(width, height), dpi=dpi,
+                          constrained_layout=False)
+        self.gs = self.fig.add_gridspec(1, 1, wspace=0.0, hspace=0.0)
+
+        FigureCanvas.__init__(self, self.fig)
+        self.setParent(parent)
 
 def get_args():
     p = ap.ArgumentParser()

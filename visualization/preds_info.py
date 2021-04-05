@@ -20,6 +20,7 @@ class PredsInfo():
         self.plot_loaded_preds = 0 # whether or not to load preds into preds_to_plot
         self.pred_width = 0 # width in samples of each prediction, must be an int
         self.pred_by_chn = 0 # whether or not we are predicting by channel
+        self.predicted = 0
 
     def write_data(self, pi2):
         """
@@ -204,7 +205,7 @@ class PredsInfo():
                     if self.pred_by_chn:
                         chn_i = preds_mutli_chn[i] > thresh
                         chns.append(chn_i)
-                    self.preds_to_plot = temp
+                    # self.preds_to_plot = temp
                     return starts, ends, chns
             if np.max(self.preds_to_plot[i]) > thresh:
                 starts.append(i * pw)
