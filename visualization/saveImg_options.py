@@ -80,7 +80,8 @@ class SaveImgOptions(QWidget):
             self.data.title = self.sio_ui.titleInput.text()
         else:
             self.data.title = ""
-        self.makePlot()
+        self.ax.set_title(self.data.title, fontsize=self.data.fontSize)
+        self.m.draw()
 
     def titleChanged(self):
         self.titleChecked()
@@ -129,7 +130,7 @@ class SaveImgOptions(QWidget):
                 width = 1 / (self.nchns + 1)
 
             if self.predicted == 1:
-                starts, ends, chns = self.data.pi.compute_starts_ends_chns(self.thresh,
+                starts, ends, chns, _ = self.data.pi.compute_starts_ends_chns(self.thresh,
                                                                       self.count, self.window_size, self.fs, self.nchns)
                 for k in range(len(starts)):
                     if self.data.pi.pred_by_chn:

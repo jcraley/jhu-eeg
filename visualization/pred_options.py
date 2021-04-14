@@ -2,7 +2,8 @@ from PyQt5.QtCore import Qt
 
 from PyQt5.QtWidgets import (QFileDialog, QVBoxLayout, QMessageBox, QWidget,
                                 QPushButton, QCheckBox, QLabel, QInputDialog,
-                                QSlider, QGridLayout, QSpinBox, QFrame)
+                                QSlider, QGridLayout, QSpinBox, QFrame, QRadioButton,
+                                QGroupBox, QHBoxLayout)
 
 from matplotlib.backends.qt_compat import QtWidgets
 
@@ -36,7 +37,11 @@ class PredictionOptions(QWidget):
                         "\n - Output is expected to be of length (k * number of samples in the edf file) = c" +
                         "\n    where k and c are integers"
                         "\n - Output will be assumed to be for non-overlapping intervals of constant width" + 
-                        "\n - Channel-wise predictions will be plotted starting from the top of the screen")
+                        "\n - Channel-wise predictions will be plotted starting from the top of the screen" + 
+                        "\n - Predictions are assumed to be binary" +
+                        "\n - To use multi-class predictions, select 'multi-class'" +
+                        "\n - For multi-class predictions, output must be size" +
+                        "\n   (num predictions, <chns, optional>, num classes)")
         layout.addWidget(info_lbl, 0, 0, 1, 4)
 
         layout.addWidget(QLabel(), 1, 0, 1, 4)
@@ -69,6 +74,15 @@ class PredictionOptions(QWidget):
         if self.data.data_loaded == 1:
             self.labelLoadPtFile.setText(self.data.data_fn)
         layout.addWidget(self.labelLoadPtFile,ud,2)
+        groupBoxBinaryEdit_model = QGroupBox()
+        self.radio_binary_model = QRadioButton("binary")
+        self.radio_multiclass_model = QRadioButton("multi-class")
+        self.radio_binary_model.setChecked(True)
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.radio_binary_model)
+        hbox.addWidget(self.radio_multiclass_model)
+        groupBoxBinaryEdit_model.setLayout(hbox)
+        layout.addWidget(groupBoxBinaryEdit_model, ud, 3)
         ud += 1
         layout.addWidget(QLabel(), ud, 0, 1, 4)
         ud += 1
@@ -105,11 +119,22 @@ class PredictionOptions(QWidget):
         if self.data.preds_loaded == 1:
             self.labelLoadPreds.setText(self.data.preds_fn)
         layout.addWidget(self.labelLoadPreds,ud,2)
+
+        groupBoxBinaryEdit_preds = QGroupBox()
+        self.radio_binary_preds = QRadioButton("binary")
+        self.radio_multiclass_preds = QRadioButton("multi-class")
+        self.radio_binary_preds.setChecked(True)
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.radio_binary_preds)
+        hbox.addWidget(self.radio_multiclass_preds)
+        groupBoxBinaryEdit_preds.setLayout(hbox)
+        layout.addWidget(groupBoxBinaryEdit_preds, ud, 3)
+
         ud += 1
 
         btnExit = QPushButton('Ok', self)
         btnExit.clicked.connect(self.check)
-        layout.addWidget(btnExit,ud,3)
+        layout.addWidget(btnExit,ud,4)
 
         self.setLayout(layout)
 
@@ -207,7 +232,8 @@ class PredictionOptions(QWidget):
                 self.parent.throwAlert("Please load predictions.")
             else:
                 loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
-                                        self.parent.max_time, self.parent.edf_info.fs, self.nchns)
+                                        self.parent.max_time, self.parent.edf_info.fs, 
+                                        self.nchns, self.radio_binary_preds.isChecked())
                 if not loaded_preds_valid:
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.preds
@@ -221,7 +247,8 @@ class PredictionOptions(QWidget):
                                     "file you loaded or are the incorrect shape. Please check your file.")
         else:
             if self.data.ready:
-                preds_ret = self.data.predict(self.parent.max_time,self.parent.edf_info.fs,self.nchns)
+                preds_ret = self.data.predict(self.parent.max_time,self.parent.edf_info.fs,self.nchns, 
+                                                self.radio_binary_model.isChecked())
                 if preds_ret == -2:
                     self.parent.throwAlert("An error occured when trying to call the predict() " +
                                 "function using your model. Please check your model and data.")

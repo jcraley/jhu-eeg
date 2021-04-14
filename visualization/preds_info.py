@@ -21,7 +21,11 @@ class PredsInfo():
         self.plot_loaded_preds = 0 # whether or not to load preds into preds_to_plot
         self.pred_width = 0 # width in samples of each prediction, must be an int
         self.pred_by_chn = 0 # whether or not we are predicting by channel
+        self.multi_class = 0 # whether or not we are doing multi-class predictions
         self.predicted = 0
+         # default colors to use for multi-class: dark blue, green, yellow, red, pink, purple
+        self.class_colors = [(50, 95, 168, 50), (50, 168, 82,50), (168, 52, 50, 50),
+                                (164, 168, 50, 50), (168, 50, 150,50), (127, 50, 168, 50)]
 
     def write_data(self, pi2):
         """
@@ -48,6 +52,22 @@ class PredsInfo():
         self.data = torch.load(data_fn)
         self.data_loaded = 1
         self.update_ready()
+    
+    def get_color(self, i):
+        """ Returns a color for multi-class prediction
+
+            Args:
+                i - the index of the color
+            Returns:
+                A color in (R, G, B, alpha) form (alpha is set to 50)
+        """
+        if i < 6:
+            return self.class_colors[i]
+        else:
+            num0 = np.random.random() * 255
+            num1 = np.random.random() * 255
+            num2 = np.random.random() * 255
+            return (num0, num1, num2, 50)
 
     def set_model(self, model_fn):
         self.model = torch.load(model_fn)
@@ -74,13 +94,14 @@ class PredsInfo():
         ret = self.check_preds_shape(preds, 0, max_time, fs, nchns)
         return ret
 
-    def predict(self, max_time, fs, nchns):
+    def predict(self, max_time, fs, nchns, binary = 1):
         """
         Loads model, passes data through the model to get binary seizure predictions
 
         inputs:
             data - the pytorch tensor, fully preprocessed
             model_fn - filename of the model to load
+            binary - whether to do binary or multi-class
 
         returns:
             0 for sucess, -2 for failure to pass through the predict function,
@@ -92,10 +113,10 @@ class PredsInfo():
         except:
             return -2
 
-        ret = self.check_preds_shape(preds, 1, max_time, fs, nchns)
+        ret = self.check_preds_shape(preds, 1, max_time, fs, nchns, binary)
         return ret
 
-    def check_preds_shape(self, preds, model_or_preds, max_time, fs, nchns):
+    def check_preds_shape(self, preds, model_or_preds, max_time, fs, nchns, binary = 1):
         """
         Checks whether the predictions are the proper size.
         Samples in the file must be an integer multiple of length.
@@ -106,37 +127,48 @@ class PredsInfo():
             model_or_preds - 1 for model loaded, 0 for loaded predictions
             max_time - amount of seconds in the .edf file
             nchns - number of channels
+            binary - whether to do binary or multi-class
         Returns:
             0 for sucess, -1 for incorrect length
         """
         # check size
         ret = -1
         self.pred_by_chn = 0 # reset
-        if len(preds.shape) == 3:
-            if preds.shape[0] == 2:
-                preds = preds[1,:,:]
-            elif preds.shape[1] == 2:
-                preds = preds[:,1,:]
-            elif preds.shape[2] == 2:
-                preds = preds[:,:,1]
-            if len(preds.shape) == 3 and (preds.shape[0] == 1 or preds.shape[1] == 1 or preds.shape[2] == 1):
-                preds = np.squeeze(preds)
-        dim = len(preds.shape)
-        if dim == 1:
-            if (fs * max_time) % preds.shape[0] == 0:
-                ret = 0
-        elif dim == 2:
-            if preds.shape[0] < preds.shape[1]:
-                preds = preds.T
-            if (fs * max_time) % preds.shape[0] == 0:
-                if preds.shape[1] == 1:
-                    ret = 0
+        self.multi_class = 0 # reset
+        if binary:
+            if len(preds.shape) == 3:
+                if preds.shape[0] == 2:
+                    preds = preds[1,:,:]
                 elif preds.shape[1] == 2:
-                    preds = preds[:,1]
+                    preds = preds[:,1,:]
+                elif preds.shape[2] == 2:
+                    preds = preds[:,:,1]
+                if len(preds.shape) == 3 and (preds.shape[0] == 1 or preds.shape[1] == 1 or preds.shape[2] == 1):
+                    preds = np.squeeze(preds)
+            dim = len(preds.shape)
+            if dim == 1:
+                if (fs * max_time) % preds.shape[0] == 0:
                     ret = 0
-                else:
+            elif dim == 2:
+                if preds.shape[0] < preds.shape[1]:
+                    preds = preds.T
+                if (fs * max_time) % preds.shape[0] == 0:
+                    if preds.shape[1] == 1:
+                        ret = 0
+                    elif preds.shape[1] == 2:
+                        preds = preds[:,1]
+                        ret = 0
+                    else:
+                        self.pred_by_chn = 1
+                        ret = 0
+        else:
+            # multi-class
+            if (fs * max_time) % preds.shape[0] == 0:
+                if len(preds.shape) == 3:
                     self.pred_by_chn = 1
-                    ret = 0
+                ret = 0
+                self.multi_class = 1
+
         if ret == 0:
             self.pred_width = fs * max_time / preds.shape[0]
             if model_or_preds: # model
@@ -163,12 +195,14 @@ class PredsInfo():
             starts - the start times
             ends - the corresponding end times
             chns - the channel to plot the given prediction
+            class_vals - the values for each class
         """
         start_t = count * fs
         end_t = start_t + ws * fs
         starts = []
         ends = []
         chns = []
+        class_vals = []
         start_pred_idx = 0
         end_pred_idx = 0
         pw = self.pred_width
@@ -189,33 +223,51 @@ class PredsInfo():
             i += 1
         i -= 1
         if i * pw < start_t and (i + 1) * pw > start_t:
-            if np.max(self.preds_to_plot[i]) > thresh:
+            if self.multi_class:
                 starts.append(start_t)
                 ends.append((i + 1) * pw)
-                if self.pred_by_chn:
-                    chn_i = preds_mutli_chn[i] > thresh
-                    chns.append(chn_i)
+                val = np.argmax(self.preds_to_plot[i])
+                class_vals.append(val)
+            else:
+                if np.max(self.preds_to_plot[i]) > thresh:
+                    starts.append(start_t)
+                    ends.append((i + 1) * pw)
+                    if self.pred_by_chn:
+                        chn_i = preds_mutli_chn[i] > thresh
+                        chns.append(chn_i)
             i += 1
         while i * pw < start_t: # find starting value
             i += 1
         while i * pw < end_t:
             if (i + 1) * pw > end_t:
-                if np.max(self.preds_to_plot[i]) > thresh:
-                    starts.append(i * pw)
-                    ends.append(end_t)
-                    if self.pred_by_chn:
-                        chn_i = preds_mutli_chn[i] > thresh
-                        chns.append(chn_i)
-                    # self.preds_to_plot = temp
-                    return starts, ends, chns
-            if np.max(self.preds_to_plot[i]) > thresh:
+                if self.multi_class:
+                    starts.append(start_t)
+                    ends.append((i + 1) * pw)
+                    val = np.argmax(self.preds_to_plot[i])
+                    class_vals.append(val)
+                    return starts, ends, chns, class_vals
+                else:
+                    if np.max(self.preds_to_plot[i]) > thresh:
+                        starts.append(i * pw)
+                        ends.append(end_t)
+                        if self.pred_by_chn:
+                            chn_i = preds_mutli_chn[i] > thresh
+                            chns.append(chn_i)
+                        # self.preds_to_plot = temp
+                        return starts, ends, chns, class_vals
+            if self.multi_class:
+                starts.append(start_t)
+                ends.append((i + 1) * pw)
+                val = np.argmax(self.preds_to_plot[i])
+                class_vals.append(val)
+            elif np.max(self.preds_to_plot[i]) > thresh:
                 starts.append(i * pw)
                 ends.append((i + 1) * pw)
                 if self.pred_by_chn:
                     chn_i = preds_mutli_chn[i] > thresh
                     chns.append(chn_i)
             i += 1
-        return starts, ends, chns
+        return starts, ends, chns, class_vals
 
     def updatePredicted(self, data, max_time, predicted):
         """

@@ -68,18 +68,11 @@ class ChannelOptions(QWidget):
         grid_lt.addWidget(lblInfo,0,0)
 
         self.scroll_chn_cbox = QScrollArea()
-        self.scroll_chn_cbox.setMinimumWidth(120)
-        self.scroll_chn_cbox.setMinimumHeight(200)
+        #self.scroll_chn_cbox.setMinimumWidth(120)
+        #self.scroll_chn_cbox.setMinimumHeight(200)
         self.scroll_chn_cbox.setWidgetResizable(True)
         self.scroll_chn_cbox.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.scroll_chn_cbox.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        self.chn_cbox_list = QWidget()
-        # self.chn_cbox_list.setObjectName("chn_cbox_list")
-        self.scroll_chn_cbox.setWidget(self.chn_cbox_list)
-        self.chn_cbox_layout = QVBoxLayout()
-        self.chn_cbox_list.setLayout(self.chn_cbox_layout)
-        self.cbox_list_items = []
 
         if self.ar1020:
             self.cbox_ar = QCheckBox("Average reference (10-20)",self)
@@ -106,6 +99,16 @@ class ChannelOptions(QWidget):
             self.cbox_bip1010 = QCheckBox("Bipolar (10-10)",self)
             self.cbox_bip1010.toggled.connect(self.bipChecked1010)
             grid_lt.addWidget(self.cbox_bip1010,3,0)
+
+        self.chn_cbox_list = QWidget()
+        # self.chn_cbox_list.setObjectName("chn_cbox_list")
+        self.scroll_chn_cbox.setWidget(self.chn_cbox_list)
+        self.chn_cbox_layout = QVBoxLayout()
+        self.chn_cbox_list.setLayout(self.chn_cbox_layout)
+        self.cbox_list_items = []
+        for k in self.data.labelsFromTxtFile.keys():
+            self.addTxtFile(k)
+        self.uncheck_txt_files()
 
         grid_lt.addWidget(self.scroll_chn_cbox,5,0)
         #self.cbox_txtfile = QCheckBox("",self)
@@ -498,6 +501,7 @@ class ChannelOptions(QWidget):
         selectedListItems = self.chn_qlist.selectedItems()
         idxs = []
         num_chns = 0
+        txt_file_name = ""
         for k in range(len(self.chn_items)):
             if self.chn_items[k] in selectedListItems:
                 idxs.append(self.data.labels2chns[self.data.chns2labels[k]])
@@ -530,9 +534,14 @@ class ChannelOptions(QWidget):
                 mont_type = 2
             elif self.bip1010 and self.cbox_bip1010.isChecked():
                 mont_type = 3
-            elif self.cbox_txtfile.isChecked():
-                mont_type = 4
-            self.data.prepareToPlot(idxs, self.parent, mont_type, plot_bip_from_ar)
+            else:
+                # check if cbox_txtfile.isChecked()
+                for child in self.chn_cbox_list.children():
+                    for ch in child.children():
+                        if isinstance(ch, QCheckBox) and ch.isChecked():
+                            txt_file_name = ch.text()
+                            mont_type = 4
+            self.data.prepareToPlot(idxs, self.parent, mont_type, plot_bip_from_ar, txt_file_name)
             # check if multi-chn pred and number of chns match
             self.check_multi_chn_preds()
         return 0

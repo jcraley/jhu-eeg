@@ -270,7 +270,7 @@ class ChannelInfo():
                             ret[i] = 0
         return ret
 
-    def prepareToPlot(self, idxs, parent, mont_type, plot_bip_from_ar = 0):
+    def prepareToPlot(self, idxs, parent, mont_type, plot_bip_from_ar = 0, txt_file_name = ""):
         """
         Prepares everything needed to plot the data.
 
@@ -283,6 +283,7 @@ class ChannelInfo():
                                                     3 = bip1010, 4 = txtfile, 5 = none)
             plot_bip_from_ar - 1 if a bipolar montage should be generated
                 from average reference data
+            txt_file_name - name of text file if needed
         """
         print(self.edf_fn)
         f = pyedflib.EdfReader(self.edf_fn)
@@ -419,7 +420,7 @@ class ChannelInfo():
                     bip = 1
 
         if self.use_loaded_txt_file and mont_type == 4:
-            labels = self.labelsFromTxtFile
+            labels = self.labelsFromTxtFile[txt_file_name]
             colors = []
             for i in range(len(labels)):
                 idx = -1
