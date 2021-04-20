@@ -81,6 +81,10 @@ class TestConfiguration():
             'load to device': exp_cfg.getboolean('load to device'),
             'load as': exp_cfg['load as'],
             'load model fn': exp_cfg['load model fn'],
+            'fps per hour': exp_cfg.getfloat('fps per hour'),
+            'fp time per hour': exp_cfg.getfloat('fp time per hour'),
+            'max samples before sz': exp_cfg.getint('max samples before sz'),
+            'count post sz': exp_cfg.getboolean('count post sz'),
         })
 
     def _update_preprocessing_params(self):
@@ -126,3 +130,6 @@ class TestConfiguration():
 
     def __setitem__(self, key, value):
         self.all_params[key] = value
+
+    def __contains__(self, key):
+        return key in self.all_params

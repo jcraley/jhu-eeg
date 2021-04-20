@@ -1,5 +1,7 @@
 import sklearn.ensemble
 import sklearn.linear_model
+from sklearn.svm import SVC, LinearSVC
+import numpy as np
 
 from models.basemodel import BaseModel
 
@@ -44,3 +46,33 @@ class RandomForest(SklearnMixin, BaseModel):
         self.model = (
             sklearn.ensemble.RandomForestClassifier(**kwargs)
         )
+
+
+class SupportVectorMachine(SklearnMixin, BaseModel):
+    def __init__(self, **kwargs):
+        self.model = SVC(**kwargs)
+
+    def predict_proba(self, X):
+        """SVM has no predict_proba"""
+        X = X.to('cpu').numpy()
+        X = X.reshape(X.shape[0], -1)
+        pred = self.model.predict(X)
+        pred_reshape = np.zeros((X.shape[0], 2))
+        pred_reshape[:, 0] = 1 - pred
+        pred_reshape[:, 1] = pred
+        return pred_reshape
+
+
+class LinearSupportVectorMachine(SklearnMixin, BaseModel):
+    def __init__(self, **kwargs):
+        self.model = LinearSVC(**kwargs)
+
+    def predict_proba(self, X):
+        """SVM has no predict_proba"""
+        X = X.to('cpu').numpy()
+        X = X.reshape(X.shape[0], -1)
+        pred = self.model.predict(X)
+        pred_reshape = np.zeros((X.shape[0], 2))
+        pred_reshape[:, 0] = 1 - pred
+        pred_reshape[:, 1] = pred
+        return pred_reshape

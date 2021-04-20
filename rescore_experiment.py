@@ -1,8 +1,12 @@
 import sys
 
-import utils.pathmanager as pm
+import torch
+
 import utils.testconfiguration as tc
+import utils.pathmanager as pm
 from utils.pipeline import Pipeline
+
+torch.manual_seed(0)
 
 
 def main():
@@ -14,19 +18,16 @@ def main():
     paths.initialize_experiment_folders()
     pipeline = Pipeline(params, paths)
 
-    # Save experiment configuration
+    # Write config file
     pipeline.write_config_file()
 
     # Load the datsets
-    pipeline.initialize_val_dataset()
     pipeline.initialize_train_dataset()
+    pipeline.initialize_val_dataset()
 
     """Train or load a model"""
     if pipeline.params['load model fn']:
         pipeline.load_model()
-    else:
-        pipeline.initialize_model()
-        pipeline.train()
 
     """Score test and train sets"""
     if params['score train']:

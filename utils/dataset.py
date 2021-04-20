@@ -34,7 +34,8 @@ def compute_nwindows(duration, window_length, overlap):
     return int(np.floor((duration - window_length) / advance)) + 1
 
 
-def create_label(duration, sz_starts, sz_ends, window_length, overlap):
+def create_label(duration, sz_starts, sz_ends, window_length, overlap,
+                 post_sz_state=False):
     """Create a tensor of labels
 
     Arguments:
@@ -51,6 +52,8 @@ def create_label(duration, sz_starts, sz_ends, window_length, overlap):
     # Initialize all labels to 0
     label = torch.zeros(nwindows, dtype=torch.long)
     window_time = (window_length - overlap) * np.arange(nwindows)
+    if post_sz_state:
+        label[np.where(window_time >= sz_ends[0])] = 2
     # Set any labels between starts to 1
     for start, end in zip(sz_starts, sz_ends):
         label[np.where((window_time >= start) * (window_time <= end))] = 1
@@ -63,7 +66,8 @@ class EpilepsyDataset(Dataset):
 
     def __init__(self, manifest_fn, data_dir,
                  window_length, overlap, device='cpu', features_dir='',
-                 features=[], no_load=False, normalize_windows=False):
+                 features=[], no_load=False, normalize_windows=False,
+                 post_sz=False, transform=None):
         self.as_sequences = False
         self.data_dir = data_dir
 
@@ -71,6 +75,8 @@ class EpilepsyDataset(Dataset):
         self.features_dir = features_dir
         self.features = features
         self.normalize_windows = normalize_windows
+        self.post_sz = post_sz
+        self.transform = transform
 
         # Read manifest, get number of channels and sample frequency
         self.manifest_files = read.read_manifest(manifest_fn)
@@ -82,23 +88,38 @@ class EpilepsyDataset(Dataset):
         assert overlap < window_length, "Overlap is longer than window"
         self.window_length = window_length
         self.overlap = overlap
-        self.advance_seconds = window_length - overlap
+        self.window_advance_seconds = window_length - overlap
         self.window_samples = int(window_length * self.fs)
-        self.advance_samples = int(self.advance_seconds * self.fs)
+        self.window_advance_samples = int(
+            self.window_advance_seconds * self.fs)
 
         # Create the labels for the dataset
         self.labels = []
         self.start_windows = []
+        self.onset_zones = []
+        self.patient_numbers = []
         window_idx = 0
-        for file in self.manifest_files:
-            self.labels.append(
-                create_label(float(file['duration']),
-                             json.loads(file['sz_starts']),
-                             json.loads(file['sz_ends']), self.window_length,
-                             self.overlap))
+        for recording in self.manifest_files:
+            label = create_label(float(recording['duration']),
+                                 json.loads(recording['sz_starts']),
+                                 json.loads(recording['sz_ends']
+                                            ), self.window_length,
+                                 self.overlap, post_sz_state=self.post_sz)
+            label = label.to(self.device)
+            self.labels.append(label)
             self.start_windows.append(window_idx)
             window_idx += len(self.labels[-1])
+
+            self.onset_zones.append(int(recording['onset_zone']))
+            self.patient_numbers.append(recording['pt_num'])
         self.nwindows = window_idx
+
+        # Get the total duration and number of seizures
+        self.total_duration = 0
+        self.total_sz = 0
+        for recording in self.manifest_files:
+            self.total_duration += float(recording['duration'])
+            self.total_sz += len(json.loads(recording['sz_starts']))
 
         # Load features
         if not no_load:
@@ -123,9 +144,9 @@ class EpilepsyDataset(Dataset):
         self.filenames = []
         self.buffer_windows = []
 
-        for file in self.manifest_files:
+        for eeg in self.manifest_files:
             # Load the relevant file
-            fn = file['fn'].split('.')[0] + '.pt'
+            fn = eeg['fn'].split('.')[0] + '.pt'
             curr_file = torch.load(os.path.join(self.data_dir, fn),
                                    map_location=self.device)
 
@@ -134,7 +155,7 @@ class EpilepsyDataset(Dataset):
             self.buffer_list.append(curr_file)
 
             # Keep track of what window index starts with each file
-            nwindows = compute_nwindows(int(file['duration']),
+            nwindows = compute_nwindows(int(eeg['duration']),
                                         self.window_length,
                                         self.overlap)
             self.buffer_windows.append(nwindows)
@@ -214,15 +235,19 @@ class EpilepsyDataset(Dataset):
         if self.as_sequences:
             sample['labels'] = self.labels[idx]
             sample['filename'] = self.filenames[idx]
+            sample['onset zone'] = self.onset_zones[idx]
+            sample['patient number'] = self.patient_numbers[idx]
             if self.features:
                 start_idx, end_idx = self.sequence_indices[idx]
                 sample['buffers'] = self.data[start_idx:end_idx]
             else:
                 windowed_buffer = self.buffer_list[0].new_zeros(
-                    (self.buffer_windows[idx], self.nchns, self.window_samples))
+                    (self.buffer_windows[idx],
+                     self.nchns, self.window_samples),
+                    device=self.device)
                 for ii in range(self.buffer_windows[idx]):
-                    start = ii * self.advance_samples
-                    end = ii * self.advance_samples + self.window_samples
+                    start = ii * self.window_advance_samples
+                    end = ii * self.window_advance_samples + self.window_samples
                     windowed_buffer[ii, :, :] = torch.transpose(
                         self.buffer_list[idx][start:end, :], 0, 1)
                 sample['buffers'] = windowed_buffer
@@ -235,14 +260,21 @@ class EpilepsyDataset(Dataset):
             # Calculate the indexes of the start and end of the window
             window_number = idx - self.start_windows[buffer_idx]
             sample['labels'] = self.labels[buffer_idx][window_number]
+            sample['filename'] = self.filenames[buffer_idx]
+            sample['onset zones'] = self.onset_zones[buffer_idx]
+            sample['patient numbers'] = self.patient_numbers[buffer_idx]
             if self.features:
                 sample['buffers'] = self.data[idx]
             else:
-                sample_start = window_number * self.advance_samples
-                sample['buffers'] = torch.transpose(self.buffer_list[buffer_idx][
-                    sample_start:sample_start + self.window_samples, :], 0, 1)
+                sample_start = window_number * self.window_advance_samples
+                sample['buffers'] = torch.transpose(
+                    self.buffer_list[buffer_idx][sample_start:sample_start
+                                                 + self.window_samples, :],
+                    0, 1)
         if self.normalize_windows:
             sample['buffers'] = normalize(sample['buffers'])
+        if self.transform:
+            sample = self.transform(sample)
         return sample
 
     def get_all_data(self):
@@ -266,4 +298,22 @@ class EpilepsyDataset(Dataset):
         return torch.cat(self.labels)
 
     def class_counts(self):
+        if self.post_sz:
+            counts = torch.zeros(3)
+            for label in self.labels:
+                new_counts = torch.bincount(label)
+                counts[:len(new_counts)] += new_counts
+            return counts
         return sum([torch.bincount(label) for label in self.labels])
+
+    def get_total_sz(self):
+        return self.total_sz
+
+    def get_total_duration(self):
+        return self.total_duration
+
+    def get_window_advance_seconds(self):
+        return self.window_advance_seconds
+
+    def get_pt_onset_zone(self, pt):
+        return self.onset_zones[self.patient_numbers.index(pt)]

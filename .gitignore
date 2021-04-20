@@ -7,6 +7,7 @@ EDF
 Manifests
 WindowedBuffers
 ChannelLists
+Scratch
 
 # Scripts
 cpu_header.sh
