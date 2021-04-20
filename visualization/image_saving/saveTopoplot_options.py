@@ -46,7 +46,7 @@ class SaveTopoplotOptions(QWidget):
         line_val = line_val / self.parent.edf_info.fs
         self.plot_single_time = 0 # default to plotting everything
         self.plot_at_time = self._get_pred_sample_from_time(line_val) # start where line is
-        self.spinbox_single_time.setRange(0, self.parent.max_time)
+        self.spinbox_single_time.setRange(0, self.parent.max_time - 1)
         self.spinbox_single_time.setValue(line_val)
         self.rt_side_layout.addWidget(self.cbox_single_time, 0,0,1,1)
         self.rt_side_layout.addWidget(self.spinbox_single_time, 0,1,1,1)

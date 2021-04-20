@@ -56,8 +56,8 @@ class ChannelOptions(QWidget):
         self.data.convertChnNames()
         self.ar1020 = self.data.canDoBIP_AR(1,0)
         self.bip1020 = self.data.canDoBIP_AR(0,0)
-        self.ar1010 = self.data.canDoBIP_AR(1,1)
-        self.bip1010 = self.data.canDoBIP_AR(0,1)
+        #self.ar1010 = self.data.canDoBIP_AR(1,1)
+        #self.bip1010 = self.data.canDoBIP_AR(0,1)
         self.data.total_nchns = len(self.data.chns2labels)
 
         self.setWindowTitle(self.title)
@@ -88,18 +88,18 @@ class ChannelOptions(QWidget):
             self.cbox_bip.toggled.connect(self.bipChecked)
             grid_lt.addWidget(self.cbox_bip,1,0)
 
-        if self.ar1010:
-            self.cbox_ar1010 = QCheckBox("Average reference (10-10)",self)
-            self.cbox_ar1010.toggled.connect(self.arChecked1010)
-            grid_lt.addWidget(self.cbox_ar1010,3,0)
+        #if self.ar1010:
+        #    self.cbox_ar1010 = QCheckBox("Average reference (10-10)",self)
+        #    self.cbox_ar1010.toggled.connect(self.arChecked1010)
+        #    grid_lt.addWidget(self.cbox_ar1010,3,0)
 
-            self.cbox_bip1010 = QCheckBox("Bipolar (10-10)",self)
-            self.cbox_bip1010.toggled.connect(self.bipChecked1010)
-            grid_lt.addWidget(self.cbox_bip1010,4,0)
-        elif self.bip1010:
-            self.cbox_bip1010 = QCheckBox("Bipolar (10-10)",self)
-            self.cbox_bip1010.toggled.connect(self.bipChecked1010)
-            grid_lt.addWidget(self.cbox_bip1010,3,0)
+        #    self.cbox_bip1010 = QCheckBox("Bipolar (10-10)",self)
+        #    self.cbox_bip1010.toggled.connect(self.bipChecked1010)
+        #    grid_lt.addWidget(self.cbox_bip1010,4,0)
+        #elif self.bip1010:
+        #    self.cbox_bip1010 = QCheckBox("Bipolar (10-10)",self)
+        #    self.cbox_bip1010.toggled.connect(self.bipChecked1010)
+        #    grid_lt.addWidget(self.cbox_bip1010,3,0)
 
         self.chn_cbox_list = QWidget()
         # self.chn_cbox_list.setObjectName("chn_cbox_list")
@@ -216,11 +216,11 @@ class ChannelOptions(QWidget):
             # self.cbox_txtfile.setChecked(0)
             self.uncheck_txt_files()
             self.cbox_bip.setChecked(0)
-            if self.ar1010:
-                self.cbox_ar1010.setChecked(0)
-                self.cbox_bip1010.setChecked(0)
-            elif self.bip1010:
-                self.cbox_bip1010.setChecked(0)
+            #if self.ar1010:
+            #    self.cbox_ar1010.setChecked(0)
+            #    self.cbox_bip1010.setChecked(0)
+            #elif self.bip1010:
+            #    self.cbox_bip1010.setChecked(0)
             # select all AR channels, deselect all others
             self._selectChns(chns, 0)
         else:
@@ -229,12 +229,12 @@ class ChannelOptions(QWidget):
     def bipChecked(self):
         c = self.sender()
         chns = self.data.getChns(self.data.labelsBIP1020)
-        if c.isChecked():
-            if self.ar1010:
-                self.cbox_ar1010.setChecked(0)
-                self.cbox_bip1010.setChecked(0)
-            elif self.bip1010:
-                self.cbox_bip1010.setChecked(0)
+        # if c.isChecked():
+        #    if self.ar1010:
+        #        self.cbox_ar1010.setChecked(0)
+        #        self.cbox_bip1010.setChecked(0)
+        #    elif self.bip1010:
+        #        self.cbox_bip1010.setChecked(0)
         if self.ar1020:
             chns = self.data.getChns(self.data.labelsAR1020)
             if c.isChecked():
@@ -306,13 +306,13 @@ class ChannelOptions(QWidget):
             if self.ar1020:
                 self.cbox_ar.setChecked(0)
                 self.cbox_bip.setChecked(0)
-                if self.ar1010:
-                    self.cbox_ar1010.setChecked(0)
-                    self.cbox_bip1010.setChecked(0)
+                #if self.ar1010:
+                #    self.cbox_ar1010.setChecked(0)
+                #    self.cbox_bip1010.setChecked(0)
             if self.bip1020:
                 self.cbox_bip.setChecked(0)
-                if self.bip1010:
-                    self.cbox_bip1010.setChecked(0)
+                #if self.bip1010:
+                #    self.cbox_bip1010.setChecked(0)
             for child in self.chn_cbox_list.children():
                 for ch in child.children():
                     if isinstance(ch, QCheckBox):
@@ -526,18 +526,18 @@ class ChannelOptions(QWidget):
                     self.parent.removeSpecPlot()
             # data = self.parent.data
             plot_bip_from_ar = 0
-            if (self.ar1020 and self.cbox_bip.isChecked() or
-                    self.ar1010 and self.cbox_bip1010.isChecked()):
+            if (self.ar1020 and self.cbox_bip.isChecked()):# or
+                #self.ar1010 and self.cbox_bip1010.isChecked()):
                 plot_bip_from_ar = 1
             mont_type = 5
             if self.ar1020 and self.cbox_ar.isChecked():
                 mont_type = 0
             elif (self.ar1020 or self.bip1020) and self.cbox_bip.isChecked():
                 mont_type = 1
-            elif self.ar1010 and self.cbox_ar1010.isChecked():
-                mont_type = 2
-            elif self.bip1010 and self.cbox_bip1010.isChecked():
-                mont_type = 3
+            #elif self.ar1010 and self.cbox_ar1010.isChecked():
+            #    mont_type = 2
+            #elif self.bip1010 and self.cbox_bip1010.isChecked():
+            #    mont_type = 3
             else:
                 # check if cbox_txtfile.isChecked()
                 for child in self.chn_cbox_list.children():

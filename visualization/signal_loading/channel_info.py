@@ -113,26 +113,26 @@ class ChannelInfo():
         self.labelsAR1010 = ["T10","F10","O2","P8","T8","F8","FP2","P4",
                              "C4","F4","PZ","CZ","FZ","P3","C3","F3",
                              "O1","P7","T7","F7","FP1","T9","F9"]
+        
         self.otherLabels = ["T1","T2","A1","A2","FPZ","NZ","AF7","AF3","AF1",
                             "AFZ","AF2","AF4","AF8","F9","F5","F1","F2","F6",
                             "F10","FT9","FT7","FC5","FC3","FC1","FCZ","FC2",
                             "FC4","FC6","FT8","FT10","T9","C5","C1","C2","C6",
                             "T10","TP9","TP7","CP5","CP3","CP1","CPZ","CP2",
                             "CP4","CP6","TP8","TP10","P9","P5","P1","P2","P6",
-                            "P10","PO7","PO3","POZ","PO4","PO8","OZ","LZ"]
+                            "P10","PO7","PO3","POZ","PO4","PO8","OZ","LZ",
+                            "NZ","FT9","FT7","FT8","FT10","IZ"]
         self.g = '#1f8c45'
         self.colorsBIP1020 = [self.g, self.g,'b','b','b','b','r','r','r','r','b',
                             'b','b','b','r','r','r','r','r']
         self.colorsAR1020 = ['b','r',self.g, self.g, self.g,'b','r','b','r','b',
                             'r','b','r','b','r','b','r','b','r','b']
-        """
         self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b','b','b',
                                 self.g,self.g,self.g,self.g,'r','r','r','r','r',
                                 'r','r','r','r','r','r','r']
         self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b','b',
-                                self.g,self.g,self.g,self.g,self.g'r','r','r',
+                                self.g,self.g,self.g,self.g,self.g,'r','r','r',
                                 'r','r','r','r','r','r','r','r']
-        """
         self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b',self.g,
                                self.g,'r','r','r','r','r','r','r','r','r','r']
         self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b',self.g,
@@ -142,7 +142,8 @@ class ChannelInfo():
                                 'r','r',self.g,'b','b','b','b','b','r','r','r',
                                 'b','b','b','r','r','r','r','r',self.g,'b','b',
                                 'b','b','b','r','r','r','b','b','b','r','r',
-                                self.g,'b','b',self.g,self.g]
+                                self.g,'b','b',self.g,self.g,self.g,'r','r','b',
+                                'b',self.g]
         self.pred_chn_data = []
         self.labelsFromTxtFile = {}
         self.use_loaded_txt_file = 0
@@ -216,10 +217,10 @@ class ChannelInfo():
             labels_to_check = self.labelsBIP1020
         elif bip_ar == 1 and mont1010_1020 == 0:
             labels_to_check = self.labelsAR1020
-        elif bip_ar == 0 and mont1010_1020 == 1:
-            labels_to_check = self.labelsBIP1010
-        else:
-            labels_to_check = self.labelsAR1010
+        #elif bip_ar == 0 and mont1010_1020 == 1:
+        #    labels_to_check = self.labelsBIP1010
+        #else:
+        #    labels_to_check = self.labelsAR1010
 
         ret = 1
         for i in range(len(labels_to_check)):
@@ -242,10 +243,10 @@ class ChannelInfo():
             labels_to_check = self.labelsBIP1020
         elif bip_ar == 1 and mont1010_1020 == 0:
             labels_to_check = self.labelsAR1020
-        elif bip_ar == 0 and mont1010_1020 == 1:
-            labels_to_check = self.labelsBIP1010
-        else:
-            labels_to_check = self.labelsAR1010
+        #elif bip_ar == 0 and mont1010_1020 == 1:
+        #    labels_to_check = self.labelsBIP1010
+        #else:
+        #    labels_to_check = self.labelsAR1010
 
         for i in range(len(labels_to_check)):
             ret = 0

@@ -207,13 +207,14 @@ class SaveImgOptions(QWidget):
                         self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs,
                                 ends[k] - self.count * self.fs, color='paleturquoise', alpha=0.5))
                     elif not self.data.pi.pred_by_chn and self.data.pi.multi_class:
-                        r, g, b, a = self.data.pi.get_color(class_vals[k])
-                        r = r / 255
-                        g = g / 255
-                        b = b / 255
-                        a = a / 255
-                        self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs,
-                                ends[k] - self.count * self.fs, color=(r,g,b,a)))
+                        if i == 0: # only plot for first chn
+                            r, g, b, a = self.data.pi.get_color(class_vals[k])
+                            r = r / 255
+                            g = g / 255
+                            b = b / 255
+                            a = a / 255
+                            self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs,
+                                    ends[k] - self.count * self.fs, color=(r,g,b,a)))
                     else:
                         for i in range(self.nchns):
                             r, g, b, a = self.data.pi.get_color(chns[i][k])
