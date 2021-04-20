@@ -1,17 +1,17 @@
-from channel_info import ChannelInfo
-from channel_options import ChannelOptions
-from filter_options import FilterOptions
-from filter_info import FilterInfo
-from pred_options import PredictionOptions
-from preds_info import PredsInfo
-from spec_options import SpecOptions
-from spec_info import SpecInfo
-from saveImg_info import SaveImgInfo
-from saveImg_options import SaveImgOptions
-from saveEdf_info import SaveEdfInfo
-from saveEdf_options import SaveEdfOptions
+from signal_loading.channel_info import ChannelInfo
+from signal_loading.channel_options import ChannelOptions
+from filtering.filter_options import FilterOptions
+from filtering.filter_info import FilterInfo
+from predictions.pred_options import PredictionOptions
+from predictions.preds_info import PredsInfo
+from spectrogram_window.spec_options import SpecOptions
+from spectrogram_window.spec_info import SpecInfo
+from image_saving.saveImg_info import SaveImgInfo
+from image_saving.saveImg_options import SaveImgOptions
+from image_saving.saveTopoplot_options import SaveTopoplotOptions
+from edf_saving.saveEdf_info import SaveEdfInfo
+from edf_saving.saveEdf_options import SaveEdfOptions
 from signalStats_info import SignalStatsInfo
-from saveTopoplot_options import SaveTopoplotOptions
 
 import pyedflib
 from plot_utils import *
@@ -78,114 +78,148 @@ class MainPage(QMainWindow):
 
         #---- left side of the screen ----#
 
+        ud = 0
+
         self.buttonSelectFile = QPushButton('Select file', self)
         self.buttonSelectFile.setToolTip('Click to select EDF file')
-        grid_lt.addWidget(self.buttonSelectFile, 0, 0, 1, 2)
+        grid_lt.addWidget(self.buttonSelectFile, ud, 0, 1, 2)
+        ud += 1
 
         self.lblFn = QLabel("No file loaded.",self)
-        grid_lt.addWidget(self.lblFn, 1, 0, 1, 2)
+        grid_lt.addWidget(self.lblFn, ud, 0, 1, 2)
+        ud += 1
 
         self.buttonChgSig = QPushButton("Change signals", self)
         self.buttonChgSig.setToolTip("Click to change signals")
-        grid_lt.addWidget(self.buttonChgSig, 2, 1)
+        grid_lt.addWidget(self.buttonChgSig, ud, 1)
+        ud += 1
 
         self.cbox_filter = QCheckBox("Filter signals", self)
         self.cbox_filter.setToolTip("Click to filter")
-        grid_lt.addWidget(self.cbox_filter, 3, 0)
+        grid_lt.addWidget(self.cbox_filter, ud, 0)
 
         self.buttonChgFilt = QPushButton("Change Filter", self)
         self.buttonChgFilt.setToolTip("Click to change filter")
-        grid_lt.addWidget(self.buttonChgFilt, 3, 1)
+        grid_lt.addWidget(self.buttonChgFilt, ud, 1)
+        ud += 1
 
         test01 = QLabel("", self)
-        grid_lt.addWidget(test01, 4, 0)
+        grid_lt.addWidget(test01, ud, 0)
+        ud += 1
 
-        grid_lt.addWidget(QHLine(), 5, 0, 1, 2)
+        grid_lt.addWidget(QHLine(), ud, 0, 1, 2)
+        ud += 1
 
         test0 = QLabel("", self)
-        grid_lt.addWidget(test0, 6, 0)
+        grid_lt.addWidget(test0, ud, 0)
+        ud += 1
 
         self.buttonPredict = QPushButton("Load model / predictions", self)
         self.buttonPredict.setToolTip("Click load data, models, and predictions")
-        grid_lt.addWidget(self.buttonPredict, 7, 0, 1, 2)
+        grid_lt.addWidget(self.buttonPredict, ud, 0, 1, 2)
+        ud += 1
 
         self.predLabel = QLabel("", self)
-        grid_lt.addWidget(self.predLabel, 8, 0, 1, 1)
+        grid_lt.addWidget(self.predLabel, ud, 0, 1, 1)
+        ud += 1
 
         self.threshLblVal = QLabel("Change threshold of prediction:  (threshold = 0.5)", self)
-        grid_lt.addWidget(self.threshLblVal, 9, 0,1,2)
-
+        grid_lt.addWidget(self.threshLblVal, ud, 0,1,2)
+        ud += 1
 
         self.threshSlider = QSlider(Qt.Horizontal, self)
         self.threshSlider.setMinimum(0)
         self.threshSlider.setMaximum(100)
         self.threshSlider.setValue(50)
-        grid_lt.addWidget(self.threshSlider, 10, 0, 1, 2)
+        grid_lt.addWidget(self.threshSlider, ud, 0, 1, 2)
+        ud += 1
+
+        self.btn_topo = QPushButton("Show topoplots", self)
+        self.btn_topo.setToolTip("Click to show topoplot. Only enabled if muli-channel predictions are plotted.")
+        self.btn_topo.setEnabled(0)
+        grid_lt.addWidget(self.btn_topo, ud, 1, 1, 1)
+        ud += 1
 
         test = QLabel("", self)
-        grid_lt.addWidget(test, 11, 0)
+        grid_lt.addWidget(test, ud, 0)
+        ud += 1
 
-        grid_lt.addWidget(QHLine(), 12, 0, 1, 2)
+        grid_lt.addWidget(QHLine(), ud, 0, 1, 2)
+        ud += 1
 
         test11 = QLabel("", self)
-        grid_lt.addWidget(test11, 13, 0)
+        grid_lt.addWidget(test11, ud, 0)
+        ud += 1
 
         self.btnZoom = QPushButton("Open zoom", self)
         self.btnZoom.setToolTip("Click to open the zoom window")
-        grid_lt.addWidget(self.btnZoom, 15, 0)
+        grid_lt.addWidget(self.btnZoom, ud, 0)
 
         self.buttonChgSpec = QPushButton("Power spectrum", self)
         self.buttonChgSpec.setToolTip("Click to plot the spectrogram of a signal")
-        grid_lt.addWidget(self.buttonChgSpec, 15, 1)
+        grid_lt.addWidget(self.buttonChgSpec, ud, 1)
+        ud += 1
 
         labelAmp = QLabel("Change amplitude:", self)
-        grid_lt.addWidget(labelAmp, 16, 0)
+        grid_lt.addWidget(labelAmp, ud, 0)
+        ud += 1
 
         self.buttonAmpInc = QPushButton("+", self)
         self.buttonAmpInc.setToolTip("Click to increase signal amplitude")
-        grid_lt.addWidget(self.buttonAmpInc, 16, 1)
+        grid_lt.addWidget(self.buttonAmpInc, ud, 1)
+        ud += 1
 
         self.buttonAmpDec = QPushButton("-", self)
         self.buttonAmpDec.setToolTip("Click to decrease signal amplitude")
-        grid_lt.addWidget(self.buttonAmpDec, 17, 1)
+        grid_lt.addWidget(self.buttonAmpDec, ud, 1)
+        ud += 1
 
         labelWS = QLabel("Window size:", self)
-        grid_lt.addWidget(labelWS, 18, 0)
+        grid_lt.addWidget(labelWS, ud, 0)
 
         self.wsComboBox = QComboBox()
         self.wsComboBox.addItems(["1s","5s","10s","15s","20s","25s","30s"])
         self.wsComboBox.setCurrentIndex(2)
-        grid_lt.addWidget(self.wsComboBox, 18, 1)
+        grid_lt.addWidget(self.wsComboBox, ud, 1)
+        ud += 1
 
 
         test2 = QLabel("", self)
-        grid_lt.addWidget(test2, 20, 0)
+        grid_lt.addWidget(test2, ud, 0)
+        ud += 1
 
-        grid_lt.addWidget(QHLine(), 21, 0, 1, 2)
+        grid_lt.addWidget(QHLine(), ud, 0, 1, 2)
+        ud += 1
 
         test11 = QLabel("", self)
-        grid_lt.addWidget(test11, 22, 0)
+        grid_lt.addWidget(test11, ud, 0)
+        ud += 1
 
         self.buttonPrint = QPushButton("Export to .png", self)
         self.buttonPrint.setToolTip("Click to print a copy of the graph")
-        grid_lt.addWidget(self.buttonPrint, 23, 0)
+        grid_lt.addWidget(self.buttonPrint, ud, 0)
 
         self.buttonSaveEDF = QPushButton("Save to .edf", self)
         self.buttonSaveEDF.setToolTip("Click to save current signals to an .edf file")
-        grid_lt.addWidget(self.buttonSaveEDF, 23, 1)
+        grid_lt.addWidget(self.buttonSaveEDF, ud, 1)
+        ud += 1
 
         test3 = QLabel("", self)
-        grid_lt.addWidget(test3, 24, 0)
+        grid_lt.addWidget(test3, ud, 0)
+        ud += 1
         test4 = QLabel("", self)
-        grid_lt.addWidget(test4, 25, 0)
+        grid_lt.addWidget(test4, ud, 0)
+        ud += 1
         test5 = QLabel("", self)
-        grid_lt.addWidget(test5, 26, 0)
+        grid_lt.addWidget(test5, ud, 0)
+        ud += 1
         test6 = QLabel("", self)
-        grid_lt.addWidget(test6, 27, 0)
+        grid_lt.addWidget(test6, ud, 0)
+        ud += 1
 
         self.btnHelp = QPushButton('Help')
         self.btnHelp.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarContextHelpButton')))
-        grid_lt.addWidget(self.btnHelp,28,0)
+        grid_lt.addWidget(self.btnHelp,ud,0)
 
         #---- end left side ----#
 
@@ -518,6 +552,7 @@ class MainPage(QMainWindow):
         self.buttonChgFilt.clicked.connect(self.changeFilter)
         self.buttonPredict.clicked.connect(self.changePredictions)
         self.threshSlider.sliderReleased.connect(self.changeThreshSlider)
+        self.btn_topo.clicked.connect(self.minimize_topo)
         self.btnZoom.clicked.connect(self.openZoomPlot)
         self.buttonChgSpec.clicked.connect(self.loadSpec)
         self.buttonAmpInc.clicked.connect(self.incAmp)
@@ -584,17 +619,17 @@ class MainPage(QMainWindow):
             any window that is still open.
         """
         if self.filter_win_open:
-            self.filter_ops.closeWindow()
+            self.filter_ops.close_window()
         if self.preds_win_open:
             self.pred_ops.closeWindow()
         if self.chn_win_open:
             self.chn_ops.closeWindow()
         if self.organize_win_open:
-            self.chn_org.closeWindow()
+            self.chn_org.close_window()
         if self.spec_win_open:
             self.spec_ops.closeWindow()
         if self.saveimg_win_open:
-            self.saveimg_ops.closeWindow()
+            self.saveimg_ops.close_window()
         if self.saveedf_win_open:
             self.saveedf_ops.closeWindow()
         if self.anon_win_open:
@@ -1188,10 +1223,10 @@ class MainPage(QMainWindow):
             self.count = self.argv.location
 
         ann = self.edf_info.annotations
-        print(self.pi.pred_by_chn)
-        print(self.predicted)
         if self.pi.pred_by_chn and self.predicted:
             self.add_topoplot()
+            self.btn_topo.setText("Hide topoplots")
+            self.btn_topo.setEnabled(1)
         if self.filter_checked == 1 or (len(ann[0]) > 0 and ann[2][0] == "filtered"):
             self.movePlot(0, 0, self.ylim[1], 0)
         else:
@@ -1365,22 +1400,45 @@ class MainPage(QMainWindow):
                             x_vals = range(
                                 int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
                             pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
-                            self.plot_lines.append(self.mainPlot.plot(x_vals, plotData[i, int(starts[k]) - self.count * fs:int(ends[k]) - self.count * fs] + i*y_lim + y_lim, clickable=False, pen=pen))
+                            self.plot_lines.append(self.mainPlot.plot(x_vals, plotData[i, int(starts[k]) - self.count * fs:int(ends[k]) - 
+                                                self.count * fs] + i*y_lim + y_lim, clickable=False, pen=pen))
                 elif not self.pi.pred_by_chn and not self.pi.multi_class:
                     r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
                                     brush=blueBrush, movable=False, orientation=pg.LinearRegionItem.Vertical)
                     self.mainPlot.addItem(r1)
                     self.rect_list.append(r1)
                 elif not self.pi.pred_by_chn and self.pi.multi_class:
-                    print(class_vals)
-                    print(class_vals[k])
-                    print(starts)
                     r, g, b, a = self.pi.get_color(class_vals[k])
                     brush = QBrush(QColor(r, g, b, a))
                     r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
                                     brush=brush, movable=False, orientation=pg.LinearRegionItem.Vertical)
                     self.mainPlot.addItem(r1)
                     self.rect_list.append(r1)
+                else:
+                    for i in range(nchns):
+                        r, g, b, a = self.pi.get_color(chns[i][k])
+                        brush = QBrush(QColor(r, g, b, a))
+                        if i == plotData.shape[0] - 1:
+                            r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i+0.5),
+                                    ends[k] - starts[k], y_lim) # (x, y, w, h)
+                            r1.setPen(pg.mkPen(None))
+                            r1.setBrush(brush) # (r,g,b,alpha)
+                            self.mainPlot.addItem(r1)
+                            self.rect_list.append(r1)
+                        else:
+                            r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i + 0.5),
+                                    ends[k] - starts[k], y_lim) # (x, y, w, h)
+                            r1.setPen(pg.mkPen(None))
+                            r1.setBrush(brush) # (r,g,b,alpha)
+                            self.mainPlot.addItem(r1)
+                            self.rect_list.append(r1)
+                        x_vals = range(
+                            int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
+                        pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
+                        self.plot_lines.append(self.mainPlot.plot(x_vals, plotData[i, int(starts[k]) - 
+                                        self.count * fs:int(ends[k]) - self.count * fs] + i*y_lim + y_lim,
+                                        clickable=False, pen=pen))
+
 
         step_size = fs  # Updating the x labels with scaling
         step_width = 1
@@ -1544,6 +1602,20 @@ class MainPage(QMainWindow):
         if self.init == 0 and self.argv.show:
             self.throwAlert("Data has been plotted.")
 
+    def minimize_topo(self):
+        """ Function to minimize topoplot.
+        """
+        if self.btn_topo.text() == "Show topoplots":
+            # show them, call move plot
+            self.btn_topo.setText("Hide topoplots")
+            self.add_topoplot()
+            self.callmovePlot(0,0)
+        else:
+            # hide them, call move plot
+            self.btn_topo.setText("Show topoplots")
+            self.close_topoplot()
+            self.callmovePlot(0,0)
+            
     def close_topoplot(self):
         """ Function to close the topoplot. 
         """
@@ -1559,7 +1631,6 @@ class MainPage(QMainWindow):
         self.topoplot_line = pg.InfiniteLine(pos=self.edf_info.fs, angle=90, movable=True,pen=blackPen)
         self.mainPlot.addItem(self.topoplot_line)
         self.topoplot_line.setZValue(2000)
-        print(self.topoplot_line.value())
 
     def update_topoplot(self, pred_loc):
         """ Update the topoplot if pred_by_chn == 1

@@ -1,3 +1,4 @@
+""" Module for holding channel information."""
 import numpy as np
 import pyedflib
 
@@ -10,7 +11,7 @@ def _check_label(label, label_list):
     if ret == -1:
         labels_noEEG = {}
         labels_noRef = {}
-        for k,v in label_CAPS.items():
+        for k,_ in label_CAPS.items():
             loc = k.find("EEG ")
             if loc != -1:
                 k2 = k[loc+4:]
@@ -49,11 +50,38 @@ def _check_label_helper(label, label_list):
         return label_list[label]
     return -1
 
+def convert_txt_chn_names(self,chn_txt):
+        """ Convert channel names to the correct format.
+
+            Args:
+                chn_txt - the channel name
+            Returns:
+                A channel name that corresponds to the expected list of
+                channel names.
+        """
+        chn = chn_txt.upper()
+        loc = chn.find("EEG ")
+        if loc != -1:
+            chn = chn[0:loc] + chn[loc+4:]
+        loc = chn.find("-REF")
+        if loc != -1:
+            chn = chn[0:loc] + chn[loc+4:]
+        if chn == "T7":
+            chn = "T3"
+        if chn == "P7":
+            chn = "T5"
+        if chn == "T8":
+            chn = "T4"
+        if chn == "P8":
+            chn = "T6"
+        return chn
+
 class ChannelInfo():
     """ Data structure for holding information relevant to selecting which signals to plot """
 
     def __init__(self):
-        # Info from parent
+        """ Constructor of the channel info object.
+        """
         self.chns2labels = []
         self.labels2chns = []
         self.fs = 0
@@ -150,7 +178,7 @@ class ChannelInfo():
         Converts given channel names to those in two montages.
         """
 
-        for i in range(len(self.chns2labels)):
+        for _ in range(len(self.chns2labels)):
             self.convertedChnNames.append("")
 
         for k in range(len(self.labelsBIP1020)):
@@ -174,24 +202,6 @@ class ChannelInfo():
             if self.convertedChnNames[k] == "":
                 self.convertedChnNames[k] = self.chns2labels[k]
 
-    def convertTxtChnNames(self,chn_txt):
-        chn = chn_txt.upper()
-        loc = chn.find("EEG ")
-        if loc != -1:
-            chn = chn[0:loc] + chn[loc+4:]
-        loc = chn.find("-REF")
-        if loc != -1:
-            chn = chn[0:loc] + chn[loc+4:]
-        if chn == "T7":
-            chn = "T3"
-        if chn == "P7":
-            chn = "T5"
-        if chn == "T8":
-            chn = "T4"
-        if chn == "P8":
-            chn = "T6"
-        return chn
-
     def canDoBIP_AR(self, bip_ar, mont1010_1020):
         """
         Whether or not the channels are present.
@@ -213,7 +223,7 @@ class ChannelInfo():
 
         ret = 1
         for i in range(len(labels_to_check)):
-            if not (labels_to_check[i] in self.convertedChnNames):
+            if not labels_to_check[i] in self.convertedChnNames:
                 ret = 0
         return ret
 
@@ -328,9 +338,9 @@ class ChannelInfo():
         ar1010 = 0
         bip1010 = 0
         self.nchns_to_plot = len(idxs)
-        self.data_to_plot = np.zeros((self.nchns_to_plot, parent.edf_info_temp.nsamples[0])) # np.zeros((self.nchns_to_plot, data.shape[1]))
+        self.data_to_plot = np.zeros((self.nchns_to_plot, parent.edf_info_temp.nsamples[0]))
         if plot_bip_from_ar and self.canDoBIP_AR_idx(idxs,1,0):
-            self.data_to_plot = np.zeros((self.nchns_to_plot - 1, parent.edf_info_temp.nsamples[0])) # np.zeros((self.nchns_to_plot - 1, data.shape[1]))
+            self.data_to_plot = np.zeros((self.nchns_to_plot - 1, parent.edf_info_temp.nsamples[0]))
         c = 0
 
         if plot_bip_from_ar:
@@ -351,7 +361,7 @@ class ChannelInfo():
                     for k in range(18):
                         idx0 = bip_idx[k,0]
                         idx1 = bip_idx[k,1]
-                        self.data_to_plot[k,:] = f.readSignal(int(idx0)) - f.readSignal(int(idx1)) #data[int(idx0),:] - data[int(idx1),:]
+                        self.data_to_plot[k,:] = f.readSignal(int(idx0)) - f.readSignal(int(idx1))
                         self.labels_to_plot.append(self.labelsBIP1020[k])
                         self.colors.append(self.colorsBIP1020[k])
                         c += 1
@@ -383,7 +393,7 @@ class ChannelInfo():
                     for k in range(len(self.labelsBIP1010)):
                         idx0 = bip_idx[k,0]
                         idx1 = bip_idx[k,1]
-                        self.data_to_plot[k,:] = f.readSignal(int(idx0)) - f.readSignal(int(idx1)) # data[int(idx0),:] - data[int(idx1),:]
+                        self.data_to_plot[k,:] = f.readSignal(int(idx0)) - f.readSignal(int(idx1))
                         self.labels_to_plot.append(self.labelsBIP1010[k])
                         self.colors.append(self.colorsBIP1010[k])
                         c += 1

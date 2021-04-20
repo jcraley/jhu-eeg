@@ -77,7 +77,10 @@ class PredictionOptions(QWidget):
         groupBoxBinaryEdit_model = QGroupBox()
         self.radio_binary_model = QRadioButton("binary")
         self.radio_multiclass_model = QRadioButton("multi-class")
-        self.radio_binary_model.setChecked(True)
+        if self.data.multi_class_model:
+            self.radio_multiclass_model.setChecked(True)
+        else:
+            self.radio_binary_model.setChecked(True)
         hbox = QHBoxLayout()
         hbox.addWidget(self.radio_binary_model)
         hbox.addWidget(self.radio_multiclass_model)
@@ -123,7 +126,10 @@ class PredictionOptions(QWidget):
         groupBoxBinaryEdit_preds = QGroupBox()
         self.radio_binary_preds = QRadioButton("binary")
         self.radio_multiclass_preds = QRadioButton("multi-class")
-        self.radio_binary_preds.setChecked(True)
+        if self.data.multi_class_preds:
+            self.radio_multiclass_preds.setChecked(True)
+        else:
+            self.radio_binary_preds.setChecked(True)
         hbox = QHBoxLayout()
         hbox.addWidget(self.radio_binary_preds)
         hbox.addWidget(self.radio_multiclass_preds)
@@ -204,7 +210,7 @@ class PredictionOptions(QWidget):
         if preds_fn[0] == None or len(preds_fn[0]) == 0:
             return
         else:
-            if self.data.set_preds(preds_fn[0], self.parent.max_time,self.parent.edf_info.fs,self.nchns) == -1:
+            if self.data.set_preds(preds_fn[0], self.parent.max_time,self.parent.edf_info.fs,self.nchns, self.radio_binary_preds.isChecked()) == -1:
                 self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
                                 "file you loaded or are the incorrect shape. Please check your file.")
             else:
@@ -222,6 +228,9 @@ class PredictionOptions(QWidget):
         """
         Take loaded model and data and compute predictions
         """
+        # reset topoplot
+        self.parent.btn_topo.setEnabled(0)
+        self.parent.btn_topo.setText("Show topoplots")
         if self.data.plot_loaded_preds == 0 and self.data.plot_model_preds == 0:
             self.parent.predicted = 0
             self.closeWindow()
@@ -231,15 +240,19 @@ class PredictionOptions(QWidget):
             if not self.data.preds_loaded:
                 self.parent.throwAlert("Please load predictions.")
             else:
+                print(self.radio_binary_preds.isChecked())
                 loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
                                         self.parent.max_time, self.parent.edf_info.fs, 
                                         self.nchns, self.radio_binary_preds.isChecked())
                 if not loaded_preds_valid:
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.preds
+                    self.data.multi_class_preds = self.data.multi_class
                     self.parent.predLabel.setText("Predictions plotted.")
                     if self.data.pred_by_chn:
                         self.parent.add_topoplot()
+                        self.parent.btn_topo.setEnabled(1)
+                        self.parent.btn_topo.setText("Hide topoplots")
                     self.parent.callmovePlot(0,0,0)
                     self.closeWindow()
                 elif loaded_preds_valid == -1:
@@ -258,9 +271,12 @@ class PredictionOptions(QWidget):
                 else:
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.model_preds
+                    self.data.multi_class_model = self.data.multi_class
                     self.parent.predLabel.setText("Predictions plotted.")
                     if self.data.pred_by_chn:
                         self.parent.add_topoplot()
+                        self.parent.btn_topo.setEnabled(1)
+                        self.parent.btn_topo.setText("Hide topoplots")
                     self.parent.callmovePlot(0,0,0)
                     self.closeWindow()
             elif not self.data.data_loaded:
@@ -277,6 +293,8 @@ class PredictionOptions(QWidget):
         self.parent.close_topoplot()
         if self.parent.pi.pred_by_chn and self.parent.predicted:
             self.parent.add_topoplot()
+            self.parent.btn_topo.setText("Hide topoplots")
+            self.parent.btn_topo.setEnabled(1)
         self.parent.preds_win_open = 0
         self.close()
 

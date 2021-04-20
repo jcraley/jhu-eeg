@@ -6,9 +6,9 @@ from PyQt5.QtWidgets import (QVBoxLayout, QMessageBox, QWidget, QListWidget,
                                 QFileDialog, QStyle)
 
 import numpy as np
-from preds_info import PredsInfo
-from channel_info import ChannelInfo
-from organize_channels import OrganizeChannels
+from predictions.preds_info import PredsInfo
+from signal_loading.channel_info import ChannelInfo, convert_txt_chn_names
+from signal_loading.organize_channels import OrganizeChannels
 from copy import deepcopy
 import pyedflib
 
@@ -32,9 +32,9 @@ class ChannelOptions(QWidget):
         self.data = data
         self.parent = parent
         self.organize_win_open = 0
-        self.setupUI()
+        self.setup_ui()
 
-    def setupUI(self):
+    def setup_ui(self):
 
         layout = QGridLayout()
         grid_lt = QGridLayout()
@@ -68,6 +68,7 @@ class ChannelOptions(QWidget):
         grid_lt.addWidget(lblInfo,0,0)
 
         self.scroll_chn_cbox = QScrollArea()
+        self.scroll_chn_cbox.hide()
         #self.scroll_chn_cbox.setMinimumWidth(120)
         #self.scroll_chn_cbox.setMinimumHeight(200)
         self.scroll_chn_cbox.setWidgetResizable(True)
@@ -355,6 +356,9 @@ class ChannelOptions(QWidget):
     def addTxtFile(self, name):
         """ Called to load in the new text file.
         """
+        # show the scroll area if it is hidden
+        if self.scroll_chn_cbox.isHidden():
+            self.scroll_chn_cbox.show()
         # add text file to the list
         main_wid = QWidget()
         wid = QGridLayout()
@@ -362,10 +366,10 @@ class ChannelOptions(QWidget):
         wid_name.toggled.connect(self.txtFileChecked)
         wid_name.setChecked(1)
         wid.addWidget(wid_name,0,0)
-        wid_btn = QPushButton()
+        # wid_btn = QPushButton()
         # wid_btn.clicked.connect(self.test_delete_txt)
-        wid_btn.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_DialogDiscardButton')))
-        wid.addWidget(wid_btn, 0,1)
+        # wid_btn.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_DialogDiscardButton')))
+        # wid.addWidget(wid_btn, 0,1)
         main_wid.setLayout(wid)
         self.chn_cbox_layout.addWidget(main_wid)
 
@@ -430,7 +434,7 @@ class ChannelOptions(QWidget):
             self.data.labelsFromTxtFile[txt_fn_short] = []
             for i in range(len(lines)):
                 if not lines[len(lines) - 1 - i] in self.data.convertedChnNames:
-                    lines[len(lines) - 1 - i] = self.data.convertTxtChnNames(lines[len(lines) - 1 - i])
+                    lines[len(lines) - 1 - i] = convert_txt_chn_names(lines[len(lines) - 1 - i])
                 self.data.labelsFromTxtFile[txt_fn_short].append(lines[len(lines) - 1 - i])
         return ret
 

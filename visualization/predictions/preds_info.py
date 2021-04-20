@@ -17,16 +17,17 @@ class PredsInfo():
         self.model_loaded = 0 # if the model has been loaded
         self.data_loaded = 0 # if the data has been loaded
         self.preds_loaded = 0 # if the predictions have been loaded
+        self.multi_class_model = 0 # currently plotting multiclass from model
+        self.multi_class_preds = 0 # currently plotting mutliclass from loaded preds
         self.plot_model_preds = 0 # whether or not to load model_preds into preds_to_plot
         self.plot_loaded_preds = 0 # whether or not to load preds into preds_to_plot
         self.pred_width = 0 # width in samples of each prediction, must be an int
         self.pred_by_chn = 0 # whether or not we are predicting by channel
         self.multi_class = 0 # whether or not we are doing multi-class predictions
         self.predicted = 0
-         # default colors to use for multi-class: dark blue, green, yellow, red, pink, purple
-        self.class_colors = [(50, 95, 168, 50), (50, 168, 82,50), (168, 52, 50, 50),
+         # default colors to use for multi-class: transparent, dark blue, green, yellow, red, pink, purple
+        self.class_colors = [(255,255,255,0),(50, 95, 168, 50), (50, 168, 82,50), (168, 52, 50, 50),
                                 (164, 168, 50, 50), (168, 50, 150,50), (127, 50, 168, 50)]
-
     def write_data(self, pi2):
         """
         Writes data from pi2 into self.
@@ -74,11 +75,11 @@ class PredsInfo():
         self.model_loaded = 1
         self.update_ready()
 
-    def set_preds(self, preds_fn, max_time, fs, nchns):
+    def set_preds(self, preds_fn, max_time, fs, nchns, binary = True):
         """
         Loads predictions.
 
-        returns:
+        Returns:
             0 for sucess, -1 if predictions are not the right length
             predictions must be for an integer number of samples in the file
         """
@@ -90,11 +91,13 @@ class PredsInfo():
             preds = preds.detach()
         except:
             pass
+        print("in set pred")
+        print(binary)
         preds = np.array(preds)
-        ret = self.check_preds_shape(preds, 0, max_time, fs, nchns)
+        ret = self.check_preds_shape(preds, 0, max_time, fs, nchns, binary)
         return ret
 
-    def predict(self, max_time, fs, nchns, binary = 1):
+    def predict(self, max_time, fs, nchns, binary = True):
         """
         Loads model, passes data through the model to get binary seizure predictions
 
@@ -116,7 +119,7 @@ class PredsInfo():
         ret = self.check_preds_shape(preds, 1, max_time, fs, nchns, binary)
         return ret
 
-    def check_preds_shape(self, preds, model_or_preds, max_time, fs, nchns, binary = 1):
+    def check_preds_shape(self, preds, model_or_preds, max_time, fs, nchns, binary = True):
         """
         Checks whether the predictions are the proper size.
         Samples in the file must be an integer multiple of length.
@@ -158,13 +161,14 @@ class PredsInfo():
                     elif preds.shape[1] == 2:
                         preds = preds[:,1]
                         ret = 0
-                    else:
+                    elif preds.shape[1] == nchns:
                         self.pred_by_chn = 1
                         ret = 0
         else:
-            # multi-class
             if (fs * max_time) % preds.shape[0] == 0:
                 if len(preds.shape) == 3:
+                    if (preds.shape[1] != nchns):
+                        return 1
                     self.pred_by_chn = 1
                 ret = 0
                 self.multi_class = 1
@@ -194,7 +198,9 @@ class PredsInfo():
         Output:
             starts - the start times
             ends - the corresponding end times
-            chns - the channel to plot the given prediction
+            chns - the channel to plot the given prediction (if 
+                    multi-class and multi-channel, class preds
+                    will be stored here instead of in chns)
             class_vals - the values for each class
         """
         start_t = count * fs
@@ -228,6 +234,9 @@ class PredsInfo():
                 ends.append((i + 1) * pw)
                 val = np.argmax(self.preds_to_plot[i])
                 class_vals.append(val)
+                if self.pred_by_chn:
+                    val = np.argmax(self.preds_to_plot[i])
+                    chns.append(val)
             else:
                 if np.max(self.preds_to_plot[i]) > thresh:
                     starts.append(start_t)
@@ -241,10 +250,13 @@ class PredsInfo():
         while i * pw < end_t:
             if (i + 1) * pw > end_t:
                 if self.multi_class:
-                    starts.append(start_t)
+                    starts.append(i * pw)
                     ends.append((i + 1) * pw)
                     val = np.argmax(self.preds_to_plot[i])
                     class_vals.append(val)
+                    if self.pred_by_chn:
+                        val = np.argmax(self.preds_to_plot[i])
+                        chns.append(val)
                     return starts, ends, chns, class_vals
                 else:
                     if np.max(self.preds_to_plot[i]) > thresh:
@@ -253,13 +265,15 @@ class PredsInfo():
                         if self.pred_by_chn:
                             chn_i = preds_mutli_chn[i] > thresh
                             chns.append(chn_i)
-                        # self.preds_to_plot = temp
                         return starts, ends, chns, class_vals
             if self.multi_class:
-                starts.append(start_t)
+                starts.append(i * pw)
                 ends.append((i + 1) * pw)
                 val = np.argmax(self.preds_to_plot[i])
                 class_vals.append(val)
+                if self.pred_by_chn:
+                    val = np.argmax(self.preds_to_plot[i])
+                    chns.append(val)
             elif np.max(self.preds_to_plot[i]) > thresh:
                 starts.append(i * pw)
                 ends.append((i + 1) * pw)
