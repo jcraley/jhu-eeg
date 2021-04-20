@@ -928,18 +928,18 @@ class MainPage(QMainWindow):
                             + (i + 1) * y_lim)
 
         # add predictions
-        if len(self.zoom_rect_list) > 0:
-            for a in self.zoom_rect_list:
+        if len(self.rect_list) > 0:
+            for a in self.rect_list:
                 self.zoomPlot.removeItem(a)
-            self.zoom_rect_list[:] = []
+            self.rect_list[:] = []
 
         width = 1 / (nchns + 2)
         if self.predicted == 1:
             blueBrush = QBrush(QColor(38,233,254,50))
-            starts, ends, chns, _ = self.pi.compute_starts_ends_chns(self.thresh,
+            starts, ends, chns, class_vals = self.pi.compute_starts_ends_chns(self.thresh,
                                         self.count, self.window_size, fs, nchns)
             for k in range(len(starts)):
-                if self.pi.pred_by_chn:
+                if self.pi.pred_by_chn and not self.pi.multi_class:
                     for i in range(nchns):
                         if chns[k][i]:
                             if i == plotData.shape[0] - 1:
@@ -948,23 +948,56 @@ class MainPage(QMainWindow):
                                 r1.setPen(pg.mkPen(None))
                                 r1.setBrush(pg.mkBrush(color = (38,233,254,50))) # (r,g,b,alpha)
                                 self.zoomPlot.addItem(r1)
-                                self.zoom_rect_list.append(r1)
+                                self.rect_list.append(r1)
                             else:
                                 r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i + 0.5),
                                         ends[k] - starts[k], y_lim) # (x, y, w, h)
                                 r1.setPen(pg.mkPen(None))
                                 r1.setBrush(blueBrush) # (r,g,b,alpha)
                                 self.zoomPlot.addItem(r1)
-                                self.zoom_rect_list.append(r1)
+                                self.rect_list.append(r1)
                             x_vals = range(
                                 int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
                             pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
-                            self.zoom_plot_lines.append(self.zoomPlot.plot(x_vals, plotData[i, int(starts[k]) - self.count * fs:int(ends[k]) - self.count * fs] + i*y_lim + y_lim, clickable=False, pen=pen))
-                else:
+                            self.plot_lines.append(self.zoomPlot.plot(x_vals, plotData[i, int(starts[k]) - self.count * fs:int(ends[k]) - 
+                                                self.count * fs] + i*y_lim + y_lim, clickable=False, pen=pen))
+                elif not self.pi.pred_by_chn and not self.pi.multi_class:
                     r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
                                     brush=blueBrush, movable=False, orientation=pg.LinearRegionItem.Vertical)
                     self.zoomPlot.addItem(r1)
-                    self.zoom_rect_list.append(r1)
+                    self.rect_list.append(r1)
+                elif not self.pi.pred_by_chn and self.pi.multi_class:
+                    r, g, b, a = self.pi.get_color(class_vals[k])
+                    brush = QBrush(QColor(r, g, b, a))
+                    r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
+                                    brush=brush, movable=False, orientation=pg.LinearRegionItem.Vertical)
+                    self.zoomPlot.addItem(r1)
+                    self.rect_list.append(r1)
+                else:
+                    for i in range(nchns):
+                        r, g, b, a = self.pi.get_color(chns[i][k])
+                        brush = QBrush(QColor(r, g, b, a))
+                        if i == plotData.shape[0] - 1:
+                            r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i+0.5),
+                                    ends[k] - starts[k], y_lim) # (x, y, w, h)
+                            r1.setPen(pg.mkPen(None))
+                            r1.setBrush(brush) # (r,g,b,alpha)
+                            self.zoomPlot.addItem(r1)
+                            self.rect_list.append(r1)
+                        else:
+                            r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i + 0.5),
+                                    ends[k] - starts[k], y_lim) # (x, y, w, h)
+                            r1.setPen(pg.mkPen(None))
+                            r1.setBrush(brush) # (r,g,b,alpha)
+                            self.zoomPlot.addItem(r1)
+                            self.rect_list.append(r1)
+                        x_vals = range(
+                            int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
+                        pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
+                        self.plot_lines.append(self.zoomPlot.plot(x_vals, plotData[i, int(starts[k]) - 
+                                        self.count * fs:int(ends[k]) - self.count * fs] + i*y_lim + y_lim,
+                                        clickable=False, pen=pen))
+
 
         x_ticks = []
         for i in range(self.window_size):

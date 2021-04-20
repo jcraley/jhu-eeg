@@ -152,10 +152,10 @@ class SaveImgOptions(QWidget):
                 width = 1 / (self.nchns + 1)
 
             if self.predicted == 1:
-                starts, ends, chns, _ = self.data.pi.compute_starts_ends_chns(self.thresh,
+                starts, ends, chns, class_vals = self.data.pi.compute_starts_ends_chns(self.thresh,
                                             self.count, self.window_size, self.fs, self.nchns)
                 for k in range(len(starts)):
-                    if self.data.pi.pred_by_chn:
+                    if self.data.pi.pred_by_chn and not self.data.pi.multi_class:
                         if chns[k][i]:
                             if i == self.plot_data.shape[0] - 1:
                                 if self.data.plot_ann:
@@ -203,9 +203,52 @@ class SaveImgOptions(QWidget):
                                             + self.y_lim, '-',
                                             linewidth=self.data.line_thick * 2,
                                             color=self.data.ci.colors[i])
-                    else:
+                    elif not self.data.pi.pred_by_chn and not self.data.pi.multi_class:
                         self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs,
                                 ends[k] - self.count * self.fs, color='paleturquoise', alpha=0.5))
+                    elif not self.data.pi.pred_by_chn and self.data.pi.multi_class:
+                        r, g, b, a = self.data.pi.get_color(class_vals[k])
+                        r = r / 255
+                        g = g / 255
+                        b = b / 255
+                        a = a / 255
+                        self.aspan_list.append(self.ax.axvspan(starts[k] - self.count * self.fs,
+                                ends[k] - self.count * self.fs, color=(r,g,b,a)))
+                    else:
+                        for i in range(self.nchns):
+                            r, g, b, a = self.data.pi.get_color(chns[i][k])
+                            r = r / 255
+                            g = g / 255
+                            b = b / 255
+                            a = a / 255
+                            if i == self.plot_data.shape[0] - 1:
+                                if self.data.plot_ann:
+                                    self.aspan_list.append(self.ax.axvspan(starts[k] -
+                                                            self.count * self.fs,
+                                                            ends[k] - self.count *
+                                                            self.fs, ymin=width*(i+1.5),
+                                                            ymax=1, color=(r,g,b,a)))
+                                else:
+                                    self.aspan_list.append(self.ax.axvspan(starts[k] -
+                                                            self.count * self.fs,
+                                                            ends[k] - self.count *
+                                                            self.fs, ymin=width*(i+0.5),
+                                                            ymax=1, color=(r,g,b,a)))
+                            else:
+                                if self.data.plot_ann:
+                                    self.aspan_list.append(self.ax.axvspan(starts[k] -
+                                                            self.count * self.fs,
+                                                            ends[k] - self.count * self.fs,
+                                                            ymin=width*(i+1.5), ymax=width*(i+2.5),
+                                                            color=(r,g,b,a)))
+                                else:
+                                    self.aspan_list.append(self.ax.axvspan(starts[k] -
+                                                            self.count * self.fs,
+                                                            ends[k] - self.count *
+                                                            self.fs, ymin=width*(i+0.5),
+                                                            ymax=width*(i+1.5),
+                                                            color=(r,g,b,a)))
+
 
         self.ax.set_xlim([0, self.fs*self.window_size])
         step_size = self.fs  # Updating the x labels with scaling
