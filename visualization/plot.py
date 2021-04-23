@@ -1,15 +1,16 @@
-from channel_info import ChannelInfo
-from channel_options import ChannelOptions
-from filter_options import FilterOptions
-from filter_info import FilterInfo
-from pred_options import PredictionOptions
-from preds_info import PredsInfo
-from spec_options import SpecOptions
-from spec_info import SpecInfo
-from saveImg_info import SaveImgInfo
-from saveImg_options import SaveImgOptions
-from saveEdf_info import SaveEdfInfo
-from saveEdf_options import SaveEdfOptions
+from signal_loading.channel_info import ChannelInfo
+from signal_loading.channel_options import ChannelOptions
+from filtering.filter_options import FilterOptions
+from filtering.filter_info import FilterInfo
+from predictions.pred_options import PredictionOptions
+from predictions.preds_info import PredsInfo
+from spectrogram_window.spec_options import SpecOptions
+from spectrogram_window.spec_info import SpecInfo
+from image_saving.saveImg_info import SaveImgInfo
+from image_saving.saveImg_options import SaveImgOptions
+from image_saving.saveTopoplot_options import SaveTopoplotOptions
+from edf_saving.saveEdf_info import SaveEdfInfo
+from edf_saving.saveEdf_options import SaveEdfOptions
 from signalStats_info import SignalStatsInfo
 
 import pyedflib
@@ -24,6 +25,8 @@ from matplotlib.backends.backend_qt5agg import (
     FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
 from matplotlib.backends.qt_compat import QtCore, QtWidgets
 import sys
+import mne
+import math
 
 from PyQt5.QtCore import Qt, QTime, QUrl
 
@@ -35,6 +38,7 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QFileDialog, QMenu,
                              QTimeEdit, QComboBox, QFrame, QGroupBox, QStyle)
 from PyQt5.QtGui import QIcon, QBrush, QColor, QPen, QFont, QDesktopServices
 import pyqtgraph as pg
+from pyqtgraph.dockarea import *
 import pyqtgraph.exporters
 # pg.setConfigOptions(useOpenGL=True) # To make plotting faster when line width > 1
 
@@ -66,6 +70,7 @@ class MainPage(QMainWindow):
         """
         Setup the UI
         """
+        self.app.setStyleSheet(open('visualization/ui_files/gui_stylesheet.css').read())
         layout = QGridLayout()
         layout.setSpacing(10)
         grid_lt = QGridLayout()
@@ -73,114 +78,148 @@ class MainPage(QMainWindow):
 
         #---- left side of the screen ----#
 
+        ud = 0
+
         self.buttonSelectFile = QPushButton('Select file', self)
         self.buttonSelectFile.setToolTip('Click to select EDF file')
-        grid_lt.addWidget(self.buttonSelectFile, 0, 0, 1, 2)
+        grid_lt.addWidget(self.buttonSelectFile, ud, 0, 1, 2)
+        ud += 1
 
         self.lblFn = QLabel("No file loaded.",self)
-        grid_lt.addWidget(self.lblFn, 1, 0, 1, 2)
+        grid_lt.addWidget(self.lblFn, ud, 0, 1, 2)
+        ud += 1
 
         self.buttonChgSig = QPushButton("Change signals", self)
         self.buttonChgSig.setToolTip("Click to change signals")
-        grid_lt.addWidget(self.buttonChgSig, 2, 1)
+        grid_lt.addWidget(self.buttonChgSig, ud, 1)
+        ud += 1
 
         self.cbox_filter = QCheckBox("Filter signals", self)
         self.cbox_filter.setToolTip("Click to filter")
-        grid_lt.addWidget(self.cbox_filter, 3, 0)
+        grid_lt.addWidget(self.cbox_filter, ud, 0)
 
         self.buttonChgFilt = QPushButton("Change Filter", self)
         self.buttonChgFilt.setToolTip("Click to change filter")
-        grid_lt.addWidget(self.buttonChgFilt, 3, 1)
+        grid_lt.addWidget(self.buttonChgFilt, ud, 1)
+        ud += 1
 
         test01 = QLabel("", self)
-        grid_lt.addWidget(test01, 4, 0)
+        grid_lt.addWidget(test01, ud, 0)
+        ud += 1
 
-        grid_lt.addWidget(QHLine(), 5, 0, 1, 2)
+        grid_lt.addWidget(QHLine(), ud, 0, 1, 2)
+        ud += 1
 
         test0 = QLabel("", self)
-        grid_lt.addWidget(test0, 6, 0)
+        grid_lt.addWidget(test0, ud, 0)
+        ud += 1
 
         self.buttonPredict = QPushButton("Load model / predictions", self)
         self.buttonPredict.setToolTip("Click load data, models, and predictions")
-        grid_lt.addWidget(self.buttonPredict, 7, 0, 1, 2)
+        grid_lt.addWidget(self.buttonPredict, ud, 0, 1, 2)
+        ud += 1
 
         self.predLabel = QLabel("", self)
-        grid_lt.addWidget(self.predLabel, 8, 0, 1, 1)
+        grid_lt.addWidget(self.predLabel, ud, 0, 1, 1)
+        ud += 1
 
         self.threshLblVal = QLabel("Change threshold of prediction:  (threshold = 0.5)", self)
-        grid_lt.addWidget(self.threshLblVal, 9, 0,1,2)
-
+        grid_lt.addWidget(self.threshLblVal, ud, 0,1,2)
+        ud += 1
 
         self.threshSlider = QSlider(Qt.Horizontal, self)
         self.threshSlider.setMinimum(0)
         self.threshSlider.setMaximum(100)
         self.threshSlider.setValue(50)
-        grid_lt.addWidget(self.threshSlider, 10, 0, 1, 2)
+        grid_lt.addWidget(self.threshSlider, ud, 0, 1, 2)
+        ud += 1
+
+        self.btn_topo = QPushButton("Show topoplots", self)
+        self.btn_topo.setToolTip("Click to show topoplot. Only enabled if muli-channel predictions are plotted.")
+        self.btn_topo.setEnabled(0)
+        grid_lt.addWidget(self.btn_topo, ud, 1, 1, 1)
+        ud += 1
 
         test = QLabel("", self)
-        grid_lt.addWidget(test, 11, 0)
+        grid_lt.addWidget(test, ud, 0)
+        ud += 1
 
-        grid_lt.addWidget(QHLine(), 12, 0, 1, 2)
+        grid_lt.addWidget(QHLine(), ud, 0, 1, 2)
+        ud += 1
 
         test11 = QLabel("", self)
-        grid_lt.addWidget(test11, 13, 0)
+        grid_lt.addWidget(test11, ud, 0)
+        ud += 1
 
         self.btnZoom = QPushButton("Open zoom", self)
         self.btnZoom.setToolTip("Click to open the zoom window")
-        grid_lt.addWidget(self.btnZoom, 15, 0)
+        grid_lt.addWidget(self.btnZoom, ud, 0)
 
         self.buttonChgSpec = QPushButton("Power spectrum", self)
         self.buttonChgSpec.setToolTip("Click to plot the spectrogram of a signal")
-        grid_lt.addWidget(self.buttonChgSpec, 15, 1)
+        grid_lt.addWidget(self.buttonChgSpec, ud, 1)
+        ud += 1
 
         labelAmp = QLabel("Change amplitude:", self)
-        grid_lt.addWidget(labelAmp, 16, 0)
+        grid_lt.addWidget(labelAmp, ud, 0)
+        ud += 1
 
         self.buttonAmpInc = QPushButton("+", self)
         self.buttonAmpInc.setToolTip("Click to increase signal amplitude")
-        grid_lt.addWidget(self.buttonAmpInc, 16, 1)
+        grid_lt.addWidget(self.buttonAmpInc, ud, 1)
+        ud += 1
 
         self.buttonAmpDec = QPushButton("-", self)
         self.buttonAmpDec.setToolTip("Click to decrease signal amplitude")
-        grid_lt.addWidget(self.buttonAmpDec, 17, 1)
+        grid_lt.addWidget(self.buttonAmpDec, ud, 1)
+        ud += 1
 
         labelWS = QLabel("Window size:", self)
-        grid_lt.addWidget(labelWS, 18, 0)
+        grid_lt.addWidget(labelWS, ud, 0)
 
         self.wsComboBox = QComboBox()
         self.wsComboBox.addItems(["1s","5s","10s","15s","20s","25s","30s"])
         self.wsComboBox.setCurrentIndex(2)
-        grid_lt.addWidget(self.wsComboBox, 18, 1)
+        grid_lt.addWidget(self.wsComboBox, ud, 1)
+        ud += 1
 
 
         test2 = QLabel("", self)
-        grid_lt.addWidget(test2, 20, 0)
+        grid_lt.addWidget(test2, ud, 0)
+        ud += 1
 
-        grid_lt.addWidget(QHLine(), 21, 0, 1, 2)
+        grid_lt.addWidget(QHLine(), ud, 0, 1, 2)
+        ud += 1
 
         test11 = QLabel("", self)
-        grid_lt.addWidget(test11, 22, 0)
+        grid_lt.addWidget(test11, ud, 0)
+        ud += 1
 
         self.buttonPrint = QPushButton("Export to .png", self)
         self.buttonPrint.setToolTip("Click to print a copy of the graph")
-        grid_lt.addWidget(self.buttonPrint, 23, 0)
+        grid_lt.addWidget(self.buttonPrint, ud, 0)
 
         self.buttonSaveEDF = QPushButton("Save to .edf", self)
         self.buttonSaveEDF.setToolTip("Click to save current signals to an .edf file")
-        grid_lt.addWidget(self.buttonSaveEDF, 23, 1)
+        grid_lt.addWidget(self.buttonSaveEDF, ud, 1)
+        ud += 1
 
         test3 = QLabel("", self)
-        grid_lt.addWidget(test3, 24, 0)
+        grid_lt.addWidget(test3, ud, 0)
+        ud += 1
         test4 = QLabel("", self)
-        grid_lt.addWidget(test4, 25, 0)
+        grid_lt.addWidget(test4, ud, 0)
+        ud += 1
         test5 = QLabel("", self)
-        grid_lt.addWidget(test5, 26, 0)
+        grid_lt.addWidget(test5, ud, 0)
+        ud += 1
         test6 = QLabel("", self)
-        grid_lt.addWidget(test6, 27, 0)
+        grid_lt.addWidget(test6, ud, 0)
+        ud += 1
 
         self.btnHelp = QPushButton('Help')
         self.btnHelp.setIcon(self.style().standardIcon(getattr(QStyle, 'SP_TitleBarContextHelpButton')))
-        grid_lt.addWidget(self.btnHelp,28,0)
+        grid_lt.addWidget(self.btnHelp,ud,0)
 
         #---- end left side ----#
 
@@ -190,7 +229,20 @@ class MainPage(QMainWindow):
         self.mainPlot = self.plotLayout.addPlot(row=0, col=0)
         self.mainPlot.setMouseEnabled(x=False, y=False)
         self.plotLayout.setBackground('w')
-        self.grid_rt.addWidget(self.plotLayout,0,0,6,8)
+        # self.grid_rt.addWidget(self.plotLayout,0,0,6,8)
+        self.plot_area = DockArea()
+        self.main_dock = Dock("Main plot", size=(500,200))
+        self.main_dock.hideTitleBar()
+        self.topoplot_dock = Dock("Topoplot", size=(250,200))
+        self.m = PlotCanvas(self, width=7, height=7)
+        self.topoplot_dock.addWidget(self.m)
+        self.save_topoplot_btn = QPushButton("Save topoplot images")
+        self.topoplot_dock.addWidget(self.save_topoplot_btn)
+        self.plot_area.addDock(self.main_dock, 'left')
+        self.plot_area.addDock(self.topoplot_dock, 'right', self.main_dock)
+        self.topoplot_dock.hide()
+        self.main_dock.addWidget(self.plotLayout)
+        self.grid_rt.addWidget(self.plot_area,0,0,6,8)
 
 
         self.slider = QSlider(Qt.Horizontal, self)
@@ -500,6 +552,7 @@ class MainPage(QMainWindow):
         self.buttonChgFilt.clicked.connect(self.changeFilter)
         self.buttonPredict.clicked.connect(self.changePredictions)
         self.threshSlider.sliderReleased.connect(self.changeThreshSlider)
+        self.btn_topo.clicked.connect(self.minimize_topo)
         self.btnZoom.clicked.connect(self.openZoomPlot)
         self.buttonChgSpec.clicked.connect(self.loadSpec)
         self.buttonAmpInc.clicked.connect(self.incAmp)
@@ -517,6 +570,7 @@ class MainPage(QMainWindow):
         self.buttonChgCount.clicked.connect(self.getCount)
         self.buttonRt1s.clicked.connect(self.rightPlot1s)
         self.buttonRt10s.clicked.connect(self.rightPlot10s)
+        self.save_topoplot_btn.clicked.connect(self.save_topoplot)
 
         # ---- right side dock ---- #
         self.btnOpenEditAnn.clicked.connect(self.openAnnEditor)
@@ -529,7 +583,6 @@ class MainPage(QMainWindow):
         self.btnOpenStats.clicked.connect(self.openStatWindow)
         self.chn_qlist.itemClicked.connect(self.statChnClicked)
 
-
     def init_values(self):
         """ Set some initial values and create Info objects. 
         """
@@ -538,7 +591,7 @@ class MainPage(QMainWindow):
         self.window_size = 10  # number of seconds to display at a time
         self.filter_checked = 0  # whether or not to plot filtered data
         self.ylim = [150, 100]  # ylim for unfiltered and filtered data
-        self.predicted = 0  # whether or not predictions have been made
+        self.max_channels = 70 # maximum channels you can plot at once
         self.filter_win_open = 0  # whether or not filter options window is open
         self.preds_win_open = 0  # whether or not the predictions window is open
         self.chn_win_open = 0  # whether or not the channel selection window is open
@@ -547,6 +600,7 @@ class MainPage(QMainWindow):
         self.saveimg_win_open = 0 # whether or not the print preview window is open
         self.saveedf_win_open = 0 # whether or not the save edf options window is open
         self.anon_win_open = 0 # whether or not the anonymize window is open
+        self.savetopo_win_open = 0 # whether or not the topoplots window is open
         self.max_time = 0  # number of seconds in the recording
         self.pi = PredsInfo()  # holds data needed to predict
         self.ci = ChannelInfo()  # holds channel information
@@ -554,28 +608,34 @@ class MainPage(QMainWindow):
         self.sii = SaveImgInfo() # holds info to save the img
         self.sei = SaveEdfInfo() # holds header for edf saving
         self.ssi = SignalStatsInfo() # holds info for stats window
-
+        self.topoplot_line_val = 100 # holds value for topoplot line loc
+        self.topoplot_line = None # topoplot line to be updated
+        self.zoom_roi_pos = (0,0) # location of the roi object
+        self.zoom_roi_size = (100,100) # size of the roi object
+        self.zoomRoi = None # zoomROI to be updated
 
     def closeEvent(self, event):
         """ Called when the main window is closed to act as a destructor and close
             any window that is still open.
         """
         if self.filter_win_open:
-            self.filter_ops.closeWindow()
+            self.filter_ops.close_window()
         if self.preds_win_open:
             self.pred_ops.closeWindow()
         if self.chn_win_open:
             self.chn_ops.closeWindow()
         if self.organize_win_open:
-            self.chn_org.closeWindow()
+            self.chn_org.close_window()
         if self.spec_win_open:
             self.spec_ops.closeWindow()
         if self.saveimg_win_open:
-            self.saveimg_ops.closeWindow()
+            self.saveimg_ops.close_window()
         if self.saveedf_win_open:
             self.saveedf_ops.closeWindow()
         if self.anon_win_open:
             self.anon_ops.closeWindow()
+        if self.savetopo_win_open:
+            self.savetopo_ops.closeWindow()
 
         event.accept()
 
@@ -633,6 +693,9 @@ class MainPage(QMainWindow):
             self.plotLayout.removeItem(self.zoomPlot)
             self.mainPlot.removeItem(self.zoomRoi)
 
+        if not self.topoplot_dock.isHidden():
+            self.close_topoplot()
+        
         if self.si.plotSpec:
             self.si.plotSpec = 0
             self.removeSpecPlot()
@@ -816,11 +879,13 @@ class MainPage(QMainWindow):
                     self.zoomRoi.addScaleHandle([0.5,1],[0.5,0.5])
                     self.zoomRoi.addScaleHandle([0,0.5],[0.5,0.5])
                     self.mainPlot.addItem(self.zoomRoi)
-                    self.zoomRoi.setZValue(1000)
+                    self.zoomRoi.setZValue(2000)
                     self.zoomRoi.sigRegionChanged.connect(self.updateZoomPlot)
                     self.btnZoom.setText("Close zoom")
                     self.zoom_plot_lines = []
                     self.zoom_rect_list = []
+                    self.zoom_roi_pos = self.zoomRoi.pos()
+                    self.zoom_roi_size = self.zoomRoi.size()
                     self.updateZoomPlot()
             else:
                 self.btnZoom.setText("Open zoom")
@@ -828,8 +893,8 @@ class MainPage(QMainWindow):
                 self.mainPlot.removeItem(self.zoomRoi)
 
     def updateZoomPlot(self):
-        roiPos = self.zoomRoi.pos()
-        roiSize = self.zoomRoi.size()
+        self.zoom_roi_pos = self.zoomRoi.pos()
+        self.zoom_roi_size = self.zoomRoi.size()
 
         fs = self.edf_info.fs
         nchns = self.ci.nchns_to_plot
@@ -863,18 +928,18 @@ class MainPage(QMainWindow):
                             + (i + 1) * y_lim)
 
         # add predictions
-        if len(self.zoom_rect_list) > 0:
-            for a in self.zoom_rect_list:
+        if len(self.rect_list) > 0:
+            for a in self.rect_list:
                 self.zoomPlot.removeItem(a)
-            self.zoom_rect_list[:] = []
+            self.rect_list[:] = []
 
         width = 1 / (nchns + 2)
         if self.predicted == 1:
             blueBrush = QBrush(QColor(38,233,254,50))
-            starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh,
+            starts, ends, chns, class_vals = self.pi.compute_starts_ends_chns(self.thresh,
                                         self.count, self.window_size, fs, nchns)
             for k in range(len(starts)):
-                if self.pi.pred_by_chn:
+                if self.pi.pred_by_chn and not self.pi.multi_class:
                     for i in range(nchns):
                         if chns[k][i]:
                             if i == plotData.shape[0] - 1:
@@ -883,23 +948,56 @@ class MainPage(QMainWindow):
                                 r1.setPen(pg.mkPen(None))
                                 r1.setBrush(pg.mkBrush(color = (38,233,254,50))) # (r,g,b,alpha)
                                 self.zoomPlot.addItem(r1)
-                                self.zoom_rect_list.append(r1)
+                                self.rect_list.append(r1)
                             else:
                                 r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i + 0.5),
                                         ends[k] - starts[k], y_lim) # (x, y, w, h)
                                 r1.setPen(pg.mkPen(None))
                                 r1.setBrush(blueBrush) # (r,g,b,alpha)
                                 self.zoomPlot.addItem(r1)
-                                self.zoom_rect_list.append(r1)
+                                self.rect_list.append(r1)
                             x_vals = range(
                                 int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
                             pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
-                            self.zoom_plot_lines.append(self.zoomPlot.plot(x_vals, plotData[i, int(starts[k]) - self.count * fs:int(ends[k]) - self.count * fs] + i*y_lim + y_lim, clickable=False, pen=pen))
-                else:
+                            self.plot_lines.append(self.zoomPlot.plot(x_vals, plotData[i, int(starts[k]) - self.count * fs:int(ends[k]) - 
+                                                self.count * fs] + i*y_lim + y_lim, clickable=False, pen=pen))
+                elif not self.pi.pred_by_chn and not self.pi.multi_class:
                     r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
                                     brush=blueBrush, movable=False, orientation=pg.LinearRegionItem.Vertical)
                     self.zoomPlot.addItem(r1)
-                    self.zoom_rect_list.append(r1)
+                    self.rect_list.append(r1)
+                elif not self.pi.pred_by_chn and self.pi.multi_class:
+                    r, g, b, a = self.pi.get_color(class_vals[k])
+                    brush = QBrush(QColor(r, g, b, a))
+                    r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
+                                    brush=brush, movable=False, orientation=pg.LinearRegionItem.Vertical)
+                    self.zoomPlot.addItem(r1)
+                    self.rect_list.append(r1)
+                else:
+                    for i in range(nchns):
+                        r, g, b, a = self.pi.get_color(chns[i][k])
+                        brush = QBrush(QColor(r, g, b, a))
+                        if i == plotData.shape[0] - 1:
+                            r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i+0.5),
+                                    ends[k] - starts[k], y_lim) # (x, y, w, h)
+                            r1.setPen(pg.mkPen(None))
+                            r1.setBrush(brush) # (r,g,b,alpha)
+                            self.zoomPlot.addItem(r1)
+                            self.rect_list.append(r1)
+                        else:
+                            r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i + 0.5),
+                                    ends[k] - starts[k], y_lim) # (x, y, w, h)
+                            r1.setPen(pg.mkPen(None))
+                            r1.setBrush(brush) # (r,g,b,alpha)
+                            self.zoomPlot.addItem(r1)
+                            self.rect_list.append(r1)
+                        x_vals = range(
+                            int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
+                        pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
+                        self.plot_lines.append(self.zoomPlot.plot(x_vals, plotData[i, int(starts[k]) - 
+                                        self.count * fs:int(ends[k]) - self.count * fs] + i*y_lim + y_lim,
+                                        clickable=False, pen=pen))
+
 
         x_ticks = []
         for i in range(self.window_size):
@@ -913,13 +1011,13 @@ class MainPage(QMainWindow):
         blackPen = QPen(QColor(0,0,0))
         font = QFont()
         font.setPixelSize(16)
-        self.zoomPlot.setYRange(roiPos[1], roiPos[1] + roiSize[1])
+        self.zoomPlot.setYRange(self.zoom_roi_pos[1], self.zoom_roi_pos[1] + self.zoom_roi_size[1])
         self.zoomPlot.getAxis('left').setPen(blackPen)
         self.zoomPlot.getAxis('left').setTicks(y_ticks)
         self.zoomPlot.getAxis('left').setTextPen(blackPen)
         self.zoomPlot.getAxis("left").setStyle(tickTextOffset = 10)
         self.zoomPlot.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
-        self.zoomPlot.setXRange(roiPos[0], roiPos[0] + roiSize[0], padding=0)
+        self.zoomPlot.setXRange(self.zoom_roi_pos[0], self.zoom_roi_pos[0] + self.zoom_roi_size[0], padding=0)
         self.zoomPlot.getAxis('bottom').setTicks(x_ticks)
         self.zoomPlot.getAxis('bottom').setTextPen(blackPen)
         self.zoomPlot.getAxis("bottom").tickFont = font
@@ -1076,7 +1174,6 @@ class MainPage(QMainWindow):
                 if self.argv.show == 0:
                     sys.exit()
 
-
     def load_data(self, name=""):
         """
         Function to load in the data
@@ -1088,9 +1185,11 @@ class MainPage(QMainWindow):
             name = QFileDialog.getOpenFileName(
                 self, 'Open file', '.', 'EDF files (*.edf)')
             name = name[0]
+            # name = "/Users/daniellecurrey/Desktop/GUI/Random_edf_files/00013145_s004_t002.edf"
         if name == None or len(name) == 0:
             return
         else:
+            self.edf_file_name_temp = name
             loader = EdfLoader()
             try:
                 self.edf_info_temp = loader.load_metadata(name)
@@ -1100,23 +1199,31 @@ class MainPage(QMainWindow):
             self.edf_info_temp.annotations = np.array(
                 self.edf_info_temp.annotations)
 
-            edf_montages = EdfMontage(self.edf_info_temp)
+            # edf_montages = EdfMontage(self.edf_info_temp)
             # fs_idx = edf_montages.getIndexForFs(self.edf_info_temp.labels2chns)
 
-            self.data_temp = loader.load_buffers(self.edf_info_temp)
-            data_for_preds = self.data_temp
-            self.edf_info_temp.fs, self.data_temp = loadSignals(
-                self.data_temp, self.edf_info_temp.fs)
+            # self.data_temp = loader.load_buffers(self.edf_info_temp)
+            # data_for_preds = self.data_temp
+            # self.edf_info_temp.fs, self.data_temp = loadSignals(
+            #    self.data_temp, self.edf_info_temp.fs)
+            try:
+                if len(self.edf_info_temp.fs) > 1:
+                    self.edf_info_temp.fs = np.max(self.edf_info_temp.fs)
+                elif len(self.edf_info_temp.fs) == 1:
+                    self.edf_info_temp.fs = self.edf_info_temp.fs[0]
+            except:
+                pass
 
             # setting temporary variables that will be overwritten if
             # the user selects signals to plot
             self.max_time_temp = int(
-                self.data_temp.shape[1] / self.edf_info_temp.fs)
+                self.edf_info_temp.nsamples[0] / self.edf_info_temp.fs)
             self.ci_temp = ChannelInfo()  # holds channel information
             self.ci_temp.chns2labels = self.edf_info_temp.chns2labels
             self.ci_temp.labels2chns = self.edf_info_temp.labels2chns
             self.ci_temp.fs = self.edf_info_temp.fs
             self.ci_temp.max_time = self.max_time_temp
+            self.ci_temp.edf_fn = name
             self.fn_full_temp = name
             if len(name.split('/')[-1]) < 40:
                 self.fn_temp = name.split('/')[-1]
@@ -1124,7 +1231,8 @@ class MainPage(QMainWindow):
                 self.fn_temp = name.split('/')[-1][0:37] + "..."
 
             self.chn_win_open = 1
-            self.chn_ops = ChannelOptions(self.ci_temp, self, data_for_preds)
+            self.predicted = 0  # whether or not predictions have been made
+            self.chn_ops = ChannelOptions(self.ci_temp, self)
             if self.argv.show and self.argv.montage_file is None:
                 self.chn_ops.show()
 
@@ -1148,6 +1256,10 @@ class MainPage(QMainWindow):
             self.count = self.argv.location
 
         ann = self.edf_info.annotations
+        if self.pi.pred_by_chn and self.predicted:
+            self.add_topoplot()
+            self.btn_topo.setText("Hide topoplots")
+            self.btn_topo.setEnabled(1)
         if self.filter_checked == 1 or (len(ann[0]) > 0 and ann[2][0] == "filtered"):
             self.movePlot(0, 0, self.ylim[1], 0)
         else:
@@ -1240,6 +1352,7 @@ class MainPage(QMainWindow):
             y_lim - the values for the y_limits of the plot
             print_graph - whether or not to print a copy of the graph
         """
+        blackPen = QPen(QColor(0,0,0),3)
         fs = self.edf_info.fs
         if not self.argv.predictions_file is None and self.init == 0:
             self.predicted = 1
@@ -1249,7 +1362,7 @@ class MainPage(QMainWindow):
 
         if right == 0 and self.count - num_move >= 0:
             self.count = self.count - num_move
-        elif right == 1 and self.count + num_move + self.window_size <= self.data.shape[1] / fs:
+        elif right == 1 and self.count + num_move + self.window_size <= self.ci.data_to_plot.shape[1] / fs:#self.data.shape[1] / fs:
             self.count = self.count + num_move
         self.slider.setValue(self.count)
         t = getTime(self.count)
@@ -1297,10 +1410,10 @@ class MainPage(QMainWindow):
         width = 1 / (nchns + 2)
         if self.predicted == 1:
             blueBrush = QBrush(QColor(38,233,254,50))
-            starts, ends, chns = self.pi.compute_starts_ends_chns(self.thresh,
+            starts, ends, chns, class_vals = self.pi.compute_starts_ends_chns(self.thresh,
                                         self.count, self.window_size, fs, nchns)
             for k in range(len(starts)):
-                if self.pi.pred_by_chn:
+                if self.pi.pred_by_chn and not self.pi.multi_class:
                     for i in range(nchns):
                         if chns[k][i]:
                             if i == plotData.shape[0] - 1:
@@ -1320,12 +1433,45 @@ class MainPage(QMainWindow):
                             x_vals = range(
                                 int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
                             pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
-                            self.plot_lines.append(self.mainPlot.plot(x_vals, plotData[i, int(starts[k]) - self.count * fs:int(ends[k]) - self.count * fs] + i*y_lim + y_lim, clickable=False, pen=pen))
-                else:
+                            self.plot_lines.append(self.mainPlot.plot(x_vals, plotData[i, int(starts[k]) - self.count * fs:int(ends[k]) - 
+                                                self.count * fs] + i*y_lim + y_lim, clickable=False, pen=pen))
+                elif not self.pi.pred_by_chn and not self.pi.multi_class:
                     r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
                                     brush=blueBrush, movable=False, orientation=pg.LinearRegionItem.Vertical)
                     self.mainPlot.addItem(r1)
                     self.rect_list.append(r1)
+                elif not self.pi.pred_by_chn and self.pi.multi_class:
+                    r, g, b, a = self.pi.get_color(class_vals[k])
+                    brush = QBrush(QColor(r, g, b, a))
+                    r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k] - self.count * fs),
+                                    brush=brush, movable=False, orientation=pg.LinearRegionItem.Vertical)
+                    self.mainPlot.addItem(r1)
+                    self.rect_list.append(r1)
+                else:
+                    for i in range(nchns):
+                        r, g, b, a = self.pi.get_color(chns[i][k])
+                        brush = QBrush(QColor(r, g, b, a))
+                        if i == plotData.shape[0] - 1:
+                            r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i+0.5),
+                                    ends[k] - starts[k], y_lim) # (x, y, w, h)
+                            r1.setPen(pg.mkPen(None))
+                            r1.setBrush(brush) # (r,g,b,alpha)
+                            self.mainPlot.addItem(r1)
+                            self.rect_list.append(r1)
+                        else:
+                            r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs, y_lim *(i + 0.5),
+                                    ends[k] - starts[k], y_lim) # (x, y, w, h)
+                            r1.setPen(pg.mkPen(None))
+                            r1.setBrush(brush) # (r,g,b,alpha)
+                            self.mainPlot.addItem(r1)
+                            self.rect_list.append(r1)
+                        x_vals = range(
+                            int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
+                        pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
+                        self.plot_lines.append(self.mainPlot.plot(x_vals, plotData[i, int(starts[k]) - 
+                                        self.count * fs:int(ends[k]) - self.count * fs] + i*y_lim + y_lim,
+                                        clickable=False, pen=pen))
+
 
         step_size = fs  # Updating the x labels with scaling
         step_width = 1
@@ -1348,7 +1494,6 @@ class MainPage(QMainWindow):
             y_ticks.append((i * y_lim, self.ci.labels_to_plot[i]))
         y_ticks = [y_ticks]
 
-        blackPen = QPen(QColor(0,0,0))
         font = QFont()
         font.setPixelSize(16)
 
@@ -1424,6 +1569,21 @@ class MainPage(QMainWindow):
             self.saveimg_win_open = 1
             self.saveimg_ops = SaveImgOptions(self.sii, self)
 
+
+        # update the topoplot
+        if not self.topoplot_dock.isHidden():
+            plot_val = self.topoplot_line.value() + self.count * fs
+            pred_loc = plot_val / self.pi.pred_width
+            self.update_topoplot(int(pred_loc))
+            # need to redraw each time, because if there are preds
+            # and you do not redraw the line will not be shown
+            if not self.topoplot_line is None:
+                self.mainPlot.removeItem(self.topoplot_line)
+            self.topoplot_line = pg.InfiniteLine(pos=self.topoplot_line_val, angle=90, movable=True,pen=blackPen)
+            self.topoplot_line.sigPositionChanged.connect(self.update_topoplot_line)
+            self.mainPlot.addItem(self.topoplot_line)
+            self.topoplot_line.setZValue(2000)
+
         if self.si.plotSpec:
             # dataForSpec = self.si.data
             # f, t, Sxx = scipy.signal.spectrogram(self.si.data[self.count * fs:(self.count + self.window_size) * fs], fs=fs, nperseg=fs, noverlap=0)
@@ -1457,10 +1617,119 @@ class MainPage(QMainWindow):
             # self.specPlot.setYRange(self.si.minFs,self.si.maxFs,padding=0)
             self.specPlot.setTitle(self.si.chnName,color='k',size='16pt')
         if self.btnZoom.text() == "Close zoom":
+            # need to redraw each time, because if there are preds
+            # and you do not redraw the roi will not be shown
+            if not self.zoomRoi is None:
+                self.mainPlot.removeItem(self.zoomRoi)
+            self.zoomRoi = pg.RectROI([self.zoom_roi_pos[0],self.zoom_roi_pos[1]],
+                                        [self.zoom_roi_size[0],self.zoom_roi_size[1]], pen=(1,9))
+            self.zoomRoi.addScaleHandle([0.5,1],[0.5,0.5])
+            self.zoomRoi.addScaleHandle([0,0.5],[0.5,0.5])
+            self.mainPlot.addItem(self.zoomRoi)
+            self.zoomRoi.setZValue(2000)
+            self.zoomRoi.sigRegionChanged.connect(self.updateZoomPlot)
             self.updateZoomPlot()
+        if self.btnOpenStats.text() == "Close signal stats":
+            self.statTimeSelectChanged()
 
         if self.init == 0 and self.argv.show:
             self.throwAlert("Data has been plotted.")
+
+    def minimize_topo(self):
+        """ Function to minimize topoplot.
+        """
+        if self.btn_topo.text() == "Show topoplots":
+            # show them, call move plot
+            self.btn_topo.setText("Hide topoplots")
+            self.add_topoplot()
+            self.callmovePlot(0,0)
+        else:
+            # hide them, call move plot
+            self.btn_topo.setText("Show topoplots")
+            self.close_topoplot()
+            self.callmovePlot(0,0)
+            
+    def close_topoplot(self):
+        """ Function to close the topoplot. 
+        """
+        self.topoplot_dock.hide()
+        self.mainPlot.removeItem(self.topoplot_line)
+
+    def add_topoplot(self):
+        """ Function called when pred options loads and pred_by_chn == 1
+        """
+        self.topoplot_dock.show()
+        # self.update_topoplot()
+        blackPen = QPen(QColor(0,0,0))
+        self.topoplot_line = pg.InfiniteLine(pos=self.edf_info.fs, angle=90, movable=True,pen=blackPen)
+        self.mainPlot.addItem(self.topoplot_line)
+        self.topoplot_line.setZValue(2000)
+
+    def update_topoplot(self, pred_loc):
+        """ Update the topoplot if pred_by_chn == 1
+
+            Args:
+                pred_loc: the index of the slice in time to plot
+        """
+        # How will this work?
+        # 1) create some fake data for the file, say 1s each
+        # 2) once you load it in, plot for each second of data
+        # 3) assume it is by second (but should probably make this custom)
+        # 4) set this up so this plot opens when predictions are loaded
+        # 5) consider making this custom so that it can be toggled on / off by user
+
+        # clear figure
+        self.m.fig.clf()
+        
+        curr_score = self.pi.preds_to_plot[pred_loc,:]
+        # Create the layout
+        layout = mne.channels.read_layout('EEG1005')
+        pos2d = []
+        layout_names = [name.upper() for name in layout.names]
+        for ch in self.ci.labels_to_plot:
+            if ch != "Notes":
+                if '-' in ch:
+                    anode, cathode = ch.split('-')
+                    anode_idx = layout_names.index(anode)
+                    cathode_idx = layout_names.index(cathode)
+                    anode_pos = layout.pos[anode_idx, 0:2]
+                    cathode_pos = layout.pos[cathode_idx, 0:2]
+                    pos2d.append([(a + c) / 2 for a, c in zip(anode_pos, cathode_pos)])
+                else:
+                    idx = layout_names.index(ch)
+                    pos2d.append(layout.pos[idx, 0:2])
+        pos2d = np.asarray(pos2d)
+        # Scale locations from [-1, 1]
+        pos2d = 2 * (pos2d - 0.5)
+
+        self.ax = self.m.fig.add_subplot(self.m.gs[0])
+        im, cn = mne.viz.plot_topomap(curr_score, pos2d, sphere=1,
+                                  axes=self.ax, vmin=0, vmax=1, show=False,
+                                  outlines='head')
+        self.m.draw()
+
+    def update_topoplot_line(self):
+        """ Called whenever the topoplot line is moved.
+        """
+        print(self.topoplot_line.value())
+        # get the actual location in nsamples
+        plot_val = self.topoplot_line.value() + self.count * self.edf_info.fs
+        # convert this to prediction value
+        pred_loc = plot_val / self.pi.pred_width
+        old_pred_loc = self.topoplot_line_val + self.count * self.edf_info.fs
+        old_pred_loc = old_pred_loc / self.pi.pred_width
+        # only update the plot if in a new location
+        if pred_loc != old_pred_loc:
+            self.update_topoplot(int(pred_loc))
+        self.topoplot_line_val = self.topoplot_line.value()
+
+    def save_topoplot(self):
+        """ Opens the window to save the topoplot.
+            Save figures for what is currently on screen.
+        """
+        self.savetopo_ops = SaveTopoplotOptions(self)
+        self.savetopo_win_open = 1
+
 
     def filterChecked(self):
         """ Function for when the filterbox is checked
@@ -1478,6 +1747,9 @@ class MainPage(QMainWindow):
                 self.filter_checked = 1
             else:
                 self.filter_checked = 0
+            # if you start / stop filtering, need to update the stats
+            if self.btnOpenStats.text() == "Close signal stats":
+                self.statChnClicked()
             # if data was already filtered do not uncheck box
             ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
@@ -1610,7 +1882,7 @@ class MainPage(QMainWindow):
             if self.btnOpenEditAnn.text() == "Open annotation editor":
                 self.populateAnnDock()
                 self.showAnnStatsDock()
-
+    
     def populateStatList(self):
         """ Fill the stats window with channels.
         """
@@ -1696,6 +1968,7 @@ class MainPage(QMainWindow):
 
         if self.filter_checked == 1:
             self.prep_filter_ws()
+            array_sum = np.sum(self.filteredData)
             mean_str = self.filteredData[self.ssi.chn,s:f].mean()
             var_str = self.filteredData[self.ssi.chn,s:f].var()
             line_len_str = np.sqrt(np.sum(np.diff(self.filteredData[self.ssi.chn,s:f]) ** 2 + 1))
@@ -1717,14 +1990,15 @@ class MainPage(QMainWindow):
             alpha, beta, gamma, theta, delta 
             (for the part of the signal specified)
         """
+        data = self.ci.data_to_plot[self.ssi.chn,:]
+        lp = 0
+        hp = 0
         if self.filter_checked == 1:
-            self.prep_filter_ws()
-            data = self.filteredData
-        else:
-            data = self.ci.data_to_plot[self.ssi.chn,:]
-        alpha, beta, theta, gamma, delta = self.ssi.get_power(data, s, f)
+            print("in stat - filter checked")
+            lp = self.fi.lp
+            hp = self.fi.hp
+        alpha, beta, theta, gamma, delta = self.ssi.get_power(data, s, f, hp, lp)
         return alpha, beta, theta, gamma, delta        
-
 
     def set_fs_band_lbls(self):
         """ Sets alpha, beta, gamma, delta, theta lbls for stats.
@@ -1740,8 +2014,6 @@ class MainPage(QMainWindow):
         self.gamma_lbl.setText(gamma_str)
         delta_str = "" + "{:.2e}".format(delta)
         self.delta_lbl.setText(delta_str)
-
-
 
     def throwAlert(self, msg):
         """ Throws an alert to the user.
@@ -1759,6 +2031,16 @@ class QHLine(QFrame):
         super(QHLine, self).__init__()
         self.setFrameShape(QFrame.HLine)
         self.setFrameShadow(QFrame.Sunken)
+
+class PlotCanvas(FigureCanvas):
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        self.fig = Figure(figsize=(width, height), dpi=dpi,
+                          constrained_layout=False)
+        self.gs = self.fig.add_gridspec(1, 1, wspace=0.0, hspace=0.0)
+
+        FigureCanvas.__init__(self, self.fig)
+        self.setParent(parent)
 
 def get_args():
     p = ap.ArgumentParser()

@@ -6,6 +6,7 @@ from copy import deepcopy
 from models.basemodel import BaseModel
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressDialog
+import mne
 
 def checkAnnotations(t_start,window_size,edf_info):
     """
@@ -212,7 +213,7 @@ def loadSignals(data, fsArray):
         fs = fsArray
         same_fs = 1
 
-    buf = np.array(data)
+    buf = np.array(data, dtype=object)
     if buf.ndim == 1:
         if same_fs:
             data_temp = np.zeros((buf.shape[0],buf[0].shape[0]))
@@ -248,3 +249,78 @@ def applyBandPass(x, fs, fc=[1.6,30], N=4):
     wc = fc / (fs / 2)
     b, a = scipy.signal.butter(N, wc, btype='bandpass')
     return scipy.signal.filtfilt(b, a, x, method='gust')
+
+
+def topoplot(scores, label_list, title=None, fn='',
+             plot_hemisphere=False, plot_lobe=False, zone=None,
+             lobe_correct=None, lat_correct=None):
+    # Create the layout
+    layout = mne.channels.read_layout('EEG1005')
+    # positions = []
+    pos2d = []
+    layout_names = [name.upper() for name in layout.names]
+    for ch in label_list:
+        if '-' in ch:
+            anode, cathode = ch.split('-')
+            anode_idx = layout_names.index(anode)
+            cathode_idx = layout_names.index(cathode)
+            anode_pos = layout.pos[anode_idx, 0:2]
+            cathode_pos = layout.pos[cathode_idx, 0:2]
+            pos2d.append([(a + c) / 2 for a, c in zip(anode_pos, cathode_pos)])
+        else:
+            idx = layout_names.index(ch)
+            # positions.append(layout.pos[idx, :])
+            pos2d.append(layout.pos[idx, 0:2])
+    # positions = np.asarray(positions)
+    pos2d = np.asarray(pos2d)
+    # Scale locations from [-1, 1]
+    pos2d = 2 * (pos2d - 0.5)
+
+    # fig = plt.figure()
+    ax = plt.gca()
+    im, cn = mne.viz.plot_topomap(scores, pos2d, sphere=1,
+                                  axes=ax, vmin=0, vmax=1, show=False,
+                                  outlines='head')
+    if plot_hemisphere:
+        ax.plot([0, 0], [-1, 1], linestyle='--', color='k', linewidth=6)
+    if plot_lobe:
+        ax.plot([-0.96, 0.96], [0.2, 0.2], linestyle='--', color='k',
+                linewidth=6)
+
+    # Thicken outline
+    circle = plt.Circle((0, 0), .98, edgecolor='k', facecolor='none',
+                        linewidth=6)
+    ax.add_artist(circle)
+    ax.plot([-0.167, 0, 0.167], [.988, 1.15, .988], color='k', linewidth=6)
+    ax.plot([.98, 1.02, 1.05, 1.08, 1.09, 1.06, 1.02, 0.98],
+            [.12, .16, .15, .11, -.18, -.26, -.27, -.24], color='k', linewidth=6)
+    ax.plot([-.98, -1.02, -1.05, -1.08, -1.09, -1.06, -1.02, -0.98],
+            [.12, .16, .15, .11, -.18, -.26, -.27, -.24], color='k', linewidth=6)
+
+    if lobe_correct and lat_correct:
+        color = 'green'
+    elif lobe_correct or lat_correct:
+        color = 'orange'
+    elif not lobe_correct and not lat_correct:
+        color = 'red'
+    else:
+        color = 'blue'
+
+    if zone == 1:
+        circle = plt.Circle((-0.95, 0.8), 0.16, color=color)
+        ax.add_artist(circle)
+    elif zone == 2:
+        circle = plt.Circle((0.95, 0.8), 0.16, color=color)
+        ax.add_artist(circle)
+    elif zone == 3:
+        circle = plt.Circle((-0.95, -0.8), 0.16, color=color)
+        ax.add_artist(circle)
+    elif zone == 4:
+        circle = plt.Circle((0.95, -0.8), 0.16, color=color)
+        ax.add_artist(circle)
+
+    if title:
+        ax.set_title(title, fontsize=16)
+    if fn:
+        plt.savefig(fn, bbox_inches='tight')
+    plt.close()
