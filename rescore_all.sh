@@ -1,17 +1,30 @@
 #!/bin/bash
 
-experiments=( jhu_k_rf jhu_k_svm jhu_rf_b jhu_rf_bspll jhu_rf_spll jhu_svm_b jhu_svm_bspll jhu_svm_spll )
+# UW Experiments
 
-for exp in ${experiments[@]}
+for exp in uw_b_rf_sz_only uw_spec_rf_sz_only chb_to_uw_b_rf_sz_only chb_to_uw_spec_rf_sz_only;
 do
-    for ((ii=1; ii<2; ii++))
+    for pt in A B C D E F G H J K L M
     do
-        echo $exp $ii
-        echo python rescore_experiment.py \
-            --config_fn Experiments/"$exp"/pt"$ii"/config.ini \
-            --experiment_name "$exp"_samples20 \
-            --load_model_fn Experiments/"$exp"/pt"$ii"/models/model.pt \
-            --fps_per_hour 5.0  --max_samples_before_sz 20 \
-            --visualize_train 1
+	sbatch gpu_header.sh python rescore_from_preds.py \
+	    --config_fn Experiments/"$exp"/pt"$pt"/config.ini \
+	    --max_samples_before_sz 20
+    done
+done
+
+for exp in chb_b_rf_all chb_spec_rf_all
+do
+    for (( pp=1; pp<25; pp++ ))
+    do
+	pt=chb"$pp"
+	if [ "$pp" -lt 10 ]
+	then
+
+	    pt=chb0"$pp"
+	fi
+
+	sbatch gpu_header.sh python rescore_from_preds.py \
+	    --config_fn Experiments/"$exp"/"$pt"/config.ini \
+	    --max_samples_before_sz 20
     done
 done
