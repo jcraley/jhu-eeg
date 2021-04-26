@@ -1,15 +1,13 @@
 import os
 import sys
-
-import torch
-
-import preprocessing.dsp as dsp
-import utils.pathmanager as pm
-import utils.read_files as read
-import utils.testconfiguration as tc
-from preprocessing.edf_loader import EdfLoader
+sys.path.append("..")
 from preprocessing.eeg_info import EegInfo
-
+from preprocessing.edf_loader import EdfLoader
+import utils.testconfiguration as tc
+import utils.read_files as read
+import utils.pathmanager as pm
+import preprocessing.dsp as dsp
+import torch
 
 def main():
     """Load the command line args and parse"""

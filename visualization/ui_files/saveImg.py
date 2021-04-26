@@ -47,11 +47,11 @@ class Ui_Form(object):
         self.gridLayout_2.addLayout(self.grid_rt, 0, 1, 1, 1)
 
         self.retranslateUi(Form)
-        self.annCbox.toggled.connect(Form.annChecked)
-        self.titleCbox.toggled.connect(Form.titleChecked)
-        self.lineThickInput.currentIndexChanged['int'].connect(Form.chgLineThick)
-        self.textSizeInput.currentIndexChanged['int'].connect(Form.chgTextSize)
-        self.titleInput.textChanged.connect(Form.titleChanged)
+        self.annCbox.toggled.connect(Form.ann_checked)
+        self.titleCbox.toggled.connect(Form.title_checked)
+        self.lineThickInput.currentIndexChanged['int'].connect(Form.chg_line_thick)
+        self.textSizeInput.currentIndexChanged['int'].connect(Form.chg_text_size)
+        self.titleInput.textChanged.connect(Form.title_changed)
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):

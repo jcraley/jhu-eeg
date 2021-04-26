@@ -1,4 +1,6 @@
+""" Module for holding channel information."""
 import numpy as np
+import pyedflib
 
 def _check_label(label, label_list):
     """
@@ -9,7 +11,7 @@ def _check_label(label, label_list):
     if ret == -1:
         labels_noEEG = {}
         labels_noRef = {}
-        for k,v in label_CAPS.items():
+        for k,_ in label_CAPS.items():
             loc = k.find("EEG ")
             if loc != -1:
                 k2 = k[loc+4:]
@@ -48,15 +50,43 @@ def _check_label_helper(label, label_list):
         return label_list[label]
     return -1
 
+def convert_txt_chn_names(self,chn_txt):
+        """ Convert channel names to the correct format.
+
+            Args:
+                chn_txt - the channel name
+            Returns:
+                A channel name that corresponds to the expected list of
+                channel names.
+        """
+        chn = chn_txt.upper()
+        loc = chn.find("EEG ")
+        if loc != -1:
+            chn = chn[0:loc] + chn[loc+4:]
+        loc = chn.find("-REF")
+        if loc != -1:
+            chn = chn[0:loc] + chn[loc+4:]
+        if chn == "T7":
+            chn = "T3"
+        if chn == "P7":
+            chn = "T5"
+        if chn == "T8":
+            chn = "T4"
+        if chn == "P8":
+            chn = "T6"
+        return chn
+
 class ChannelInfo():
     """ Data structure for holding information relevant to selecting which signals to plot """
 
     def __init__(self):
-        # Info from parent
+        """ Constructor of the channel info object.
+        """
         self.chns2labels = []
         self.labels2chns = []
         self.fs = 0
         self.max_time = 0
+        self.edf_fn = ""
 
         self.total_nchns = 0
         self.list_of_chns = []
@@ -66,14 +96,16 @@ class ChannelInfo():
                               "F8-T8","FP2-F8","P7-O1","T7-P7","F7-T7","FP1-F7"]
         self.labelsAR1020 = ["O2","O1","PZ","CZ","FZ","P8","P7","T8","T7","F8",
                              "F7","P4","P3","C4","C3","F4","F3","FP2","FP1"]
-        """self.labelsBIP1010 = ["P10-O2","T10-P10","F10-T10","FP2-F10","P8-O2",
+        """
+        self.labelsBIP1010 = ["P10-O2","T10-P10","F10-T10","FP2-F10","P8-O2",
                                "T8-P8","F8-T8","FP2-F8","P4-O2","C4-P4","F4-C4",
                                "Fp2-F4","PZ-OZ","CZ-PZ","FZ-CZ","FPZ-FZ",
                                "P3-O1","C3-P3","F3-C3","FP1-F3","P7-O1","T7-P7",
                                "F7-T7","FP1-F7","P9-O1","T9-P9","F9-T9","FP1-F9"]
         self.labelsAR1010 = ["P10","T10","F10","O2","P8","T8","F8","FP2","P4",
                              "C4","F4","OZ","PZ","CZ","FZ","FPZ","P3","C3","F3",
-                             "O1","P7","T7","F7","FP1","P9","T9","F9"]"""
+                             "O1","P7","T7","F7","FP1","P9","T9","F9"]
+        """
         self.labelsBIP1010 = ["F10-T10","FP2-F10","P8-O2","T8-P8","F8-T8",
                               "FP2-F8","P4-O2","C4-P4","F4-C4","Fp2-F4","CZ-PZ",
                               "FZ-CZ","P3-O1","C3-P3","F3-C3","FP1-F3","P7-O1",
@@ -81,24 +113,26 @@ class ChannelInfo():
         self.labelsAR1010 = ["T10","F10","O2","P8","T8","F8","FP2","P4",
                              "C4","F4","PZ","CZ","FZ","P3","C3","F3",
                              "O1","P7","T7","F7","FP1","T9","F9"]
+        
         self.otherLabels = ["T1","T2","A1","A2","FPZ","NZ","AF7","AF3","AF1",
                             "AFZ","AF2","AF4","AF8","F9","F5","F1","F2","F6",
                             "F10","FT9","FT7","FC5","FC3","FC1","FCZ","FC2",
                             "FC4","FC6","FT8","FT10","T9","C5","C1","C2","C6",
                             "T10","TP9","TP7","CP5","CP3","CP1","CPZ","CP2",
                             "CP4","CP6","TP8","TP10","P9","P5","P1","P2","P6",
-                            "P10","PO7","PO3","POZ","PO4","PO8","OZ","LZ"]
+                            "P10","PO7","PO3","POZ","PO4","PO8","OZ","LZ",
+                            "NZ","FT9","FT7","FT8","FT10","IZ"]
         self.g = '#1f8c45'
         self.colorsBIP1020 = [self.g, self.g,'b','b','b','b','r','r','r','r','b',
                             'b','b','b','r','r','r','r','r']
         self.colorsAR1020 = ['b','r',self.g, self.g, self.g,'b','r','b','r','b',
                             'r','b','r','b','r','b','r','b','r','b']
-        """self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b','b','b',
+        self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b','b','b',
                                 self.g,self.g,self.g,self.g,'r','r','r','r','r',
                                 'r','r','r','r','r','r','r']
         self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b','b',
-                                self.g,self.g,self.g,self.g,self.g'r','r','r',
-                                'r','r','r','r','r','r','r','r']"""
+                                self.g,self.g,self.g,self.g,self.g,'r','r','r',
+                                'r','r','r','r','r','r','r','r']
         self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b',self.g,
                                self.g,'r','r','r','r','r','r','r','r','r','r']
         self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b',self.g,
@@ -108,9 +142,10 @@ class ChannelInfo():
                                 'r','r',self.g,'b','b','b','b','b','r','r','r',
                                 'b','b','b','r','r','r','r','r',self.g,'b','b',
                                 'b','b','b','r','r','r','b','b','b','r','r',
-                                self.g,'b','b',self.g,self.g]
+                                self.g,'b','b',self.g,self.g,self.g,'r','r','b',
+                                'b',self.g]
         self.pred_chn_data = []
-        self.labelsFromTxtFile = []
+        self.labelsFromTxtFile = {}
         self.use_loaded_txt_file = 0
         self.txtFile_fn = ""
         self.organize = 0
@@ -127,6 +162,7 @@ class ChannelInfo():
         self.labels2chns = ci2.labels2chns
         self.fs = ci2.fs
         self.max_time = ci2.max_time
+        self.edf_fn = ci2.edf_fn
 
         self.labelsFromTxtFile = ci2.labelsFromTxtFile
         self.use_loaded_txt_file = ci2.use_loaded_txt_file
@@ -143,7 +179,7 @@ class ChannelInfo():
         Converts given channel names to those in two montages.
         """
 
-        for i in range(len(self.chns2labels)):
+        for _ in range(len(self.chns2labels)):
             self.convertedChnNames.append("")
 
         for k in range(len(self.labelsBIP1020)):
@@ -167,24 +203,6 @@ class ChannelInfo():
             if self.convertedChnNames[k] == "":
                 self.convertedChnNames[k] = self.chns2labels[k]
 
-    def convertTxtChnNames(self,chn_txt):
-        chn = chn_txt.upper()
-        loc = chn.find("EEG ")
-        if loc != -1:
-            chn = chn[0:loc] + chn[loc+4:]
-        loc = chn.find("-REF")
-        if loc != -1:
-            chn = chn[0:loc] + chn[loc+4:]
-        if chn == "T7":
-            chn = "T3"
-        if chn == "P7":
-            chn = "T5"
-        if chn == "T8":
-            chn = "T4"
-        if chn == "P8":
-            chn = "T6"
-        return chn
-
     def canDoBIP_AR(self, bip_ar, mont1010_1020):
         """
         Whether or not the channels are present.
@@ -199,14 +217,14 @@ class ChannelInfo():
             labels_to_check = self.labelsBIP1020
         elif bip_ar == 1 and mont1010_1020 == 0:
             labels_to_check = self.labelsAR1020
-        elif bip_ar == 0 and mont1010_1020 == 1:
-            labels_to_check = self.labelsBIP1010
-        else:
-            labels_to_check = self.labelsAR1010
+        #elif bip_ar == 0 and mont1010_1020 == 1:
+        #    labels_to_check = self.labelsBIP1010
+        #else:
+        #    labels_to_check = self.labelsAR1010
 
         ret = 1
         for i in range(len(labels_to_check)):
-            if not (labels_to_check[i] in self.convertedChnNames):
+            if not labels_to_check[i] in self.convertedChnNames:
                 ret = 0
         return ret
 
@@ -225,10 +243,10 @@ class ChannelInfo():
             labels_to_check = self.labelsBIP1020
         elif bip_ar == 1 and mont1010_1020 == 0:
             labels_to_check = self.labelsAR1020
-        elif bip_ar == 0 and mont1010_1020 == 1:
-            labels_to_check = self.labelsBIP1010
-        else:
-            labels_to_check = self.labelsAR1010
+        #elif bip_ar == 0 and mont1010_1020 == 1:
+        #    labels_to_check = self.labelsBIP1010
+        #else:
+        #    labels_to_check = self.labelsAR1010
 
         for i in range(len(labels_to_check)):
             ret = 0
@@ -263,21 +281,24 @@ class ChannelInfo():
                             ret[i] = 0
         return ret
 
-    def prepareToPlot(self, idxs, data, parent, mont_type, plot_bip_from_ar = 0):
+    def prepareToPlot(self, idxs, parent, mont_type, plot_bip_from_ar = 0, txt_file_name = ""):
         """
         Prepares everything needed to plot the data.
 
         inputs:
             idxs - the list of the indices of the channels to be plotted,
                 list is 1 where the chn is selected, otherwise 0
-            data - the data for each channel
             parent - the main window, so that if needed self.predicted can
                 be set to false
             mont_type - what montage is selected (0 = ar1020, 1 = bip1020, 2 = ar1010,
                                                     3 = bip1010, 4 = txtfile, 5 = none)
             plot_bip_from_ar - 1 if a bipolar montage should be generated
                 from average reference data
+            txt_file_name - name of text file if needed
         """
+        print(self.edf_fn)
+        f = pyedflib.EdfReader(self.edf_fn)
+
         # Things needed to plot - reset each time
         # see if channels are already loaded and ordered
         ret = 1
@@ -318,9 +339,9 @@ class ChannelInfo():
         ar1010 = 0
         bip1010 = 0
         self.nchns_to_plot = len(idxs)
-        self.data_to_plot = np.zeros((self.nchns_to_plot, data.shape[1]))
+        self.data_to_plot = np.zeros((self.nchns_to_plot, parent.edf_info_temp.nsamples[0]))
         if plot_bip_from_ar and self.canDoBIP_AR_idx(idxs,1,0):
-            self.data_to_plot = np.zeros((self.nchns_to_plot - 1, data.shape[1]))
+            self.data_to_plot = np.zeros((self.nchns_to_plot - 1, parent.edf_info_temp.nsamples[0]))
         c = 0
 
         if plot_bip_from_ar:
@@ -331,17 +352,17 @@ class ChannelInfo():
                     for k in range(18):
                         str0 = self.labelsBIP1020[k].split('-')[0]
                         str1 = self.labelsBIP1020[k].split('-')[1]
-                        for i, str in enumerate(self.convertedChnNames):
-                            if str == str0:
+                        for i, strg in enumerate(self.convertedChnNames):
+                            if strg == str0:
                                 idx0 = i
-                            if str == str1:
+                            if strg == str1:
                                 idx1 = i
                         bip_idx[k,0] = idx0
                         bip_idx[k,1] = idx1
                     for k in range(18):
                         idx0 = bip_idx[k,0]
                         idx1 = bip_idx[k,1]
-                        self.data_to_plot[k,:] = data[int(idx0),:] - data[int(idx1),:]
+                        self.data_to_plot[k,:] = f.readSignal(int(idx0)) - f.readSignal(int(idx1))
                         self.labels_to_plot.append(self.labelsBIP1020[k])
                         self.colors.append(self.colorsBIP1020[k])
                         c += 1
@@ -363,17 +384,17 @@ class ChannelInfo():
                     for k in range(len(self.labelsBIP1010)):
                         str0 = self.labelsBIP1010[k].split('-')[0]
                         str1 = self.labelsBIP1010[k].split('-')[1]
-                        for i, str in enumerate(self.convertedChnNames):
-                            if str == str0:
+                        for i, strg in enumerate(self.convertedChnNames):
+                            if strg == str0:
                                 idx0 = i
-                            if str == str1:
+                            if strg == str1:
                                 idx1 = i
                         bip_idx[k,0] = idx0
                         bip_idx[k,1] = idx1
                     for k in range(len(self.labelsBIP1010)):
                         idx0 = bip_idx[k,0]
                         idx1 = bip_idx[k,1]
-                        self.data_to_plot[k,:] = data[int(idx0),:] - data[int(idx1),:]
+                        self.data_to_plot[k,:] = f.readSignal(int(idx0)) - f.readSignal(int(idx1))
                         self.labels_to_plot.append(self.labelsBIP1010[k])
                         self.colors.append(self.colorsBIP1010[k])
                         c += 1
@@ -410,7 +431,7 @@ class ChannelInfo():
                     bip = 1
 
         if self.use_loaded_txt_file and mont_type == 4:
-            labels = self.labelsFromTxtFile
+            labels = self.labelsFromTxtFile[txt_file_name]
             colors = []
             for i in range(len(labels)):
                 idx = -1
@@ -454,7 +475,7 @@ class ChannelInfo():
                     if self.convertedChnNames[idxs[k]] == labels[i]:
                         self.labels_to_plot.append(labels[i])
                         self.colors.append(colors[i])
-                        self.data_to_plot[c,:] = data[idxs[k],:]
+                        self.data_to_plot[c,:] = f.readSignal(idxs[k]) # data[idxs[k],:]
                         c += 1
                         idxs.pop(k)
                         k = len(idxs)
@@ -473,5 +494,5 @@ class ChannelInfo():
                     self.colors.insert(0,self.otherColors[i])
                 else:
                     self.colors.insert(0,self.g)
-                self.data_to_plot[c,:] = data[idxs[k],:]
+                self.data_to_plot[c,:] = f.readSignal(idxs[k]) # data[idxs[k],:]
                 c -= 1
