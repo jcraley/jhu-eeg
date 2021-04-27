@@ -1,33 +1,27 @@
-import numpy as np
-import preprocessing.dsp as dsp
-import torch
-import scipy.signal
+""" Utility functions for plot.py """
 from copy import deepcopy
-from models.basemodel import BaseModel
+import numpy as np
+import scipy.signal
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QProgressDialog
-import mne
+import preprocessing.dsp as dsp
 
-def checkAnnotations(t_start,window_size,edf_info):
-    """
-    Checks to see if there are any anotations in the range t_start to t_end sec
+def check_annotations(t_start,window_size,edf_info):
+    """ Checks to see if there are any anotations in the range t_start to t_end sec
 
-    inputs:
+    Args:
         t_start - start time for a graph
         window_size - the number of seconds being plotted at a time
         edf_info - edf_info object containing annotations
 
-    returns:
+    Returns:
         ret - an array that is filled with any annotations[t_start:t_end]
         idx_w_ann - an array of size window_size that tells whether or not there is
                     an adjacent annotation
     """
 
-    fs = edf_info.fs
     ann = edf_info.annotations
     t_end = t_start + window_size - 1
-    t_startPts = t_start * fs
-    t_endPts = t_end * fs
     i = 0
     ret = []
     idx_w_ann = np.zeros((window_size))
@@ -59,17 +53,16 @@ def checkAnnotations(t_start,window_size,edf_info):
 
     return ret, idx_w_ann
 
-def filterData(data, fs, fi):
-    """
-    Calls dsp.prefilter to filter the data
-    Progress bar is created if the process is estimated to take > 4s
+def filter_data(data, fs, fi):
+    """ Calls dsp.prefilter to filter the data
+        Progress bar is created if the process is estimated to take > 4s
 
-    inputs:
+    Args:
         data - the data to filter
         lp - lowpass frequency
         hp - highpass frequency
         standardize - whether or not to standardize the data
-    returns:
+    Returns:
         filtered data
     """
     lp = fi.lp
@@ -94,7 +87,7 @@ def filterData(data, fs, fi):
     for chn in range(nchns):
         # Notch
         if fi.notch > 0 and fi.notch < fs / 2:
-            filt_bufs[chn] = applyNotch(filt_bufs[chn], fs,fi.notch)
+            filt_bufs[chn] = apply_notch(filt_bufs[chn], fs,fi.notch)
         i += 1
         progress.setValue(i)
         if progress.wasCanceled():
@@ -118,99 +111,84 @@ def filterData(data, fs, fi):
             break
         # BPF
         if bp1 > 0:
-            filt_bufs[chn] = applyBandPass(filt_bufs[chn], fs, [bp1, bp2])
+            filt_bufs[chn] = apply_band_pass(filt_bufs[chn], fs, [bp1, bp2])
         i += 1
         progress.setValue(i)
         if progress.wasCanceled():
             fi.filter_canceled = 1
             break
-        # filt_bufs[chn] = dsp.scale(filt_bufs[chn])
 
     return filt_bufs
 
-def convertFromCount(count):
-    """
-    Converts time from count (int in seconds) to the time format
-    hh:mm:ss.
+def convert_from_count(count):
+    """ Converts time from count (int in seconds) to the time format
+        hh:mm:ss.
 
-    input:
+    Args:
         count - the value of count
-    returns:
+    Returns:
         hrs, min, sec - the time
     """
     t = count
     hrs = 0
-    min = 0
+    minutes = 0
     sec = 0
     if int(t / 3600) > 0:
         hrs = int(t / 3600)
         t = t % 3600
     if int(t / 60) > 0:
-        min = int(t / 60)
+        minutes = int(t / 60)
         t = t % 60
     sec = t
-    return hrs, min, sec
+    return hrs, minutes, sec
 
-def getTime(count):
-    """
-    Creates a string for the time in seconds.
+def get_time(count):
+    """ Creates a string for the time in seconds.
 
-    inputs:
+    Args:
         count - the current value of the plot in seconds
-    returns:
+    Returns:
         t_str - a string of the seconds in the form hrs:min:sec
     """
     t_str = ""
-    hrs, min, sec = convertFromCount(count)
-    """t = count
-    hrs = 0
-    min = 0
-    sec = 0
-    if int(t / 3600) > 0:
-        hrs = int(t / 3600)
-        t = t % 3600
-    if int(t / 60) > 0:
-        min = int(t / 60)
-        t = t % 60
-    sec = t"""
+    hrs, minutes, sec = convert_from_count(count)
     if sec >= 10:
         str_sec = str(sec)
     else:
         str_sec = "0" + str(sec)
-    if min >= 10:
-        str_min = str(min)
+    if minutes >= 10:
+        str_min = str(minutes)
     else:
-        str_min = "0" + str(min)
+        str_min = "0" + str(minutes)
     str_hr = str(hrs)
     t_str = str_hr + ":" + str_min + ":" + str_sec
     return t_str
 
-def loadSignals(data, fsArray):
-    """
-    Loads signals into a buffer based on the array of freqeuncies.
-    Signals with frequencies != max_fs will be interpolated.
+def load_signals(data, fs_array):
+    """ Loads signals into a buffer based on the array of freqeuncies.
+        Signals with frequencies != max_fs will be interpolated.
 
-    inputs:
+    Args:
         data - the raw EEG data
-        fsArray - array of fs for each signal
+        fs_array - array of fs for each signal
         nsamples - array of the number of samples in each signal
-    returns:
+    Returns:
         fs - the frequency of the signals
         buf - the loaded buffer of signals
     """
     nchns = len(data)
     if nchns == 1:
-        return fsArray, np.array(data)
+        return fs_array, np.array(data)
     same_fs = 1
     try:
-        if len(fsArray) > 1:
-            fs = np.max(fsArray)
-            fs_idx = np.argmax(fsArray)
+        if len(fs_array) > 1:
+            fs = np.max(fs_array)
+            fs_idx = np.argmax(fs_array)
             same_fs = 0
-        elif len(fsArray) == 1:
-            fsArray = fsArray[0]
+        elif len(fs_array) == 1:
+            fs_array = fs_array[0]
     except:
-        fs = fsArray
+        fs = fs_array
         same_fs = 1
 
     buf = np.array(data, dtype=object)
@@ -224,7 +202,7 @@ def loadSignals(data, fsArray):
             nsamples = data[fs_idx].shape[0]
             data_temp = np.zeros((buf.shape[0],nsamples))
             for i in range(buf.shape[0]):
-                fs_i = fsArray[i]
+                fs_i = fs_array[i]
                 if fs == fs_i:
                     data_temp[i,:] = data[i]
                 else:
@@ -236,91 +214,16 @@ def loadSignals(data, fsArray):
 
     return fs, buf
 
-def applyNotch(x, fs, fc=60, Q=20.0):
-    """Apply a notch filter at fc Hz
+def apply_notch(x, fs, fc=60, Q=20.0):
+    """ Apply a notch filter at fc Hz
     """
     w60Hz = fc / (fs / 2)
     b, a = scipy.signal.iirnotch(w60Hz, Q)
     return scipy.signal.filtfilt(b, a, x, method='gust')
 
-def applyBandPass(x, fs, fc=[1.6,30], N=4):
-    """Apply a low-pass filter to the signal
+def apply_band_pass(x, fs, fc=[1.6,30], N=4):
+    """ Apply a low-pass filter to the signal
     """
     wc = fc / (fs / 2)
     b, a = scipy.signal.butter(N, wc, btype='bandpass')
     return scipy.signal.filtfilt(b, a, x, method='gust')
-
-
-def topoplot(scores, label_list, title=None, fn='',
-             plot_hemisphere=False, plot_lobe=False, zone=None,
-             lobe_correct=None, lat_correct=None):
-    # Create the layout
-    layout = mne.channels.read_layout('EEG1005')
-    # positions = []
-    pos2d = []
-    layout_names = [name.upper() for name in layout.names]
-    for ch in label_list:
-        if '-' in ch:
-            anode, cathode = ch.split('-')
-            anode_idx = layout_names.index(anode)
-            cathode_idx = layout_names.index(cathode)
-            anode_pos = layout.pos[anode_idx, 0:2]
-            cathode_pos = layout.pos[cathode_idx, 0:2]
-            pos2d.append([(a + c) / 2 for a, c in zip(anode_pos, cathode_pos)])
-        else:
-            idx = layout_names.index(ch)
-            # positions.append(layout.pos[idx, :])
-            pos2d.append(layout.pos[idx, 0:2])
-    # positions = np.asarray(positions)
-    pos2d = np.asarray(pos2d)
-    # Scale locations from [-1, 1]
-    pos2d = 2 * (pos2d - 0.5)
-
-    # fig = plt.figure()
-    ax = plt.gca()
-    im, cn = mne.viz.plot_topomap(scores, pos2d, sphere=1,
-                                  axes=ax, vmin=0, vmax=1, show=False,
-                                  outlines='head')
-    if plot_hemisphere:
-        ax.plot([0, 0], [-1, 1], linestyle='--', color='k', linewidth=6)
-    if plot_lobe:
-        ax.plot([-0.96, 0.96], [0.2, 0.2], linestyle='--', color='k',
-                linewidth=6)
-
-    # Thicken outline
-    circle = plt.Circle((0, 0), .98, edgecolor='k', facecolor='none',
-                        linewidth=6)
-    ax.add_artist(circle)
-    ax.plot([-0.167, 0, 0.167], [.988, 1.15, .988], color='k', linewidth=6)
-    ax.plot([.98, 1.02, 1.05, 1.08, 1.09, 1.06, 1.02, 0.98],
-            [.12, .16, .15, .11, -.18, -.26, -.27, -.24], color='k', linewidth=6)
-    ax.plot([-.98, -1.02, -1.05, -1.08, -1.09, -1.06, -1.02, -0.98],
-            [.12, .16, .15, .11, -.18, -.26, -.27, -.24], color='k', linewidth=6)
-
-    if lobe_correct and lat_correct:
-        color = 'green'
-    elif lobe_correct or lat_correct:
-        color = 'orange'
-    elif not lobe_correct and not lat_correct:
-        color = 'red'
-    else:
-        color = 'blue'
-
-    if zone == 1:
-        circle = plt.Circle((-0.95, 0.8), 0.16, color=color)
-        ax.add_artist(circle)
-    elif zone == 2:
-        circle = plt.Circle((0.95, 0.8), 0.16, color=color)
-        ax.add_artist(circle)
-    elif zone == 3:
-        circle = plt.Circle((-0.95, -0.8), 0.16, color=color)
-        ax.add_artist(circle)
-    elif zone == 4:
-        circle = plt.Circle((0.95, -0.8), 0.16, color=color)
-        ax.add_artist(circle)
-
-    if title:
-        ax.set_title(title, fontsize=16)
-    if fn:
-        plt.savefig(fn, bbox_inches='tight')
-    plt.close()

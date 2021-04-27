@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 
-from plot_utils import checkAnnotations
+from plot_utils import check_annotations
 from ui_files.saveImg import Ui_Form
 
 class SaveImgOptions(QWidget):

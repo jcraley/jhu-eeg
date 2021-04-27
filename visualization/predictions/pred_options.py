@@ -27,17 +27,21 @@ class PredictionOptions(QWidget):
 
         self.setWindowTitle(self.title)
         centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
-        self.setGeometry(centerPoint.x() - self.width / 2, centerPoint.y() - self.height / 2, self.width, self.height)
+        self.setGeometry(centerPoint.x() - self.width / 2,
+            centerPoint.y() - self.height / 2, self.width, self.height)
 
         info_lbl = QLabel(self)
         info_lbl.setText("Loading predictions:" +
-                        "\n" + 
+                        "\n" +
                         "\n - Must be pytorch (.pt) files" +
                         "\n - Can load either predictions OR preprocessed data and a model" +
-                        "\n - Output is expected to be of length (k * number of samples in the edf file) = c" +
+                        "\n - Output is expected to be of length (k * number of samples in" +
+                        " the edf file) = c" +
                         "\n    where k and c are integers"
-                        "\n - Output will be assumed to be for non-overlapping intervals of constant width" + 
-                        "\n - Channel-wise predictions will be plotted starting from the top of the screen" + 
+                        "\n - Output will be assumed to be for non-overlapping intervals" +
+                        " of constant width" +
+                        "\n - Channel-wise predictions will be plotted starting from the" +
+                        " top of the screen" +
                         "\n - Predictions are assumed to be binary" +
                         "\n - To use multi-class predictions, select 'multi-class'" +
                         "\n - For multi-class predictions, output must be size" +
@@ -185,8 +189,7 @@ class PredictionOptions(QWidget):
             self.cbox_preds.setChecked(False)
 
     def loadModel(self):
-        """
-        Load model for prediction
+        """ Load model for prediction
         """
         model_fn = QFileDialog.getOpenFileName(self, 'Open model','.','Pytorch files (*.pt)')
         if model_fn[0] == None or len(model_fn[0]) == 0:
@@ -203,16 +206,19 @@ class PredictionOptions(QWidget):
             self.cbox_preds.setChecked(False)
 
     def loadPreds(self):
-        """
-        Loads predictions
+        """ Loads predictions
         """
         preds_fn = QFileDialog.getOpenFileName(self, 'Open predictions','.','Pytorch files (*.pt)')
         if preds_fn[0] == None or len(preds_fn[0]) == 0:
             return
         else:
-            if self.data.set_preds(preds_fn[0], self.parent.max_time,self.parent.edf_info.fs,self.nchns, self.radio_binary_preds.isChecked()) == -1:
-                self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
-                                "file you loaded or are the incorrect shape. Please check your file.")
+            if (self.data.set_preds(preds_fn[0], self.parent.max_time,
+                self.parent.edf_info.fs,self.nchns,
+                self.radio_binary_preds.isChecked()) == -1):
+                self.parent.throwAlert("Predictions are not an even multiple of the" +
+                                " samples in the .edf" +
+                                "file you loaded or are the incorrect shape." +
+                                " Please check your file.")
             else:
                 if len(preds_fn[0].split('/')[-1]) < 18:
                     self.labelLoadPreds.setText(preds_fn[0].split('/')[-1])
@@ -224,9 +230,7 @@ class PredictionOptions(QWidget):
                 self.cbox_preds.setChecked(True)
 
     def check(self):
-        # check and return
-        """
-        Take loaded model and data and compute predictions
+        """ Take loaded model and data and compute predictions
         """
         # reset topoplot
         self.parent.btn_topo.setEnabled(0)
@@ -242,38 +246,47 @@ class PredictionOptions(QWidget):
             else:
                 print(self.radio_binary_preds.isChecked())
                 loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
-                                        self.parent.max_time, self.parent.edf_info.fs, 
+                                        self.parent.max_time, self.parent.edf_info.fs,
                                         self.nchns, self.radio_binary_preds.isChecked())
                 if not loaded_preds_valid:
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.preds
                     self.data.multi_class_preds = self.data.multi_class
                     self.parent.predLabel.setText("Predictions plotted.")
-                    if self.data.pred_by_chn:
+                    topo_chns_correct = self.parent._check_topo_chns()
+                    if (self.data.pred_by_chn and not self.data.multi_class
+                        and topo_chns_correct):
                         self.parent.add_topoplot()
                         self.parent.btn_topo.setEnabled(1)
                         self.parent.btn_topo.setText("Hide topoplots")
                     self.parent.callmovePlot(0,0,0)
                     self.closeWindow()
                 elif loaded_preds_valid == -1:
-                    self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
-                                    "file you loaded or are the incorrect shape. Please check your file.")
+                    self.parent.throwAlert("Predictions are not an even multiple" +
+                                    " of the samples in the .edf" +
+                                    "file you loaded or are the incorrect shape." +
+                                    " Please check your file.")
         else:
             if self.data.ready:
-                preds_ret = self.data.predict(self.parent.max_time,self.parent.edf_info.fs,self.nchns, 
-                                                self.radio_binary_model.isChecked())
+                preds_ret = self.data.predict(self.parent.max_time,
+                                self.parent.edf_info.fs,self.nchns,
+                                self.radio_binary_model.isChecked())
                 if preds_ret == -2:
                     self.parent.throwAlert("An error occured when trying to call the predict() " +
                                 "function using your model. Please check your model and data.")
                 elif preds_ret == -1:
-                    self.parent.throwAlert("Predictions are not an even multiple of the samples in the .edf" +
-                                    "file you loaded or are the incorrect shape. Please check your file.")
+                    self.parent.throwAlert("Predictions are not an even multiple" +
+                                    " of the samples in the .edf" +
+                                    "file you loaded or are the incorrect shape." +
+                                    " Please check your file.")
                 else:
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.model_preds
                     self.data.multi_class_model = self.data.multi_class
                     self.parent.predLabel.setText("Predictions plotted.")
-                    if self.data.pred_by_chn:
+                    topo_chns_correct = self.parent._check_topo_chns()
+                    if (self.data.pred_by_chn and not self.data.multi_class
+                        and topo_chns_correct):
                         self.parent.add_topoplot()
                         self.parent.btn_topo.setEnabled(1)
                         self.parent.btn_topo.setText("Hide topoplots")
@@ -291,7 +304,9 @@ class PredictionOptions(QWidget):
             self.parent.openZoomPlot()
             self.parent.openZoomPlot()
         self.parent.close_topoplot()
-        if self.parent.pi.pred_by_chn and self.parent.predicted:
+        topo_chns_correct = self.parent._check_topo_chns()
+        if (self.parent.pi.pred_by_chn and self.parent.predicted
+                and topo_chns_correct and not self.parent.pi.multi_class):
             self.parent.add_topoplot()
             self.parent.btn_topo.setText("Hide topoplots")
             self.parent.btn_topo.setEnabled(1)

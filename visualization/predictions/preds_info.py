@@ -29,8 +29,7 @@ class PredsInfo():
         self.class_colors = [(255,255,255,0),(50, 95, 168, 50), (50, 168, 82,50), (168, 52, 50, 50),
                                 (164, 168, 50, 50), (168, 50, 150,50), (127, 50, 168, 50)]
     def write_data(self, pi2):
-        """
-        Writes data from pi2 into self.
+        """ Writes data from pi2 into self.
         """
         self.ready = pi2.ready
         self.model = pi2.model
@@ -76,8 +75,7 @@ class PredsInfo():
         self.update_ready()
 
     def set_preds(self, preds_fn, max_time, fs, nchns, binary = True):
-        """
-        Loads predictions.
+        """ Loads predictions.
 
         Returns:
             0 for sucess, -1 if predictions are not the right length
@@ -91,22 +89,20 @@ class PredsInfo():
             preds = preds.detach()
         except:
             pass
-        print("in set pred")
-        print(binary)
         preds = np.array(preds)
         ret = self.check_preds_shape(preds, 0, max_time, fs, nchns, binary)
         return ret
 
     def predict(self, max_time, fs, nchns, binary = True):
-        """
-        Loads model, passes data through the model to get binary seizure predictions
+        """ Loads model, passes data through the model to get
+            binary seizure predictions
 
-        inputs:
+        Args:
             data - the pytorch tensor, fully preprocessed
             model_fn - filename of the model to load
             binary - whether to do binary or multi-class
 
-        returns:
+        Returns:
             0 for sucess, -2 for failure to pass through the predict function,
             -1 for incorrect size
         """
@@ -125,7 +121,7 @@ class PredsInfo():
         Samples in the file must be an integer multiple of length.
         The other dimension must be either 1, 2 (which will be collapsed) or nchns
 
-        Input:
+        Args:
             preds - the predictions (np array)
             model_or_preds - 1 for model loaded, 0 for loaded predictions
             max_time - amount of seconds in the .edf file
@@ -213,7 +209,7 @@ class PredsInfo():
         end_pred_idx = 0
         pw = self.pred_width
 
-        if self.pred_by_chn:
+        if self.pred_by_chn and not self.multi_class:
             preds_flipped = np.zeros(self.preds_to_plot.shape)
             for i in range(preds_flipped.shape[1]):
                 preds_flipped[:,i] += self.preds_to_plot[:,self.preds_to_plot.shape[1] - i - 1]
@@ -223,6 +219,17 @@ class PredsInfo():
                 preds_mutli_chn += preds_flipped[:,self.preds_to_plot.shape[1] - nchns:]
             else:
                 preds_mutli_chn[:,nchns - self.preds_to_plot.shape[1]:] += preds_flipped
+        if self.pred_by_chn and self.multi_class:
+            preds_flipped = np.zeros(self.preds_to_plot.shape)
+            for i in range(preds_flipped.shape[1]):
+                preds_flipped[:,i,:] += self.preds_to_plot[:,self.preds_to_plot.shape[1] - i - 1,:]
+
+            preds_mutli_chn_multi_class = np.zeros((self.preds_to_plot.shape[0],
+                        nchns, self.preds_to_plot.shape[2]))
+            if self.preds_to_plot.shape[1] >= nchns:
+                preds_mutli_chn_multi_class += preds_flipped[:,self.preds_to_plot.shape[1] - nchns:,:]
+            else:
+                preds_mutli_chn[:,nchns - self.preds_to_plot.shape[1]:,:] += preds_flipped
 
         i = 0
         while i * pw < start_t: # find starting value
@@ -235,7 +242,7 @@ class PredsInfo():
                 val = np.argmax(self.preds_to_plot[i])
                 class_vals.append(val)
                 if self.pred_by_chn:
-                    val = np.argmax(self.preds_to_plot[i])
+                    val = np.argmax(self.preds_to_plot[i], axis=1)
                     chns.append(val)
             else:
                 if np.max(self.preds_to_plot[i]) > thresh:
@@ -255,7 +262,7 @@ class PredsInfo():
                     val = np.argmax(self.preds_to_plot[i])
                     class_vals.append(val)
                     if self.pred_by_chn:
-                        val = np.argmax(self.preds_to_plot[i])
+                        val = np.argmax(self.preds_to_plot[i],axis=1)
                         chns.append(val)
                     return starts, ends, chns, class_vals
                 else:
@@ -272,7 +279,7 @@ class PredsInfo():
                 val = np.argmax(self.preds_to_plot[i])
                 class_vals.append(val)
                 if self.pred_by_chn:
-                    val = np.argmax(self.preds_to_plot[i])
+                    val = np.argmax(self.preds_to_plot[i],axis=1)
                     chns.append(val)
             elif np.max(self.preds_to_plot[i]) > thresh:
                 starts.append(i * pw)
