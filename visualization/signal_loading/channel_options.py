@@ -453,7 +453,7 @@ class ChannelOptions(QWidget):
         self.parent.sei.fn = self.parent.fn_full_temp
         if self.new_load:
             self.parent.count = 0
-            self.parent.lblFn.setText("Plotting: " + self.parent.fn_temp)
+            self.parent.lbl_fn.setText("Plotting: " + self.parent.fn_temp)
 
     def organize(self):
         """ Function to open the window to change signal order.

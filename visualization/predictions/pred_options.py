@@ -1,14 +1,14 @@
-from PyQt5.QtCore import Qt
-
-from PyQt5.QtWidgets import (QFileDialog, QVBoxLayout, QMessageBox, QWidget,
-                                QPushButton, QCheckBox, QLabel, QInputDialog,
-                                QSlider, QGridLayout, QSpinBox, QFrame, QRadioButton,
+""" Module for prediction options window """
+from PyQt5.QtWidgets import (QFileDialog, QWidget, QPushButton, QCheckBox,
+                                QLabel, QGridLayout, QFrame, QRadioButton,
                                 QGroupBox, QHBoxLayout)
 
 from matplotlib.backends.qt_compat import QtWidgets
 
 class PredictionOptions(QWidget):
+    """ Class for prediction options window """
     def __init__(self,pi,parent):
+        """ Constructor """
         super().__init__()
         self.left = 10
         self.top = 10
@@ -18,17 +18,18 @@ class PredictionOptions(QWidget):
         self.data = pi
         self.parent = parent
         self.nchns = self.parent.ci.nchns_to_plot
-        self.setupUI()
+        self.setup_ui()
 
-    def setupUI(self):
-
+    def setup_ui(self):
+        """ Setup window UI
+        """
         layout = QGridLayout()
         layout.setSpacing(4)
 
         self.setWindowTitle(self.title)
-        centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
-        self.setGeometry(centerPoint.x() - self.width / 2,
-            centerPoint.y() - self.height / 2, self.width, self.height)
+        center_point = QtWidgets.QDesktopWidget().availableGeometry().center()
+        self.setGeometry(center_point.x() - self.width / 2,
+            center_point.y() - self.height / 2, self.width, self.height)
 
         info_lbl = QLabel(self)
         info_lbl.setText("Loading predictions:" +
@@ -69,16 +70,16 @@ class PredictionOptions(QWidget):
 
         layout.addWidget(self.cbox_model,ud,0)
 
-        buttonLoadPtFile = QPushButton("Load preprocessed data",self)
-        buttonLoadPtFile.clicked.connect(self.loadPtData)
-        buttonLoadPtFile.setToolTip("Click to load preprocessed data (as a torch tensor)")
-        layout.addWidget(buttonLoadPtFile,ud,1)
+        button_load_pt_file = QPushButton("Load preprocessed data",self)
+        button_load_pt_file.clicked.connect(self.load_pt_data)
+        button_load_pt_file.setToolTip("Click to load preprocessed data (as a torch tensor)")
+        layout.addWidget(button_load_pt_file,ud,1)
 
-        self.labelLoadPtFile = QLabel("No data loaded.",self)
+        self.label_load_pt_file = QLabel("No data loaded.",self)
         if self.data.data_loaded == 1:
-            self.labelLoadPtFile.setText(self.data.data_fn)
-        layout.addWidget(self.labelLoadPtFile,ud,2)
-        groupBoxBinaryEdit_model = QGroupBox()
+            self.label_load_pt_file.setText(self.data.data_fn)
+        layout.addWidget(self.label_load_pt_file,ud,2)
+        groupbox_binary_edit_model = QGroupBox()
         self.radio_binary_model = QRadioButton("binary")
         self.radio_multiclass_model = QRadioButton("multi-class")
         if self.data.multi_class_model:
@@ -88,21 +89,21 @@ class PredictionOptions(QWidget):
         hbox = QHBoxLayout()
         hbox.addWidget(self.radio_binary_model)
         hbox.addWidget(self.radio_multiclass_model)
-        groupBoxBinaryEdit_model.setLayout(hbox)
-        layout.addWidget(groupBoxBinaryEdit_model, ud, 3)
+        groupbox_binary_edit_model.setLayout(hbox)
+        layout.addWidget(groupbox_binary_edit_model, ud, 3)
         ud += 1
         layout.addWidget(QLabel(), ud, 0, 1, 4)
         ud += 1
 
-        buttonLoadModel = QPushButton("Load model",self)
-        buttonLoadModel.clicked.connect(self.loadModel)
-        buttonLoadModel.setToolTip("Click to load model")
-        layout.addWidget(buttonLoadModel,ud,1)
+        button_load_model = QPushButton("Load model",self)
+        button_load_model.clicked.connect(self.load_model)
+        button_load_model.setToolTip("Click to load model")
+        layout.addWidget(button_load_model,ud,1)
 
-        self.labelLoadModel = QLabel("No model loaded.",self)
+        self.label_load_model = QLabel("No model loaded.",self)
         if self.data.model_loaded == 1:
-            self.labelLoadModel.setText(self.data.model_fn)
-        layout.addWidget(self.labelLoadModel,ud,2)
+            self.label_load_model.setText(self.data.model_fn)
+        layout.addWidget(self.label_load_model,ud,2)
         ud += 1
         layout.addWidget(QLabel(), ud, 0, 1, 4)
         ud += 1
@@ -117,17 +118,17 @@ class PredictionOptions(QWidget):
 
         layout.addWidget(self.cbox_preds,ud,0)
 
-        buttonLoadPreds = QPushButton("Load predictions",self)
-        buttonLoadPreds.clicked.connect(self.loadPreds)
-        buttonLoadPreds.setToolTip("Click to load predictions")
-        layout.addWidget(buttonLoadPreds,ud,1)
+        button_load_preds = QPushButton("Load predictions",self)
+        button_load_preds.clicked.connect(self.load_preds)
+        button_load_preds.setToolTip("Click to load predictions")
+        layout.addWidget(button_load_preds,ud,1)
 
-        self.labelLoadPreds = QLabel("No predictions loaded.", self)
+        self.label_load_preds = QLabel("No predictions loaded.", self)
         if self.data.preds_loaded == 1:
-            self.labelLoadPreds.setText(self.data.preds_fn)
-        layout.addWidget(self.labelLoadPreds,ud,2)
+            self.label_load_preds .setText(self.data.preds_fn)
+        layout.addWidget(self.label_load_preds ,ud,2)
 
-        groupBoxBinaryEdit_preds = QGroupBox()
+        groupbox_binary_edit_preds = QGroupBox()
         self.radio_binary_preds = QRadioButton("binary")
         self.radio_multiclass_preds = QRadioButton("multi-class")
         if self.data.multi_class_preds:
@@ -137,22 +138,24 @@ class PredictionOptions(QWidget):
         hbox = QHBoxLayout()
         hbox.addWidget(self.radio_binary_preds)
         hbox.addWidget(self.radio_multiclass_preds)
-        groupBoxBinaryEdit_preds.setLayout(hbox)
-        layout.addWidget(groupBoxBinaryEdit_preds, ud, 3)
+        groupbox_binary_edit_preds.setLayout(hbox)
+        layout.addWidget(groupbox_binary_edit_preds, ud, 3)
 
         ud += 1
 
-        btnExit = QPushButton('Ok', self)
-        btnExit.clicked.connect(self.check)
-        layout.addWidget(btnExit,ud,4)
+        btn_exit = QPushButton('Ok', self)
+        btn_exit.clicked.connect(self.check)
+        layout.addWidget(btn_exit,ud,4)
 
         self.setLayout(layout)
 
         self.show()
 
     def model_checked(self):
-        c = self.sender()
-        if c.isChecked():
+        """ Called when the model cbox is checked.
+        """
+        cbox = self.sender()
+        if cbox.isChecked():
             if self.cbox_preds.isChecked():
                 self.cbox_preds.setChecked(False)
                 self.data.plot_loaded_preds = 0
@@ -161,8 +164,10 @@ class PredictionOptions(QWidget):
             self.data.plot_model_preds = 0
 
     def preds_checked(self):
-        c = self.sender()
-        if c.isChecked():
+        """ Called when the predictions cbox is checked.
+        """
+        cbox = self.sender()
+        if cbox.isChecked():
             if self.cbox_model.isChecked():
                 self.cbox_model.setChecked(False)
                 self.data.plot_model_preds = 0
@@ -170,64 +175,60 @@ class PredictionOptions(QWidget):
         else:
             self.data.plot_loaded_preds = 0
 
-    def loadPtData(self):
-        """
-        Load data for prediction
+    def load_pt_data(self):
+        """ Load data for prediction.
         """
         ptfile_fn = QFileDialog.getOpenFileName(self, 'Open file','.','Pytorch files (*.pt)')
-        if ptfile_fn[0] == None or len(ptfile_fn[0]) == 0:
+        if ptfile_fn[0] is None or len(ptfile_fn[0]) == 0:
             return
+        if len(ptfile_fn[0].split('/')[-1]) < 18:
+            self.label_load_pt_file.setText(ptfile_fn[0].split('/')[-1])
+            self.data.data_fn = ptfile_fn[0].split('/')[-1]
         else:
-            if len(ptfile_fn[0].split('/')[-1]) < 18:
-                self.labelLoadPtFile.setText(ptfile_fn[0].split('/')[-1])
-                self.data.data_fn = ptfile_fn[0].split('/')[-1]
-            else:
-                self.labelLoadPtFile.setText(ptfile_fn[0].split('/')[-1][0:15] + "...")
-                self.data.data_fn = ptfile_fn[0].split('/')[-1][0:15] + "..."
-            self.data.set_data(ptfile_fn[0])
-            self.cbox_model.setChecked(True)
-            self.cbox_preds.setChecked(False)
+            self.label_load_pt_file.setText(ptfile_fn[0].split('/')[-1][0:15] + "...")
+            self.data.data_fn = ptfile_fn[0].split('/')[-1][0:15] + "..."
+        self.data.set_data(ptfile_fn[0])
+        self.cbox_model.setChecked(True)
+        self.cbox_preds.setChecked(False)
 
-    def loadModel(self):
+    def load_model(self):
         """ Load model for prediction
         """
         model_fn = QFileDialog.getOpenFileName(self, 'Open model','.','Pytorch files (*.pt)')
-        if model_fn[0] == None or len(model_fn[0]) == 0:
+        if model_fn[0] is None or len(model_fn[0]) == 0:
             return
+        if len(model_fn[0].split('/')[-1]) < 18:
+            self.label_load_model.setText(model_fn[0].split('/')[-1])
+            self.data.model_fn = model_fn[0].split('/')[-1]
         else:
-            if len(model_fn[0].split('/')[-1]) < 18:
-                self.labelLoadModel.setText(model_fn[0].split('/')[-1])
-                self.data.model_fn = model_fn[0].split('/')[-1]
-            else:
-                self.labelLoadModel.setText(model_fn[0].split('/')[-1][0:15] + "...")
-                self.data.model_fn = model_fn[0].split('/')[-1][0:15] + "..."
-            self.data.set_model(model_fn[0])
-            self.cbox_model.setChecked(True)
-            self.cbox_preds.setChecked(False)
+            self.label_load_model.setText(model_fn[0].split('/')[-1][0:15] + "...")
+            self.data.model_fn = model_fn[0].split('/')[-1][0:15] + "..."
+        self.data.set_model(model_fn[0])
+        self.cbox_model.setChecked(True)
+        self.cbox_preds.setChecked(False)
 
-    def loadPreds(self):
+    def load_preds(self):
         """ Loads predictions
         """
         preds_fn = QFileDialog.getOpenFileName(self, 'Open predictions','.','Pytorch files (*.pt)')
-        if preds_fn[0] == None or len(preds_fn[0]) == 0:
+        if preds_fn[0] is None or len(preds_fn[0]) == 0:
             return
+        if (self.data.set_preds(preds_fn[0], self.parent.max_time,
+            self.parent.edf_info.fs,self.nchns,
+            self.radio_binary_preds.isChecked()) == -1):
+            self.parent.throwAlert("Predictions are not an even multiple of the" +
+                            " samples in the .edf" +
+                            "file you loaded or are the incorrect shape." +
+                            " Please check your file.")
         else:
-            if (self.data.set_preds(preds_fn[0], self.parent.max_time,
-                self.parent.edf_info.fs,self.nchns,
-                self.radio_binary_preds.isChecked()) == -1):
-                self.parent.throwAlert("Predictions are not an even multiple of the" +
-                                " samples in the .edf" +
-                                "file you loaded or are the incorrect shape." +
-                                " Please check your file.")
+            if len(preds_fn[0].split('/')[-1]) < 18:
+                self.label_load_preds.setText(preds_fn[0].split('/')[-1])
+                self.data.preds_fn = preds_fn[0].split('/')[-1]
             else:
-                if len(preds_fn[0].split('/')[-1]) < 18:
-                    self.labelLoadPreds.setText(preds_fn[0].split('/')[-1])
-                    self.data.preds_fn = preds_fn[0].split('/')[-1]
-                else:
-                    self.labelLoadPreds.setText(preds_fn[0].split('/')[-1][0:15] + "...")
-                    self.data.preds_fn = preds_fn[0].split('/')[-1][0:15] + "..."
-                self.cbox_model.setChecked(False)
-                self.cbox_preds.setChecked(True)
+                self.label_load_preds.setText(preds_fn[0].split('/')[-1][0:15] + "...")
+                self.data.preds_fn = preds_fn[0].split('/')[-1][0:15] + "..."
+            self.cbox_model.setChecked(False)
+            self.cbox_preds.setChecked(True)
 
     def check(self):
         """ Take loaded model and data and compute predictions
@@ -237,7 +238,7 @@ class PredictionOptions(QWidget):
         self.parent.btn_topo.setText("Show topoplots")
         if self.data.plot_loaded_preds == 0 and self.data.plot_model_preds == 0:
             self.parent.predicted = 0
-            self.closeWindow()
+            self.close_window()
             self.parent.throwAlert("You have not chosen to plot any predictions.")
             self.parent.callmovePlot(0,0,0)
         elif self.data.plot_loaded_preds:
@@ -252,15 +253,15 @@ class PredictionOptions(QWidget):
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.preds
                     self.data.multi_class_preds = self.data.multi_class
-                    self.parent.predLabel.setText("Predictions plotted.")
-                    topo_chns_correct = self.parent._check_topo_chns()
+                    self.parent.pred_label.setText("Predictions plotted.")
+                    topo_chns_correct = self.parent.check_topo_chns()
                     if (self.data.pred_by_chn and not self.data.multi_class
                         and topo_chns_correct):
                         self.parent.add_topoplot()
                         self.parent.btn_topo.setEnabled(1)
                         self.parent.btn_topo.setText("Hide topoplots")
                     self.parent.callmovePlot(0,0,0)
-                    self.closeWindow()
+                    self.close_window()
                 elif loaded_preds_valid == -1:
                     self.parent.throwAlert("Predictions are not an even multiple" +
                                     " of the samples in the .edf" +
@@ -283,28 +284,31 @@ class PredictionOptions(QWidget):
                     self.parent.predicted = 1
                     self.data.preds_to_plot = self.data.model_preds
                     self.data.multi_class_model = self.data.multi_class
-                    self.parent.predLabel.setText("Predictions plotted.")
-                    topo_chns_correct = self.parent._check_topo_chns()
+                    self.parent.pred_label.setText("Predictions plotted.")
+                    topo_chns_correct = self.parent.check_topo_chns()
                     if (self.data.pred_by_chn and not self.data.multi_class
                         and topo_chns_correct):
                         self.parent.add_topoplot()
                         self.parent.btn_topo.setEnabled(1)
                         self.parent.btn_topo.setText("Hide topoplots")
                     self.parent.callmovePlot(0,0,0)
-                    self.closeWindow()
+                    self.close_window()
             elif not self.data.data_loaded:
                 self.parent.throwAlert('Please load data.')
             else:
                 self.parent.throwAlert('Please load a model.')
 
-    def closeWindow(self):
-        # For when zoom plot is open, if new predictions are loaded they will
-        # make the roi box invisible
-        if self.parent.btnZoom.text() == "Close zoom":
-            self.parent.openZoomPlot()
-            self.parent.openZoomPlot()
+    def close_window(self):
+        """ Called to close the predictions window.
+
+            For when zoom plot is open, if new predictions are
+            loaded they will make the roi box invisible
+        """
+        if self.parent.btn_zoom.text() == "Close zoom":
+            self.parent.open_zoom_plot()
+            self.parent.open_zoom_plot()
         self.parent.close_topoplot()
-        topo_chns_correct = self.parent._check_topo_chns()
+        topo_chns_correct = self.parent.check_topo_chns()
         if (self.parent.pi.pred_by_chn and self.parent.predicted
                 and topo_chns_correct and not self.parent.pi.multi_class):
             self.parent.add_topoplot()
@@ -313,8 +317,16 @@ class PredictionOptions(QWidget):
         self.parent.preds_win_open = 0
         self.close()
 
+    def closeEvent(self, event):
+        """ Called when the window is closed.
+        """
+        self.parent.preds_win_open = 0
+        event.accept()
+
 class QHLine(QFrame):
+    """ Class for horizontal line widget """
     def __init__(self):
+        """ Constructor """
         super(QHLine, self).__init__()
         self.setFrameShape(QFrame.HLine)
         self.setFrameShadow(QFrame.Sunken)

@@ -269,7 +269,7 @@ class SaveImgOptions(QWidget):
         self.ax.set_title(self.data.title, fontsize=self.data.font_size)
 
         if self.data.plot_ann:
-            ann, idx_w_ann = checkAnnotations(
+            ann, idx_w_ann = check_annotations(
                 self.count, self.window_size, self.parent.edf_info)
             font_size = self.data.font_size - 4
             # Add in annotations
