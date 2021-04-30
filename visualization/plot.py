@@ -477,17 +477,17 @@ class MainPage(QMainWindow):
         """
         # ---- left side of the screen ---- #
         self.button_select_file.clicked.connect(self.load_data)
-        self.button_chg_sig.clicked.connect(self.chgSig)
+        self.button_chg_sig.clicked.connect(self.chg_sig)
         self.cbox_filter.toggled.connect(self.filter_checked)
-        self.button_chg_filt.clicked.connect(self.changeFilter)
-        self.button_predict.clicked.connect(self.changePredictions)
-        self.thresh_slider.sliderReleased.connect(self.changeThreshSlider)
+        self.button_chg_filt.clicked.connect(self.change_filter)
+        self.button_predict.clicked.connect(self.change_predictions)
+        self.thresh_slider.sliderReleased.connect(self.change_thresh_slider)
         self.btn_topo.clicked.connect(self.minimize_topo)
         self.btn_zoom.clicked.connect(self.open_zoom_plot)
-        self.button_chg_spec.clicked.connect(self.loadSpec)
-        self.button_amp_inc.clicked.connect(self.incAmp)
-        self.button_amp_dec.clicked.connect(self.decAmp)
-        self.ws_combobox.currentIndexChanged['int'].connect(self.chgWindow_size)
+        self.button_chg_spec.clicked.connect(self.load_spec)
+        self.button_amp_inc.clicked.connect(self.inc_amp)
+        self.button_amp_dec.clicked.connect(self.dec_amp)
+        self.ws_combobox.currentIndexChanged['int'].connect(self.chg_window_size)
         self.button_print.clicked.connect(self.print_graph)
         self.button_save_edf.clicked.connect(self.save_to_edf)
         self.btn_help.clicked.connect(self.open_help)
@@ -495,11 +495,11 @@ class MainPage(QMainWindow):
         # ---- right side of the screen ---- #
         self.slider.sliderReleased.connect(self.valuechange)
         self.btn_open_ann_dock.clicked.connect(self.open_ann_dock)
-        self.button_lt_10s.clicked.connect(self.leftPlot10s)
-        self.button_lt_1s.clicked.connect(self.leftPlot1s)
-        self.button_chg_count.clicked.connect(self.getCount)
-        self.button_rt_1s.clicked.connect(self.rightPlot1s)
-        self.button_rt_10s.clicked.connect(self.rightPlot10s)
+        self.button_lt_10s.clicked.connect(self.left_plot_10s)
+        self.button_lt_1s.clicked.connect(self.left_plot_1s)
+        self.button_chg_count.clicked.connect(self.get_count)
+        self.button_rt_1s.clicked.connect(self.right_plot_1s)
+        self.button_rt_10s.clicked.connect(self.right_plot_10s)
         self.save_topoplot_btn.clicked.connect(self.save_topoplot)
 
         # ---- right side dock ---- #
@@ -510,8 +510,8 @@ class MainPage(QMainWindow):
         self.btn_ann_edit.clicked.connect(self.ann_editor_update)
         self.btn_ann_del.clicked.connect(self.ann_editor_del)
         self.btn_ann_create.clicked.connect(self.ann_editor_create)
-        self.btn_open_stats.clicked.connect(self.openStatWindow)
-        self.chn_qlist.itemClicked.connect(self.statChnClicked)
+        self.btn_open_stats.clicked.connect(self.open_stat_window)
+        self.chn_qlist.itemClicked.connect(self.stat_chn_clicked)
 
     def init_values(self):
         """ Set some initial values and create Info objects.
@@ -999,7 +999,7 @@ class MainPage(QMainWindow):
                 self.count = self.max_time - self.window_size
             self.callmovePlot(0, 1)
 
-    def changeThreshSlider(self):
+    def change_thresh_slider(self):
         """
         Updates the value of the threshold when the slider is changed.
         """
@@ -1010,7 +1010,7 @@ class MainPage(QMainWindow):
         if self.predicted == 1:
             self.callmovePlot(0, 0)
 
-    def chgSig(self):
+    def chg_sig(self):
         """
         Funtion to open channel_options so users can change the signals being
         plotted.
@@ -1239,33 +1239,33 @@ class MainPage(QMainWindow):
         if len(ann[0]) > 0 and ann[2][0] == "filtered" or self.filter_checked == 1:
             self.cbox_filter.setChecked(True)  # must be set after init = 1
 
-    def rightPlot1s(self):
+    def right_plot_1s(self):
         self.callmovePlot(1, 1)
 
-    def leftPlot1s(self):
+    def left_plot_1s(self):
         self.callmovePlot(0, 1)
 
-    def rightPlot10s(self):
+    def right_plot_10s(self):
         self.callmovePlot(1, 10)
 
-    def leftPlot10s(self):
+    def left_plot_10s(self):
         self.callmovePlot(0, 10)
 
-    def incAmp(self):
+    def inc_amp(self):
         if self.init == 1:
             if self.ylim[0] > 50:
                 self.ylim[0] = self.ylim[0] - 15
                 self.ylim[1] = self.ylim[1] - 10
                 self.callmovePlot(0, 0)
 
-    def decAmp(self):
+    def dec_amp(self):
         if self.init == 1:
             if self.ylim[0] < 250:
                 self.ylim[0] = self.ylim[0] + 15
                 self.ylim[1] = self.ylim[1] + 10
                 self.callmovePlot(0, 0)
 
-    def chgWindow_size(self):
+    def chg_window_size(self):
         if self.init == 1:
             new_ws = self.ws_combobox.currentText()
             new_ws = int(new_ws.split("s")[0])
@@ -1275,7 +1275,7 @@ class MainPage(QMainWindow):
         else:
             self.ws_combobox.setCurrentIndex(2)
 
-    def getCount(self):
+    def get_count(self):
         """
         Used for the "jump to" button to update self.count to the user's input
         """
@@ -1746,7 +1746,7 @@ class MainPage(QMainWindow):
                 self.filter_checked = 0
             # if you start / stop filtering, need to update the stats
             if self.btn_open_stats.text() == "Close signal stats":
-                self.statChnClicked()
+                self.stat_chn_clicked()
             # if data was already filtered do not uncheck box
             ann = self.edf_info.annotations
             if len(ann[0]) > 0 and ann[2][0] == "filtered":
@@ -1771,7 +1771,7 @@ class MainPage(QMainWindow):
         filt_window_size = np.array(filt_window_size)
         self.filteredData = filt_window_size
 
-    def changeFilter(self):
+    def change_filter(self):
         """ Opens the FilterOptions window
         """
         if self.init == 1:
@@ -1779,7 +1779,7 @@ class MainPage(QMainWindow):
             self.filter_ops = FilterOptions(self.fi, self)
             self.filter_ops.show()
 
-    def changePredictions(self):
+    def change_predictions(self):
         """ Take loaded model and data and compute predictions
         """
         if self.init == 1:
@@ -1860,7 +1860,7 @@ class MainPage(QMainWindow):
         # self.plot_layout.removeItem(self.hist)
         self.main_plot.removeItem(self.selectTimeRect)
 
-    def loadSpec(self):
+    def load_spec(self):
         """ Opens the SpecOptions window
         """
         if self.init == 1:
@@ -1871,7 +1871,7 @@ class MainPage(QMainWindow):
                 self.spec_ops = SpecOptions(self.si, self)
                 self.spec_ops.show()
 
-    def openStatWindow(self):
+    def open_stat_window(self):
         """ Opens the statistics window in the sidebar.
         """
         if self.btn_open_stats.text() == "Open signal stats":
@@ -1882,7 +1882,7 @@ class MainPage(QMainWindow):
             self.ssi.chn = 0
             self.ssi.fs = self.edf_info.fs
             self.createStatSelectTimeRect(self.ssi.chn)
-            self.statChnClicked()
+            self.stat_chn_clicked()
         else:
             self.btn_open_stats.setText("Open signal stats")
             self.removeStatSelectTimeRect()
@@ -1902,7 +1902,7 @@ class MainPage(QMainWindow):
             self.ssi.chn_items.append(QListWidgetItem(chns[i], self.chn_qlist))
             self.chn_qlist.addItem(self.ssi.chn_items[i - 1])
 
-    def statChnClicked(self):
+    def stat_chn_clicked(self):
         """ When a channel is clicked.
         """
         self.removeStatSelectTimeRect()

@@ -1,18 +1,36 @@
-from PyQt5.QtWidgets import (QHBoxLayout, QWidget, QPushButton, QCheckBox, 
-                             QLabel, QGridLayout, QLineEdit, QDialogButtonBox,
-                             QFileDialog, QDoubleSpinBox)
+""" Module for the topoplot image saving """
+import math
+import numpy as np
+
+from PyQt5.QtWidgets import (QHBoxLayout, QWidget, QCheckBox, QGridLayout,
+                             QLineEdit, QDialogButtonBox, QFileDialog, QDoubleSpinBox)
 from PyQt5 import QtWidgets
 
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 
 import mne
-import numpy as np
-import math
 
+def _get_dim(num_plots):
+    """ Get the dimensions of the subplot layout.
+
+        Args:
+            num_plots: the number of plots
+        Returns:
+            the number of rows and columns
+    """
+    num_r = math.floor(math.sqrt(num_plots))
+    num_c = math.ceil(num_plots / num_r)
+    return num_r, num_c
 
 class SaveTopoplotOptions(QWidget):
+    """ Class for the topoplot saving window """
     def __init__(self,parent):
+        """ Constructor.
+
+            Args:
+                parent - the main (parent) window
+        """
         super().__init__()
         self.left = 10
         self.top = 10
@@ -20,20 +38,20 @@ class SaveTopoplotOptions(QWidget):
         self.width = parent.width / 2
         self.height = parent.height / 2
         self.parent = parent
-        # self.data = data
         self.plot_title = ""
         self.show_subplot_times = 0
-        self.setupUI()
+        self.setup_ui()
 
-    def setupUI(self):
+    def setup_ui(self):
         """ Setup UI.
         """
         self.layout = QHBoxLayout()
         # left side - plot window
         self.m = PlotCanvas(self, width=7, height=7)
         self.layout.addWidget(self.m)
-        centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
-        self.setGeometry(centerPoint.x() - self.width / 2, centerPoint.y() - self.height / 2, self.width, self.height)
+        center_point = QtWidgets.QDesktopWidget().availableGeometry().center()
+        self.setGeometry(center_point.x() - self.width / 2,
+                center_point.y() - self.height / 2, self.width, self.height)
 
         # right side - options
         self.rt_side_layout = QGridLayout()
@@ -53,17 +71,20 @@ class SaveTopoplotOptions(QWidget):
         self.rt_side_layout.addWidget(self.cbox_add_times, 1,0,1, 2)
         self.rt_side_layout.addWidget(self.cbox_title, 2,0,1,1)
         self.rt_side_layout.addWidget(self.title_input, 2,1,1,1)
-        self.okBtn = QtWidgets.QDialogButtonBox(self)
-        self.okBtn.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
-        self.rt_side_layout.addWidget(self.okBtn,3,1,1,1)
+        self.ok_btn = QtWidgets.QDialogButtonBox(self)
+        self.ok_btn.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.rt_side_layout.addWidget(self.ok_btn,3,1,1,1)
         self.layout.addLayout(self.rt_side_layout)
 
         self.setLayout(self.layout)
-        self.setSigSlots()
-    
-    def setSigSlots(self):
-        self.okBtn.button(QDialogButtonBox.Ok).clicked.connect(self.printPlot)
-        self.okBtn.button(QDialogButtonBox.Cancel).clicked.connect(self.closeWindow)
+        self.set_sig_slots()
+
+    def set_sig_slots(self):
+        """ Set signals and slots
+        """
+        self.ok_btn.button(QDialogButtonBox.Ok).clicked.connect(self.print_plot)
+        self.ok_btn.button(QDialogButtonBox.Cancel).clicked.connect(self.close_window)
         self.cbox_add_times.toggled.connect(self.add_times)
         self.cbox_title.toggled.connect(self.title_checked)
         self.cbox_single_time.toggled.connect(self.toggle_plot_single_time)
@@ -71,8 +92,10 @@ class SaveTopoplotOptions(QWidget):
         self.title_input.textChanged.connect(self.title_changed)
         self.make_plot()
         self.show()
-    
+
     def add_times(self):
+        """ Called when cbox is checked to set the times on the plot.
+        """
         cbox = self.sender()
         if cbox.isChecked():
             self.show_subplot_times = 1
@@ -109,7 +132,7 @@ class SaveTopoplotOptions(QWidget):
         """ Call toggle_plot_single_time to update the time of the plot.
         """
         self.toggle_plot_single_time()
-    
+
     def _get_pred_sample_from_time(self, time_val:float):
         """ Get the value of the prediction from the time.
 
@@ -128,7 +151,7 @@ class SaveTopoplotOptions(QWidget):
         self.m.fig.clf()
         num_plots, start = self._get_num_subplots()
         self.ax = []
-        dim_r, dim_c = self._get_dim(num_plots)
+        dim_r, dim_c = _get_dim(num_plots)
         for i in range(num_plots):
             self.ax.append(self.m.fig.add_subplot(dim_r, dim_c, i + 1))
 
@@ -168,7 +191,7 @@ class SaveTopoplotOptions(QWidget):
         """ Compute the number of subplots needed.
 
             Returns:
-                The number of predictions in the window and 
+                The number of predictions in the window and
                 the start location as an index.
         """
         if self.plot_single_time:
@@ -183,12 +206,12 @@ class SaveTopoplotOptions(QWidget):
             if i % width == 0:
                 start = i / width
                 break
-        
+
         for i in range((count + ws) * fs - width, (count + ws) * fs):
             if i % width == 0:
                 end = i / width
                 break
-        
+
         num_plots = int(end - start) + 1
         return num_plots, int(start)
 
@@ -204,30 +227,17 @@ class SaveTopoplotOptions(QWidget):
         samples = (start + i) * self.parent.pi.pred_width
         samples = samples / self.parent.edf_info.fs
         return samples
-    
-    def _get_dim(self, num_plots):
-        """ Get the dimensions of the subplot layout.
 
-            Args:
-                num_plots: the number of plots
-            Returns:
-                the number of rows and columns
-        """
-        num_r = math.floor(math.sqrt(num_plots))
-        num_c = math.ceil(num_plots / num_r)
-        return num_r, num_c
-
-    def printPlot(self):
+    def print_plot(self):
         """ Saves the plot and exits.
         """
         file = QFileDialog.getSaveFileName(self, 'Save File')
-        if len(file[0]) == 0 or file[0] == None:
+        if len(file[0]) == 0 or file[0] is None:
             return
-        else:
-            self.m.fig.savefig(file[0] + ".png", bbox_inches='tight', dpi=300)
-            self.closeWindow()
+        self.m.fig.savefig(file[0] + ".png", bbox_inches='tight', dpi=300)
+        self.closeWindow()
 
-    def closeWindow(self):
+    def close_window(self):
         """ Called when "ok" is pressed to exit.
         """
         self.parent.savetopo_win_open = 0
@@ -240,8 +250,9 @@ class SaveTopoplotOptions(QWidget):
         event.accept()
 
 class PlotCanvas(FigureCanvas):
-
+    """ Class for the matplotlib graph as a widget """
     def __init__(self, parent=None, width=5, height=4, dpi=100):
+        """ Constructor """
         self.fig = Figure(figsize=(width, height), dpi=dpi,
                           constrained_layout=False)
         self.gs = self.fig.add_gridspec(1, 1, wspace=0.0, hspace=0.0)
