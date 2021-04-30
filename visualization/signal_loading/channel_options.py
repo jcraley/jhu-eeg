@@ -54,12 +54,12 @@ class ChannelOptions(QWidget):
         self.scroll.setWidget(self.chn_qlist)
 
         self.populate_chn_list()
-        self.data.convertedChnNames = []
-        self.data.convertChnNames()
-        self.ar1020 = self.data.canDoBIP_AR(1,0)
-        self.bip1020 = self.data.canDoBIP_AR(0,0)
-        self.ar1010 = self.data.canDoBIP_AR(1,1)
-        #self.bip1010 = self.data.canDoBIP_AR(0,1)
+        self.data.converted_chn_names = []
+        self.data.convert_chn_names()
+        self.ar1020 = self.data.can_do_bip_ar(1,0)
+        self.bip1020 = self.data.can_do_bip_ar(0,0)
+        self.ar1010 = self.data.can_do_bip_ar(1,1)
+        #self.bip1010 = self.data.can_do_bip_ar(0,1)
         self.data.total_nchns = len(self.data.chns2labels)
 
         self.setWindowTitle(self.title)
@@ -106,7 +106,7 @@ class ChannelOptions(QWidget):
         self.chn_cbox_layout = QVBoxLayout()
         self.chn_cbox_list.setLayout(self.chn_cbox_layout)
         self.cbox_list_items = []
-        for k in self.data.labelsFromTxtFile.keys():
+        for k in self.data.labels_from_txt_file.keys():
             self.add_txt_file(k)
         self.uncheck_txt_files()
 
@@ -124,13 +124,13 @@ class ChannelOptions(QWidget):
         #self.btn_cleartxtfile.setVisible(0)
         #grid_lt.addWidget(self.btn_cleartxtfile,6,0)
 
-        if len(self.data.txtFile_fn) > 0:
+        if len(self.data.txt_file_fn) > 0:
             if self.data.use_loaded_txt_file:
                 self.cbox_txtfile.setChecked(1)
             self.btn_loadtxtfile.setVisible(0)
             self.btn_cleartxtfile.setVisible(1)
             self.cbox_txtfile.setVisible(1)
-            self.cbox_txtfile.setText(self.data.txtFile_fn)
+            self.cbox_txtfile.setText(self.data.txt_file_fn)
 
         lbl = QLabel("")
         grid_lt.addWidget(lbl, 7,0)
@@ -212,7 +212,7 @@ class ChannelOptions(QWidget):
         """ Called when average reference is checked.
         """
         cbox = self.sender()
-        chns = self.data.getChns(self.data.labelsAR1020)
+        chns = self.data.get_chns(self.data.labelsAR1020)
         if cbox.isChecked():
             self.uncheck_txt_files()
             self.cbox_bip.setChecked(0)
@@ -230,7 +230,7 @@ class ChannelOptions(QWidget):
         """ Called when bipolar is checked.
         """
         cbox = self.sender()
-        chns = self.data.getChns(self.data.labelsBIP1020)
+        chns = self.data.get_chns(self.data.labelsBIP1020)
         if cbox.isChecked():
             if self.ar1010:
                 self.cbox_ar1010.setChecked(0)
@@ -238,7 +238,7 @@ class ChannelOptions(QWidget):
         #    elif self.bip1010:
         #        self.cbox_bip1010.setChecked(0)
         if self.ar1020:
-            chns = self.data.getChns(self.data.labelsAR1020)
+            chns = self.data.get_chns(self.data.labelsAR1020)
             if cbox.isChecked():
                 self.cbox_ar.setChecked(0)
                 self.uncheck_txt_files()
@@ -256,7 +256,7 @@ class ChannelOptions(QWidget):
         """ Called when average reference 1010 is called.
         """
         cbox = self.sender()
-        chns = self.data.getChns(self.data.labelsAR1010)
+        chns = self.data.get_chns(self.data.labelsAR1010)
         if cbox.isChecked():
             self.uncheck_txt_files()
             self.cbox_bip.setChecked(0)
@@ -271,9 +271,9 @@ class ChannelOptions(QWidget):
         """ Called when bipolar 1010 is called.
         """
         cbox = self.sender()
-        chns = self.data.getChns(self.data.labelsBIP1010)
+        chns = self.data.get_chns(self.data.labelsBIP1010)
         if self.ar1020:
-            chns = self.data.getChns(self.data.labelsAR1010)
+            chns = self.data.get_chns(self.data.labelsAR1010)
             if cbox.isChecked():
                 self.cbox_ar.setChecked(0)
                 self.uncheck_txt_files()
@@ -303,7 +303,7 @@ class ChannelOptions(QWidget):
         # Called if a text file is selected.
         c = self.sender()
         name = c.text()
-        chns = self.data.getChns(self.data.labelsFromTxtFile[name])
+        chns = self.data.get_chns(self.data.labels_from_txt_file[name])
         if c.isChecked():
             if self.ar1020:
                 self.cbox_ar.setChecked(0)
@@ -372,7 +372,7 @@ class ChannelOptions(QWidget):
         short_name = name.split('/')[-1]
         if len(name.split('/')[-1]) > 15:
             short_name = name.split('/')[-1][0:15] + "..."
-        if short_name in self.data.labelsFromTxtFile.keys():
+        if short_name in self.data.labels_from_txt_file.keys():
             self.parent.throwAlert("Each loaded text file must have a unique "
                 + "name (first 14 characters). Please rename your file.")
             return
@@ -385,7 +385,7 @@ class ChannelOptions(QWidget):
 
     def _check_chns(self, txt_fn, txt_fn_short):
         """ Function to check that this file has the appropriate channel names.
-            Sets self.data.labelsFromTxtFile if valid.
+            Sets self.data.labels_from_txt_file if valid.
 
             Args:
                 txt_fn: the file name to be loaded
@@ -411,14 +411,14 @@ class ChannelOptions(QWidget):
         text_file.close()
         ret = 1
         for l in lines:
-            if not l in self.data.convertedChnNames and not l in self.data.labels2chns:
+            if not l in self.data.converted_chn_names and not l in self.data.labels2chns:
                 ret = 0
         if ret:
-            self.data.labelsFromTxtFile[txt_fn_short] = []
+            self.data.labels_from_txt_file[txt_fn_short] = []
             for i in range(len(lines)):
-                if not lines[len(lines) - 1 - i] in self.data.convertedChnNames:
+                if not lines[len(lines) - 1 - i] in self.data.converted_chn_names:
                     lines[len(lines) - 1 - i] = convert_txt_chn_names(lines[len(lines) - 1 - i])
-                self.data.labelsFromTxtFile[txt_fn_short].append(lines[len(lines) - 1 - i])
+                self.data.labels_from_txt_file[txt_fn_short].append(lines[len(lines) - 1 - i])
         return ret
 
     def check_multi_chn_preds(self):
@@ -496,7 +496,7 @@ class ChannelOptions(QWidget):
             #self.ar1010 and self.cbox_bip1010.isChecked()):
             plot_bip_from_ar = 1
         mont_type, txt_file_name = self._get_mont_type()
-        self.data.prepareToPlot(idxs, self.parent, mont_type, plot_bip_from_ar, txt_file_name)
+        self.data.prepare_to_plot(idxs, self.parent, mont_type, plot_bip_from_ar, txt_file_name)
         # check if multi-chn pred and number of chns match
         self.check_multi_chn_preds()
         return 0

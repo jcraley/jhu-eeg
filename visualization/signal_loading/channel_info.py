@@ -20,7 +20,7 @@ def _check_label(label, label_list):
                 labels_noEEG[k] = label_CAPS[k]
         ret = _check_label_helper(label, labels_noEEG)
         if ret == -1:
-            for k,v in labels_noEEG.items():
+            for k,_ in labels_noEEG.items():
                 loc = k.find("-REF")
                 if loc != -1:
                     k2 = k[0:loc]
@@ -50,31 +50,31 @@ def _check_label_helper(label, label_list):
         return label_list[label]
     return -1
 
-def convert_txt_chn_names(self,chn_txt):
-        """ Convert channel names to the correct format.
+def convert_txt_chn_names(chn_txt):
+    """ Convert channel names to the correct format.
 
-            Args:
-                chn_txt - the channel name
-            Returns:
-                A channel name that corresponds to the expected list of
-                channel names.
-        """
-        chn = chn_txt.upper()
-        loc = chn.find("EEG ")
-        if loc != -1:
-            chn = chn[0:loc] + chn[loc+4:]
-        loc = chn.find("-REF")
-        if loc != -1:
-            chn = chn[0:loc] + chn[loc+4:]
-        if chn == "T7":
-            chn = "T3"
-        if chn == "P7":
-            chn = "T5"
-        if chn == "T8":
-            chn = "T4"
-        if chn == "P8":
-            chn = "T6"
-        return chn
+        Args:
+            chn_txt - the channel name
+        Returns:
+            A channel name that corresponds to the expected list of
+            channel names.
+    """
+    chn = chn_txt.upper()
+    loc = chn.find("EEG ")
+    if loc != -1:
+        chn = chn[0:loc] + chn[loc+4:]
+    loc = chn.find("-REF")
+    if loc != -1:
+        chn = chn[0:loc] + chn[loc+4:]
+    if chn == "T7":
+        chn = "T3"
+    if chn == "P7":
+        chn = "T5"
+    if chn == "T8":
+        chn = "T4"
+    if chn == "P8":
+        chn = "T6"
+    return chn
 
 class ChannelInfo():
     """ Data structure for holding information relevant to selecting which signals to plot """
@@ -90,7 +90,7 @@ class ChannelInfo():
 
         self.total_nchns = 0
         self.list_of_chns = []
-        self.convertedChnNames = []
+        self.converted_chn_names = []
         self.labelsBIP1020 = ["CZ-PZ","FZ-CZ","P4-O2","C4-P4","F4-C4","FP2-F4",
                               "P3-O1","C3-P3","F3-C3","FP1-F3","P8-O2","T8-P8",
                               "F8-T8","FP2-F8","P7-O1","T7-P7","F7-T7","FP1-F7"]
@@ -105,12 +105,14 @@ class ChannelInfo():
         self.labelsAR1010 = ["IZ","O2","O1","OZ","POZ","PZ","CPZ","CZ","FCZ",
                              "FZ","AFZ","FPZ",
                              "P10","P9","TP10","TP9","A2","A1","T10","T9","FT10","FT9","F10","F9",
-                             "PO8","PO7","P8","P7","TP8","TP7","T8","T7","FT8","FT7","F8","F7","AF8","AF7","FP2","FP1",
+                             "PO8","PO7","P8","P7","TP8","TP7","T8","T7","FT8","FT7","F8","F7",
+                             "AF8","AF7","FP2","FP1",
                              "P6","P5","CP6","CP5","C6","C5","FC6","FC5","F6","F5",
-                             "PO4","PO3","P4","P3","CP4","CP3","C4","C3","FC4","FC3","F4","F3","AF4","AF3",
+                             "PO4","PO3","P4","P3","CP4","CP3","C4","C3","FC4","FC3","F4",
+                             "F3","AF4","AF3",
                              "P2","P1","CP2","CP1","C2","C1","FC2","FC1","F2","F1","NZ"]
-        
-        self.otherLabels = ["T1","T2","A1","A2","FPZ","NZ","AF7","AF3","AF1",
+
+        self.other_labels = ["T1","T2","A1","A2","FPZ","NZ","AF7","AF3","AF1",
                             "AFZ","AF2","AF4","AF8","F9","F5","F1","F2","F6",
                             "F10","FT9","FT7","FC5","FC3","FC1","FCZ","FC2",
                             "FC4","FC6","FT8","FT10","T9","C5","C1","C2","C6",
@@ -118,41 +120,41 @@ class ChannelInfo():
                             "CP4","CP6","TP8","TP10","P9","P5","P1","P2","P6",
                             "P10","PO7","PO3","POZ","PO4","PO8","OZ","LZ",
                             "NZ","FT9","FT7","FT8","FT10","IZ"]
-        self.g = '#1f8c45'
-        self.colorsBIP1020 = [self.g, self.g,'b','b','b','b','r','r','r','r','b',
+        self.green = '#1f8c45'
+        self.colorsBIP1020 = [self.green, self.green,'b','b','b','b','r','r','r','r','b',
                             'b','b','b','r','r','r','r','r']
-        self.colorsAR1020 = ['b','r',self.g, self.g, self.g,'b','r','b','r','b',
+        self.colorsAR1020 = ['b','r',self.green, self.green, self.green,'b','r','b','r','b',
                             'r','b','r','b','r','b','r','b','r','b']
         self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b','b','b',
-                                self.g,self.g,self.g,self.g,'r','r','r','r','r',
+                                self.green,self.green,self.green,self.green,'r','r','r','r','r',
                                 'r','r','r','r','r','r','r']
-        self.colorsAR1010 = [self.g,'b','r',self.g,self.g,self.g,self.g,self.g,
-                             self.g,self.g,self.g,self.g,
+        self.colorsAR1010 = [self.green,'b','r',self.green,self.green,self.green,self.green,self.green,
+                             self.green,self.green,self.green,self.green,
                              'b','r','b','r','b','r','b','r','b','r','b','r',
                              'b','r','b','r','b','r','b','r','b','r','b','r','b','r','b','r',
                              'b','r','b','r','b','r','b','r','b','r',
                              'b','r','b','r','b','r','b','r','b','r','b','r','b','r',
-                             'b','r','b','r','b','r','b','r','b','r',self.g]
+                             'b','r','b','r','b','r','b','r','b','r',self.green]
 
 
 
 
 
-        self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b',self.g,
-                               self.g,'r','r','r','r','r','r','r','r','r','r']
-        self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b',self.g,
-                              self.g,self.g,'r','r','r','r','r','r','r','r','r','r']
-        self.otherColors = ['r','b','r','b',self.g, self.g,'r','r','r',self.g,
+        self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b',self.green,
+                               self.green,'r','r','r','r','r','r','r','r','r','r']
+        self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b',self.green,
+                              self.green,self.green,'r','r','r','r','r','r','r','r','r','r']
+        self.other_colors = ['r','b','r','b',self.green, self.green,'r','r','r',self.green,
                                 'b','b','b','r','r','r','b','b','b','r','r','r',
-                                'r','r',self.g,'b','b','b','b','b','r','r','r',
-                                'b','b','b','r','r','r','r','r',self.g,'b','b',
+                                'r','r',self.green,'b','b','b','b','b','r','r','r',
+                                'b','b','b','r','r','r','r','r',self.green,'b','b',
                                 'b','b','b','r','r','r','b','b','b','r','r',
-                                self.g,'b','b',self.g,self.g,self.g,'r','r','b',
-                                'b',self.g]
+                                self.green,'b','b',self.green,self.green,self.green,'r','r','b',
+                                'b',self.green]
         self.pred_chn_data = []
-        self.labelsFromTxtFile = {}
+        self.labels_from_txt_file = {}
         self.use_loaded_txt_file = 0
-        self.txtFile_fn = ""
+        self.txt_file_fn = ""
         self.organize = 0
 
         self.labels_to_plot = []
@@ -169,46 +171,46 @@ class ChannelInfo():
         self.max_time = ci2.max_time
         self.edf_fn = ci2.edf_fn
 
-        self.labelsFromTxtFile = ci2.labelsFromTxtFile
+        self.labels_from_txt_file = ci2.labels_from_txt_file
         self.use_loaded_txt_file = ci2.use_loaded_txt_file
-        self.txtFile_fn = ci2.txtFile_fn
+        self.txt_file_fn = ci2.txt_file_fn
         self.organize = ci2.organize
 
         self.total_nchns = ci2.total_nchns
         self.list_of_chns = ci2.list_of_chns
-        self.convertedChnNames = ci2.convertedChnNames
+        self.converted_chn_names = ci2.converted_chn_names
         self.pred_chn_data = ci2.pred_chn_data
 
-    def convertChnNames(self):
+    def convert_chn_names(self):
         """
         Converts given channel names to those in two montages.
         """
 
         for _ in range(len(self.chns2labels)):
-            self.convertedChnNames.append("")
+            self.converted_chn_names.append("")
 
         for k in range(len(self.labelsBIP1020)):
             ret = _check_label(self.labelsBIP1020[k],self.labels2chns)
             if ret != -1:
-                self.convertedChnNames[ret] = self.labelsBIP1020[k]
+                self.converted_chn_names[ret] = self.labelsBIP1020[k]
 
         for k in range(len(self.labelsAR1020)):
             ret = _check_label(self.labelsAR1020[k],self.labels2chns)
             if ret != -1:
-                if self.convertedChnNames[ret] == "":
-                    self.convertedChnNames[ret] = self.labelsAR1020[k]
+                if self.converted_chn_names[ret] == "":
+                    self.converted_chn_names[ret] = self.labelsAR1020[k]
 
-        for k in range(len(self.otherLabels)):
-            ret = _check_label(self.otherLabels[k],self.labels2chns)
+        for k in range(len(self.other_labels)):
+            ret = _check_label(self.other_labels[k],self.labels2chns)
             if ret != -1:
-                if self.convertedChnNames[ret] == "":
-                    self.convertedChnNames[ret] = self.otherLabels[k]
+                if self.converted_chn_names[ret] == "":
+                    self.converted_chn_names[ret] = self.other_labels[k]
 
-        for k in range(len(self.convertedChnNames)):
-            if self.convertedChnNames[k] == "":
-                self.convertedChnNames[k] = self.chns2labels[k]
+        for k in range(len(self.converted_chn_names)):
+            if self.converted_chn_names[k] == "":
+                self.converted_chn_names[k] = self.chns2labels[k]
 
-    def canDoBIP_AR(self, bip_ar, mont1010_1020):
+    def can_do_bip_ar(self, bip_ar, mont1010_1020):
         """
         Whether or not the channels are present.
         inputs:
@@ -229,11 +231,11 @@ class ChannelInfo():
 
         ret = 1
         for i in range(len(labels_to_check)):
-            if not labels_to_check[i] in self.convertedChnNames:
+            if not labels_to_check[i] in self.converted_chn_names:
                 ret = 0
         return ret
 
-    def canDoBIP_AR_idx(self, list_of_idxs, bip_ar, mont1010_1020):
+    def can_do_bip_ar_idx(self, list_of_idxs, bip_ar, mont1010_1020):
         """
         Whether or not the channels for the montage are present.
         inputs:
@@ -256,22 +258,22 @@ class ChannelInfo():
         for i in range(len(labels_to_check)):
             ret = 0
             for k in range(len(list_of_idxs)):
-                if labels_to_check[i] == self.convertedChnNames[list_of_idxs[k]]:
+                if labels_to_check[i] == self.converted_chn_names[list_of_idxs[k]]:
                     ret = 1
             if ret == 0:
                 return ret
         return ret
 
-    def getChns(self, labels):
+    def get_chns(self, labels):
         """
-        returns:
+        Returns:
             A list of the indices of the channels given labels.
             The list is of length total_nchns and has 1 where it is
             a channel in the list and 0 otherwise.
         """
         ret = []
-        for i in range(len(self.convertedChnNames)):
-            if self.convertedChnNames[i] in labels:
+        for i in range(len(self.converted_chn_names)):
+            if self.converted_chn_names[i] in labels:
                 ret.append(1)
             else:
                 ret.append(0)
@@ -279,14 +281,14 @@ class ChannelInfo():
         for i in range(len(ret)):
             if ret[i]:
                 for j in range(len(ret)):
-                    if i != j and self.convertedChnNames[i] == self.convertedChnNames[j]:
+                    if i != j and self.converted_chn_names[i] == self.converted_chn_names[j]:
                         if j > i:
                             ret[j] = 0
                         else:
                             ret[i] = 0
         return ret
 
-    def prepareToPlot(self, idxs, parent, mont_type, plot_bip_from_ar = 0, txt_file_name = ""):
+    def prepare_to_plot(self, idxs, parent, mont_type, plot_bip_from_ar = 0, txt_file_name = ""):
         """
         Prepares everything needed to plot the data.
 
@@ -301,7 +303,6 @@ class ChannelInfo():
                 from average reference data
             txt_file_name - name of text file if needed
         """
-        print(self.edf_fn)
         f = pyedflib.EdfReader(self.edf_fn)
 
         # Things needed to plot - reset each time
@@ -312,7 +313,7 @@ class ChannelInfo():
             self.nchns_to_plot = len(idxs) - 1
         if (plot_bip_from_ar and len(self.labels_to_plot) != 0
                 and len(self.labels_to_plot) == self.nchns_to_plot + 1):
-            if self.canDoBIP_AR_idx(idxs,1,0) and len(idxs) == 18:
+            if self.can_do_bip_ar_idx(idxs,1,0) and len(idxs) == 18:
                 for k in range(idxs):
                     if not self.labelsBIP1020[k] in self.labels_to_plot:
                         ret = 0
@@ -322,7 +323,7 @@ class ChannelInfo():
         if (not plot_bip_from_ar and len(self.labels_to_plot) != 0
                 and len(self.labels_to_plot) == self.nchns_to_plot + 1):
             for k in range(len(idxs)):
-                if not self.convertedChnNames[idxs[k]] in self.labels_to_plot:
+                if not self.converted_chn_names[idxs[k]] in self.labels_to_plot:
                     ret = 0
         elif not plot_bip_from_ar:
             ret = 0
@@ -345,19 +346,19 @@ class ChannelInfo():
         bip1010 = 0
         self.nchns_to_plot = len(idxs)
         self.data_to_plot = np.zeros((self.nchns_to_plot, parent.edf_info_temp.nsamples[0]))
-        if plot_bip_from_ar and self.canDoBIP_AR_idx(idxs,1,0):
+        if plot_bip_from_ar and self.can_do_bip_ar_idx(idxs,1,0):
             self.data_to_plot = np.zeros((self.nchns_to_plot - 1, parent.edf_info_temp.nsamples[0]))
         c = 0
 
         if plot_bip_from_ar:
             if mont_type == 1:
-                ar = self.canDoBIP_AR_idx(idxs,1,0) # must have all AR chns to convert to bipolar
+                ar = self.can_do_bip_ar_idx(idxs,1,0) # must have all AR chns to convert to bipolar
                 if ar:
                     bip_idx = np.zeros((18,2))
                     for k in range(18):
                         str0 = self.labelsBIP1020[k].split('-')[0]
                         str1 = self.labelsBIP1020[k].split('-')[1]
-                        for i, strg in enumerate(self.convertedChnNames):
+                        for i, strg in enumerate(self.converted_chn_names):
                             if strg == str0:
                                 idx0 = i
                             if strg == str1:
@@ -372,7 +373,7 @@ class ChannelInfo():
                         self.colors.append(self.colorsBIP1020[k])
                         c += 1
 
-                    ar_idxs = self.getChns(self.labelsAR1020) # clear these from the list
+                    ar_idxs = self.get_chns(self.labelsAR1020) # clear these from the list
                     k = 0
                     while k < len(idxs):
                         if ar_idxs[idxs[k]]:
@@ -383,13 +384,13 @@ class ChannelInfo():
                     if self.nchns_to_plot == 18:
                         self.mont_type = 1
             elif mont_type == 3:
-                ar = self.canDoBIP_AR_idx(idxs,1,1) # must have all AR chns to convert to bipolar
+                ar = self.can_do_bip_ar_idx(idxs,1,1) # must have all AR chns to convert to bipolar
                 if ar:
                     bip_idx = np.zeros((len(self.labelsBIP1010),2))
                     for k in range(len(self.labelsBIP1010)):
                         str0 = self.labelsBIP1010[k].split('-')[0]
                         str1 = self.labelsBIP1010[k].split('-')[1]
-                        for i, strg in enumerate(self.convertedChnNames):
+                        for i, strg in enumerate(self.converted_chn_names):
                             if strg == str0:
                                 idx0 = i
                             if strg == str1:
@@ -404,7 +405,7 @@ class ChannelInfo():
                         self.colors.append(self.colorsBIP1010[k])
                         c += 1
 
-                    ar_idxs = self.getChns(self.labelsAR1010) # clear these from the list
+                    ar_idxs = self.get_chns(self.labelsAR1010) # clear these from the list
                     k = 0
                     while k < len(idxs):
                         if ar_idxs[idxs[k]]:
@@ -416,27 +417,27 @@ class ChannelInfo():
                         self.mont_type = 3
 
         # Check if any of the channels are average reference / bipolar
-        #ar = self.canDoBIP_AR_idx(idxs,1,0)
-        #bip = self.canDoBIP_AR_idx(idxs,0,0)
+        #ar = self.can_do_bip_ar_idx(idxs,1,0)
+        #bip = self.can_do_bip_ar_idx(idxs,0,0)
         ar = 0
         ar1010 = 0
         for i in range(len(idxs)):
-            if self.convertedChnNames[idxs[i]] in self.labelsAR1020 and mont_type == 0:
+            if self.converted_chn_names[idxs[i]] in self.labelsAR1020 and mont_type == 0:
                 ar = 1
-            elif self.convertedChnNames[idxs[i]] in self.labelsBIP1020 and mont_type == 1:
+            elif self.converted_chn_names[idxs[i]] in self.labelsBIP1020 and mont_type == 1:
                 bip = 1
-            elif self.convertedChnNames[idxs[i]] in self.labelsAR1010 and mont_type == 2:
+            elif self.converted_chn_names[idxs[i]] in self.labelsAR1010 and mont_type == 2:
                 ar1010 = 1
-            #elif self.convertedChnNames[idxs[i]] in self.labelsBIP1010 and mont_type == 3:
+            #elif self.converted_chn_names[idxs[i]] in self.labelsBIP1010 and mont_type == 3:
             #    bip1010 = 1
             elif mont_type == 4 or mont_type == 5:
-                if self.convertedChnNames[idxs[i]] in self.labelsAR1020:
+                if self.converted_chn_names[idxs[i]] in self.labelsAR1020:
                     ar = 1
-                elif self.convertedChnNames[idxs[i]] in self.labelsBIP1020:
+                elif self.converted_chn_names[idxs[i]] in self.labelsBIP1020:
                     bip = 1
 
         if self.use_loaded_txt_file and mont_type == 4:
-            labels = self.labelsFromTxtFile[txt_file_name]
+            labels = self.labels_from_txt_file[txt_file_name]
             colors = []
             for i in range(len(labels)):
                 idx = -1
@@ -448,16 +449,16 @@ class ChannelInfo():
                         pass
                 elif bip:
                     try:
-                        idx = self.labelsBIP.index(labels[i])
+                        idx = self.labelsBIP1020.index(labels[i])
                         colors.append(self.colorsBIP1020[idx])
                     except ValueError:
                         pass
                 else:
                     try:
-                        idx = self.otherLabels.index(labels[i])
-                        colors.append(self.otherColors[idx])
+                        idx = self.other_labels.index(labels[i])
+                        colors.append(self.other_colors[idx])
                     except ValueError:
-                        colors.append(self.g)
+                        colors.append(self.green)
         elif bip:
             labels = self.labelsBIP1020
             colors = self.colorsBIP1020
@@ -477,7 +478,7 @@ class ChannelInfo():
             for i in range(len(labels)):
                 k = 0
                 while k < len(idxs):
-                    if self.convertedChnNames[idxs[k]] == labels[i]:
+                    if self.converted_chn_names[idxs[k]] == labels[i]:
                         self.labels_to_plot.append(labels[i])
                         self.colors.append(colors[i])
                         self.data_to_plot[c,:] = f.readSignal(idxs[k]) # data[idxs[k],:]
@@ -493,11 +494,11 @@ class ChannelInfo():
                 self.data_to_plot[c - k - 1,:] = np.zeros((1,self.data_to_plot.shape[1]))
             c = len(idxs) - 1
             for k in range(len(idxs)):
-                self.labels_to_plot.insert(1,self.convertedChnNames[idxs[k]])
-                if self.convertedChnNames[idxs[k]] in self.otherLabels:
-                    i = self.otherLabels.index(self.convertedChnNames[idxs[k]])
-                    self.colors.insert(0,self.otherColors[i])
+                self.labels_to_plot.insert(1,self.converted_chn_names[idxs[k]])
+                if self.converted_chn_names[idxs[k]] in self.other_labels:
+                    i = self.other_labels.index(self.converted_chn_names[idxs[k]])
+                    self.colors.insert(0,self.other_colors[i])
                 else:
-                    self.colors.insert(0,self.g)
+                    self.colors.insert(0,self.green)
                 self.data_to_plot[c,:] = f.readSignal(idxs[k]) # data[idxs[k],:]
                 c -= 1

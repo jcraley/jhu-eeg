@@ -21,7 +21,6 @@ from signalStats_info import SignalStatsInfo
 import pyedflib
 from plot_utils import *
 from montages import *
-from anonymize_edf import anonymizeFile
 import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import (
@@ -491,7 +490,7 @@ class MainPage(QMainWindow):
         self.ws_combobox.currentIndexChanged['int'].connect(self.chgWindow_size)
         self.button_print.clicked.connect(self.print_graph)
         self.button_save_edf.clicked.connect(self.save_to_edf)
-        self.btn_help.clicked.connect(self.openHelp)
+        self.btn_help.clicked.connect(self.open_help)
 
         # ---- right side of the screen ---- #
         self.slider.sliderReleased.connect(self.valuechange)
@@ -543,7 +542,7 @@ class MainPage(QMainWindow):
         self.topoplot_line = None # topoplot line to be updated
         self.zoom_roi_pos = (0,0) # location of the roi object
         self.zoom_roi_size = (100,100) # size of the roi object
-        self.zoomRoi = None # zoomROI to be updated
+        self.zoom_roi = None # zoomROI to be updated
 
     def closeEvent(self, event):
         """ Called when the main window is closed to act as a destructor and close
@@ -562,15 +561,15 @@ class MainPage(QMainWindow):
         if self.saveimg_win_open:
             self.saveimg_ops.close_window()
         if self.saveedf_win_open:
-            self.saveedf_ops.closeWindow()
+            self.saveedf_ops.close_window()
         if self.anon_win_open:
-            self.anon_ops.closeWindow()
+            self.anon_ops.close_window()
         if self.savetopo_win_open:
             self.savetopo_ops.closeWindow()
 
         event.accept()
 
-    def initGraph(self):
+    def init_graph(self):
         """ Function to properly initialize everything when new data
             is loaded.
         """
@@ -583,27 +582,27 @@ class MainPage(QMainWindow):
         ann = self.edf_info.annotations
         if len(ann[0]) > 0 and ann[2][0] == "filtered":
             self.filter_checked = 1  # whether or not filter checkbox is checked
-            strLP = ann[2][1].split("Hz")[0][4:]
-            strHP = ann[2][2].split("Hz")[0][4:]
-            strN = ann[2][3].split("Hz")[0][3:]
-            strBP1 = ann[2][4].split("-")[0][4:]
-            strBP2 = ann[2][4].split("-")[1].split("Hz")[0]
-            if float(strLP) > 0:
-                self.fi.lp = float(strLP)
+            str_lp = ann[2][1].split("Hz")[0][4:]
+            str_hp = ann[2][2].split("Hz")[0][4:]
+            str_n = ann[2][3].split("Hz")[0][3:]
+            str_bp1 = ann[2][4].split("-")[0][4:]
+            str_bp2 = ann[2][4].split("-")[1].split("Hz")[0]
+            if float(str_lp) > 0:
+                self.fi.lp = float(str_lp)
             else:
                 self.fi.do_lp = 0
-            if float(strHP) > 0:
-                self.fi.hp = float(strHP)
+            if float(str_hp) > 0:
+                self.fi.hp = float(str_hp)
             else:
                 self.fi.do_hp = 0
-            if float(strN) > 0:
-                self.fi.notch = float(strN)
+            if float(str_n) > 0:
+                self.fi.notch = float(str_n)
             else:
                 self.fi.do_notch = 0
-            if float(strBP1) > 0 and float(strBP2) > 0:
+            if float(str_bp1) > 0 and float(str_bp2) > 0:
                 self.fi.do_bp = 1
-                self.fi.bp1 = float(strBP1)
-                self.fi.bp2 = float(strBP2)
+                self.fi.bp1 = float(str_bp1)
+                self.fi.bp2 = float(str_bp2)
             else:
                 self.fi.do_bp = 0
         else:
@@ -622,8 +621,8 @@ class MainPage(QMainWindow):
 
         if self.btn_zoom.text() == "Close zoom":
             self.btn_zoom.setText("Open zoom")
-            self.plot_layout.removeItem(self.zoomPlot)
-            self.main_plot.removeItem(self.zoomRoi)
+            self.plot_layout.removeItem(self.zoom_plot)
+            self.main_plot.removeItem(self.zoom_roi)
 
         if not self.topoplot_dock.isHidden():
             self.close_topoplot()
@@ -654,8 +653,11 @@ class MainPage(QMainWindow):
     def ann_clicked(self):
         """ Moves the plot when annotations in the dock are clicked.
         """
-        self.count = int(
-            float(self.edf_info.annotations[0][self.ann_qlist.currentRow()]))
+        loc = int(float(self.edf_info.annotations[0][self.ann_qlist.currentRow()]))
+        if loc < self.max_time - self.window_size:
+            self.count = loc
+        else:
+            self.count = self.max_time - self.window_size
         self.callmovePlot(0, 0)
 
         # Update annotation dock if it is open
@@ -667,7 +669,6 @@ class MainPage(QMainWindow):
                 float(self.edf_info.annotations[1][self.ann_qlist.currentRow()])))
             self.btn_ann_edit.setEnabled(True)
             self.btn_ann_del.setEnabled(True)
-            blackPen = QPen(QColor(0,0,0))
 
     def open_ann_editor(self):
         """ Create and open the annotation editor.
@@ -676,16 +677,16 @@ class MainPage(QMainWindow):
             self.ann_txt_edit.clear()
             self.ann_duration.setRange(-1,self.max_time)
             self.ann_duration.setValue(-1)
-            hrs, min, sec = convert_from_count(self.max_time)
-            t = QTime(hrs, min, sec)
+            hrs, minutes, sec = convert_from_count(self.max_time)
+            t = QTime(hrs, minutes, sec)
             self.ann_time_edit_time.setMaximumTime(t)
             self.ann_time_edit_count.setMaximum(self.max_time)
             self.ann_time_edit_count.setValue(self.count)
             self.btn_ann_edit.setEnabled(False)
             self.btn_ann_del.setEnabled(False)
-            selectedListItems = self.ann_qlist.selectedItems()
-            if len(selectedListItems) > 0:
-                selectedListItems[0].setSelected(False)
+            selected_list_items = self.ann_qlist.selectedItems()
+            if len(selected_list_items) > 0:
+                selected_list_items[0].setSelected(False)
             self.btn_open_edit_ann.setText("Close annotation editor")
             self.ann_edit_dock.show()
         else:
@@ -736,12 +737,12 @@ class MainPage(QMainWindow):
     def ann_editor_update(self):
         """ Called when the update annotation button is pressed.
         """
-        annTxt = self.ann_txt_edit.text()
+        ann_txt = self.ann_txt_edit.text()
         loc = self.ann_time_edit_count.value()
         dur = self.ann_duration.value()
         self.edf_info.annotations[0][self.ann_qlist.currentRow()] = loc
         self.edf_info.annotations[1][self.ann_qlist.currentRow()] = dur
-        self.edf_info.annotations[2][self.ann_qlist.currentRow()] = annTxt
+        self.edf_info.annotations[2][self.ann_qlist.currentRow()] = ann_txt
         self.populate_ann_dock()
         self.callmovePlot(0,0)
 
@@ -763,8 +764,8 @@ class MainPage(QMainWindow):
     def ann_editor_create(self):
         """ Called when the create new annotation button is pressed.
         """
-        annTxt = self.ann_txt_edit.text()
-        if len(annTxt) > 0:
+        ann_txt = self.ann_txt_edit.text()
+        if len(ann_txt) > 0:
             self.ann_txt_edit.setText("")
             loc = self.ann_time_edit_count.value()
             dur = self.ann_duration.value()
@@ -776,11 +777,11 @@ class MainPage(QMainWindow):
             if len(self.edf_info.annotations[0]) == 0:
                 self.edf_info.annotations = np.append(
                     self.edf_info.annotations,
-                    np.array([[loc], [dur], [annTxt]]), axis = 1)
+                    np.array([[loc], [dur], [ann_txt]]), axis = 1)
             else:
                 self.edf_info.annotations = np.insert(
                     self.edf_info.annotations, i,
-                    [loc, dur, annTxt], axis = 1)
+                    [loc, dur, ann_txt], axis = 1)
             self.populate_ann_dock()
             self.callmovePlot(0,0)
 
@@ -788,8 +789,8 @@ class MainPage(QMainWindow):
         """
         Updates self.ann_time_edit_time when self.ann_time_edit_count is changed.
         """
-        hrs, min, sec = convert_from_count(self.ann_time_edit_count.value())
-        t = QTime(hrs, min, sec)
+        hrs, minutes, sec = convert_from_count(self.ann_time_edit_count.value())
+        t = QTime(hrs, minutes, sec)
         self.ann_time_edit_time.setTime(t)
         self.ann_duration.setRange(-1,self.max_time - self.ann_time_edit_count.value())
 
@@ -804,114 +805,117 @@ class MainPage(QMainWindow):
         self.ann_duration.setRange(-1,self.max_time - c)
 
     def open_zoom_plot(self):
+        """ Open the zoom plot
+        """
         if self.init:
             if self.btn_zoom.text() == "Open zoom":
                 if self.si.plotSpec:
                     self.throwAlert("Please close the spectrogram plot before opening zoom.")
                 else:
-                    self.zoomPlot = self.plot_layout.addPlot(row=1, col=0, border=True)
-                    self.zoomPlot.setMouseEnabled(x=False, y=False)
-                    qGraphicsGridLayout = self.plot_layout.ci.layout
-                    qGraphicsGridLayout.setRowStretchFactor(0, 2)
-                    qGraphicsGridLayout.setRowStretchFactor(1, 1)
-                    self.zoomRoi = pg.RectROI([0,0], [self.edf_info.fs * 2,200], pen=(1,9))
-                    self.zoomRoi.addScaleHandle([0.5,1],[0.5,0.5])
-                    self.zoomRoi.addScaleHandle([0,0.5],[0.5,0.5])
-                    self.main_plot.addItem(self.zoomRoi)
-                    self.zoomRoi.setZValue(2000)
-                    self.zoomRoi.sigRegionChanged.connect(self.updateZoomPlot)
+                    self.zoom_plot = self.plot_layout.addPlot(row=1, col=0, border=True)
+                    self.zoom_plot.setMouseEnabled(x=False, y=False)
+                    q_graphics_grid_layout = self.plot_layout.ci.layout
+                    q_graphics_grid_layout.setRowStretchFactor(0, 2)
+                    q_graphics_grid_layout.setRowStretchFactor(1, 1)
+                    self.zoom_roi = pg.RectROI([0,0], [self.edf_info.fs * 2,200], pen=(1,9))
+                    self.zoom_roi.addScaleHandle([0.5,1],[0.5,0.5])
+                    self.zoom_roi.addScaleHandle([0,0.5],[0.5,0.5])
+                    self.main_plot.addItem(self.zoom_roi)
+                    self.zoom_roi.setZValue(2000)
+                    self.zoom_roi.sigRegionChanged.connect(self.update_zoom_plot)
                     self.btn_zoom.setText("Close zoom")
                     self.zoom_plot_lines = []
                     self.zoom_rect_list = []
-                    self.zoom_roi_pos = self.zoomRoi.pos()
-                    self.zoom_roi_size = self.zoomRoi.size()
-                    self.updateZoomPlot()
+                    self.zoom_roi_pos = self.zoom_roi.pos()
+                    self.zoom_roi_size = self.zoom_roi.size()
+                    self.update_zoom_plot()
             else:
                 self.btn_zoom.setText("Open zoom")
-                self.plot_layout.removeItem(self.zoomPlot)
-                self.main_plot.removeItem(self.zoomRoi)
+                self.plot_layout.removeItem(self.zoom_plot)
+                self.main_plot.removeItem(self.zoom_roi)
 
-    def updateZoomPlot(self):
-        self.zoom_roi_pos = self.zoomRoi.pos()
-        self.zoom_roi_size = self.zoomRoi.size()
+    def update_zoom_plot(self):
+        """ Called whenever the zoom roi is moved
+        """
+        self.zoom_roi_pos = self.zoom_roi.pos()
+        self.zoom_roi_size = self.zoom_roi.size()
 
         fs = self.edf_info.fs
         nchns = self.ci.nchns_to_plot
 
-        plotData = np.zeros((self.ci.nchns_to_plot,self.window_size * fs))
+        plot_data = np.zeros((self.ci.nchns_to_plot,self.window_size * fs))
         if self.filter_checked == 1:
             y_lim = self.ylim[1]
             self.prep_filter_ws()
             # plotData = np.zeros(self.filteredData.shape)
-            plotData += self.filteredData
+            plot_data += self.filteredData
             stddev = np.std(
-                plotData)
-            plotData[plotData > 3 * stddev] = 3 * stddev
-            plotData[plotData < -3 * stddev] = -3 * stddev
+                plot_data)
+            plot_data[plot_data > 3 * stddev] = 3 * stddev
+            plot_data[plot_data < -3 * stddev] = -3 * stddev
         else:
-            # plotData = np.zeros(self.ci.data_to_plot.shape)
-            plotData += self.ci.data_to_plot[:,self.count * fs:(self.count + self.window_size) * fs]
+            # plot_data = np.zeros(self.ci.data_to_plot.shape)
+            plot_data += self.ci.data_to_plot[:,self.count * fs:(self.count + self.window_size) * fs]
             y_lim = self.ylim[0]
 
         if not (len(self.zoom_plot_lines) > 0 and len(self.zoom_plot_lines) == nchns):
             # self.plotWidget.clear()
-            self.zoomPlot.clear()
+            self.zoom_plot.clear()
             self.zoom_plot_lines = []
             for i in range(nchns):
                 pen = pg.mkPen(color=self.ci.colors[i], width=2, style=QtCore.Qt.SolidLine)
-                self.zoom_plot_lines.append(self.zoomPlot.plot(plotData[i, :]
+                self.zoom_plot_lines.append(self.zoom_plot.plot(plot_data[i, :]
                              + (i + 1) * y_lim, clickable=False, pen=pen))
         else:
             for i in range(nchns):
-                self.zoom_plot_lines[i].setData(plotData[i, :]
+                self.zoom_plot_lines[i].setData(plot_data[i, :]
                             + (i + 1) * y_lim)
 
         # add predictions
         if len(self.rect_list) > 0:
             for a in self.rect_list:
-                self.zoomPlot.removeItem(a)
+                self.zoom_plot.removeItem(a)
             self.rect_list[:] = []
 
-        width = 1 / (nchns + 2)
         if self.predicted == 1:
-            blueBrush = QBrush(QColor(38,233,254,50))
+            blue_brush = QBrush(QColor(38,233,254,50))
             starts, ends, chns, class_vals = self.pi.compute_starts_ends_chns(self.thresh,
                                         self.count, self.window_size, fs, nchns)
             for k in range(len(starts)):
                 if self.pi.pred_by_chn and not self.pi.multi_class:
                     for i in range(nchns):
                         if chns[k][i]:
-                            if i == plotData.shape[0] - 1:
+                            if i == plot_data.shape[0] - 1:
                                 r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count *
                                         fs, y_lim *(i+0.5),
                                         ends[k] - starts[k], y_lim) # (x, y, w, h)
                                 r1.setPen(pg.mkPen(None))
                                 r1.setBrush(pg.mkBrush(color = (38,233,254,50))) # (r,g,b,alpha)
-                                self.zoomPlot.addItem(r1)
+                                self.zoom_plot.addItem(r1)
                                 self.rect_list.append(r1)
                             else:
                                 r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count *
                                         fs, y_lim *(i + 0.5),
                                         ends[k] - starts[k], y_lim) # (x, y, w, h)
                                 r1.setPen(pg.mkPen(None))
-                                r1.setBrush(blueBrush) # (r,g,b,alpha)
-                                self.zoomPlot.addItem(r1)
+                                r1.setBrush(blue_brush) # (r,g,b,alpha)
+                                self.zoom_plot.addItem(r1)
                                 self.rect_list.append(r1)
                             x_vals = range(
                                 int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
                             pen = pg.mkPen(color=self.ci.colors[i], width=3,
                                             style=QtCore.Qt.SolidLine)
-                            self.plot_lines.append(self.zoomPlot.plot(x_vals,
-                                                plotData[i, int(starts[k])
+                            self.plot_lines.append(self.zoom_plot.plot(x_vals,
+                                                plot_data[i, int(starts[k])
                                                 - self.count * fs:int(ends[k]) -
                                                 self.count * fs] + i*y_lim + y_lim,
                                                 clickable=False, pen=pen))
                 elif not self.pi.pred_by_chn and not self.pi.multi_class:
                     r1 = pg.LinearRegionItem(values=(starts[k] - self.count * fs, ends[k]
                                     - self.count * fs),
-                                    brush=blueBrush, movable=False,
+                                    brush=blue_brush, movable=False,
                                     orientation=pg.LinearRegionItem.Vertical)
-                    self.zoomPlot.addItem(r1)
+                    self.zoom_plot.addItem(r1)
                     self.rect_list.append(r1)
                 elif not self.pi.pred_by_chn and self.pi.multi_class:
                     r, g, b, a = self.pi.get_color(class_vals[k])
@@ -920,19 +924,19 @@ class MainPage(QMainWindow):
                                     - self.count * fs),
                                     brush=brush, movable=False,
                                     orientation=pg.LinearRegionItem.Vertical)
-                    self.zoomPlot.addItem(r1)
+                    self.zoom_plot.addItem(r1)
                     self.rect_list.append(r1)
                 else:
                     for i in range(nchns):
                         r, g, b, a = self.pi.get_color(chns[k][i])
                         brush = QBrush(QColor(r, g, b, a))
-                        if i == plotData.shape[0] - 1:
+                        if i == plot_data.shape[0] - 1:
                             r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs,
                                     y_lim *(i+0.5),
                                     ends[k] - starts[k], y_lim) # (x, y, w, h)
                             r1.setPen(pg.mkPen(None))
                             r1.setBrush(brush) # (r,g,b,alpha)
-                            self.zoomPlot.addItem(r1)
+                            self.zoom_plot.addItem(r1)
                             self.rect_list.append(r1)
                         else:
                             r1 = pg.QtGui.QGraphicsRectItem(starts[k] - self.count * fs,
@@ -940,13 +944,13 @@ class MainPage(QMainWindow):
                                     ends[k] - starts[k], y_lim) # (x, y, w, h)
                             r1.setPen(pg.mkPen(None))
                             r1.setBrush(brush) # (r,g,b,alpha)
-                            self.zoomPlot.addItem(r1)
+                            self.zoom_plot.addItem(r1)
                             self.rect_list.append(r1)
                         x_vals = range(
                             int(starts[k]) - self.count * fs, int(ends[k]) - self.count * fs)
                         pen = pg.mkPen(color=self.ci.colors[i], width=3, style=QtCore.Qt.SolidLine)
-                        self.plot_lines.append(self.zoomPlot.plot(x_vals,
-                                        plotData[i, int(starts[k]) -
+                        self.plot_lines.append(self.zoom_plot.plot(x_vals,
+                                        plot_data[i, int(starts[k]) -
                                         self.count * fs:int(ends[k]) - self.count * fs] +
                                         i*y_lim + y_lim, clickable=False, pen=pen))
 
@@ -960,25 +964,25 @@ class MainPage(QMainWindow):
             y_ticks.append((i * y_lim, self.ci.labels_to_plot[i]))
         y_ticks = [y_ticks]
 
-        blackPen = QPen(QColor(0,0,0))
+        black_pen = QPen(QColor(0,0,0))
         font = QFont()
         font.setPixelSize(16)
-        self.zoomPlot.setYRange(self.zoom_roi_pos[1], self.zoom_roi_pos[1] + self.zoom_roi_size[1])
-        self.zoomPlot.getAxis('left').setPen(blackPen)
-        self.zoomPlot.getAxis('left').setTicks(y_ticks)
-        self.zoomPlot.getAxis('left').setTextPen(blackPen)
-        self.zoomPlot.getAxis("left").setStyle(tickTextOffset = 10)
-        self.zoomPlot.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
-        self.zoomPlot.setXRange(self.zoom_roi_pos[0], self.zoom_roi_pos[0] +
+        self.zoom_plot.setYRange(self.zoom_roi_pos[1], self.zoom_roi_pos[1] + self.zoom_roi_size[1])
+        self.zoom_plot.getAxis('left').setPen(black_pen)
+        self.zoom_plot.getAxis('left').setTicks(y_ticks)
+        self.zoom_plot.getAxis('left').setTextPen(black_pen)
+        self.zoom_plot.getAxis("left").setStyle(tickTextOffset = 10)
+        self.zoom_plot.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
+        self.zoom_plot.setXRange(self.zoom_roi_pos[0], self.zoom_roi_pos[0] +
                             self.zoom_roi_size[0], padding=0)
-        self.zoomPlot.getAxis('bottom').setTicks(x_ticks)
-        self.zoomPlot.getAxis('bottom').setTextPen(blackPen)
-        self.zoomPlot.getAxis("bottom").tickFont = font
-        self.zoomPlot.getAxis('bottom').setPen(blackPen)
-        self.zoomPlot.setLabel('bottom', 'Time (s)', pen = blackPen)
-        self.zoomPlot.getAxis('top').setWidth(200)
+        self.zoom_plot.getAxis('bottom').setTicks(x_ticks)
+        self.zoom_plot.getAxis('bottom').setTextPen(black_pen)
+        self.zoom_plot.getAxis("bottom").tickFont = font
+        self.zoom_plot.getAxis('bottom').setPen(black_pen)
+        self.zoom_plot.setLabel('bottom', 'Time (s)', pen = black_pen)
+        self.zoom_plot.getAxis('top').setWidth(200)
 
-    def openHelp(self):
+    def open_help(self):
         """
         Called when you click the help button.
         """
@@ -1064,7 +1068,7 @@ class MainPage(QMainWindow):
             else:
                 savedEDF = pyedflib.EdfWriter(file + '.edf', nchns)
 
-            self.sei.convertToHeader()
+            self.sei.convert_to_header()
             savedEDF.setHeader(self.sei.pyedf_header)
             # Set fs and physical min/max
             fs = self.edf_info.fs
@@ -1197,7 +1201,7 @@ class MainPage(QMainWindow):
         """
         Function called by channel_options when channels are loaded
         """
-        self.initGraph()
+        self.init_graph()
 
         self.fi.fs = self.ci.fs
         self.slider.setMaximum(self.max_time - self.window_size)
@@ -1597,16 +1601,16 @@ class MainPage(QMainWindow):
         if self.btn_zoom.text() == "Close zoom":
             # need to redraw each time, because if there are preds
             # and you do not redraw the roi will not be shown
-            if not self.zoomRoi is None:
-                self.main_plot.removeItem(self.zoomRoi)
-            self.zoomRoi = pg.RectROI([self.zoom_roi_pos[0],self.zoom_roi_pos[1]],
+            if not self.zoom_roi is None:
+                self.main_plot.removeItem(self.zoom_roi)
+            self.zoom_roi = pg.RectROI([self.zoom_roi_pos[0],self.zoom_roi_pos[1]],
                                         [self.zoom_roi_size[0],self.zoom_roi_size[1]], pen=(1,9))
-            self.zoomRoi.addScaleHandle([0.5,1],[0.5,0.5])
-            self.zoomRoi.addScaleHandle([0,0.5],[0.5,0.5])
-            self.main_plot.addItem(self.zoomRoi)
-            self.zoomRoi.setZValue(2000)
-            self.zoomRoi.sigRegionChanged.connect(self.updateZoomPlot)
-            self.updateZoomPlot()
+            self.zoom_roi.addScaleHandle([0.5,1],[0.5,0.5])
+            self.zoom_roi.addScaleHandle([0,0.5],[0.5,0.5])
+            self.main_plot.addItem(self.zoom_roi)
+            self.zoom_roi.setZValue(2000)
+            self.zoom_roi.sigRegionChanged.connect(self.update_zoom_plot)
+            self.update_zoom_plot()
         if self.btn_open_stats.text() == "Close signal stats":
             self.statTimeSelectChanged()
 
