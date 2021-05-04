@@ -543,6 +543,8 @@ class MainPage(QMainWindow):
         self.zoom_roi_pos = (0,0) # location of the roi object
         self.zoom_roi_size = (100,100) # size of the roi object
         self.zoom_roi = None # zoomROI to be updated
+        self.spec_roi_val = [0,100] # size of the spec roi object
+        self.spec_select_time_rect = None # the ROI to be updated
 
     def closeEvent(self, event):
         """ Called when the main window is closed to act as a destructor and close
@@ -557,7 +559,7 @@ class MainPage(QMainWindow):
         if self.organize_win_open:
             self.chn_org.close_window()
         if self.spec_win_open:
-            self.spec_ops.closeWindow()
+            self.spec_ops.close_window()
         if self.saveimg_win_open:
             self.saveimg_ops.close_window()
         if self.saveedf_win_open:
@@ -565,7 +567,7 @@ class MainPage(QMainWindow):
         if self.anon_win_open:
             self.anon_ops.close_window()
         if self.savetopo_win_open:
-            self.savetopo_ops.closeWindow()
+            self.savetopo_ops.close_window()
 
         event.accept()
 
@@ -1315,7 +1317,7 @@ class MainPage(QMainWindow):
             y_lim - the values for the y_limits of the plot
             print_graph - whether or not to print a copy of the graph
         """
-        blackPen = QPen(QColor(0,0,0),3)
+        black_pen = QPen(QColor(0,0,0),3)
         fs = self.edf_info.fs
         if not self.argv.predictions_file is None and self.init == 0:
             self.predicted = 1
@@ -1476,7 +1478,7 @@ class MainPage(QMainWindow):
 
         self.main_plot.setYRange(-y_lim, (nchns + 1) * y_lim)
         self.main_plot.getAxis('left').setStyle(tickFont = font)
-        self.main_plot.getAxis('left').setTextPen(blackPen)
+        self.main_plot.getAxis('left').setTextPen(black_pen)
         self.main_plot.getAxis('left').setTicks(y_ticks)
         self.main_plot.getAxis("left").setStyle(tickTextOffset = 10)
         self.main_plot.setLabel('left', ' ', pen=(0,0,0), fontsize=20)
@@ -1485,8 +1487,8 @@ class MainPage(QMainWindow):
         self.main_plot.setXRange(0 * fs, (0 + self.window_size) * fs, padding=0)
         self.main_plot.getAxis('bottom').setTicks(x_ticks)
         self.main_plot.getAxis('bottom').setStyle(tickFont = font)
-        self.main_plot.getAxis('bottom').setTextPen(blackPen)
-        self.main_plot.setLabel('bottom', 'Time (s)', pen = blackPen)
+        self.main_plot.getAxis('bottom').setTextPen(black_pen)
+        self.main_plot.setLabel('bottom', 'Time (s)', pen = black_pen)
         self.main_plot.getAxis('top').setWidth(200)
 
         # add annotations
@@ -1557,18 +1559,30 @@ class MainPage(QMainWindow):
             if not self.topoplot_line is None:
                 self.main_plot.removeItem(self.topoplot_line)
             self.topoplot_line = pg.InfiniteLine(pos=self.topoplot_line_val,
-                                    angle=90, movable=True,pen=blackPen)
+                                    angle=90, movable=True,pen=black_pen)
             self.topoplot_line.sigPositionChanged.connect(self.update_topoplot_line)
             self.main_plot.addItem(self.topoplot_line)
             self.topoplot_line.setZValue(2000)
 
         if self.si.plotSpec:
+            redBrush = QBrush(QColor(217, 43, 24,50))
+            if not self.spec_select_time_rect is None:
+                self.main_plot.removeItem(self.spec_select_time_rect)
+            self.spec_select_time_rect = pg.LinearRegionItem(
+                        values=(self.spec_roi_val[0], self.spec_roi_val[1]),
+                        brush=redBrush, movable=True,
+                        orientation=pg.LinearRegionItem.Vertical)
+            self.spec_select_time_rect.setSpan((self.si.chnPlotted + 2) / (nchns + 3),
+                        (self.si.chnPlotted + 3) / (nchns + 3))
+            self.spec_select_time_rect.setBounds([0,fs * self.window_size])
+            self.main_plot.addItem(self.spec_select_time_rect)
+            self.spec_select_time_rect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
             # dataForSpec = self.si.data
             # f, t, Sxx = scipy.signal.spectrogram(
             # self.si.data[self.count * fs:(self.count + self.window_size) * fs],
             # fs=fs, nperseg=fs, noverlap=0)
             # Fit the min and max levels of the histogram to the data available
-            # self.hist.axis.setPen(blackPen)
+            # self.hist.axis.setPen(black_pen)
             # self.hist.setLevels(0,200)#np.min(Sxx), np.max(Sxx))
             # This gradient is roughly comparable to the gradient used by Matplotlib
             # You can adjust it and then save it using hist.gradient.saveState()
@@ -1586,13 +1600,13 @@ class MainPage(QMainWindow):
             # self.specPlot.setLimits(xMin=0, xMax=self.window_size,
             # yMin=self.si.minFs, yMax=self.si.maxFs)
             self.specTimeSelectChanged()
-            self.specPlot.getAxis('bottom').setTextPen(blackPen)
+            self.specPlot.getAxis('bottom').setTextPen(black_pen)
             # self.specPlot.getAxis('bottom').setTicks(spec_x_ticks)
             # Add labels to the axis
             self.specPlot.setLabel('bottom', "Frequency", units='Hz')
             # pyqtgraph automatically scales the axis and adjusts
             # the SI prefix (in this case kHz)
-            self.specPlot.getAxis('left').setTextPen(blackPen)
+            self.specPlot.getAxis('left').setTextPen(black_pen)
             self.specPlot.setLabel('left', "PSD", units='V**2/Hz')
             self.specPlot.setXRange(self.si.minFs,self.si.maxFs,padding=0)
             self.specPlot.setLogMode(False, True)
@@ -1642,9 +1656,9 @@ class MainPage(QMainWindow):
         """
         self.topoplot_dock.show()
         # self.update_topoplot()
-        blackPen = QPen(QColor(0,0,0))
+        black_pen = QPen(QColor(0,0,0))
         self.topoplot_line = pg.InfiniteLine(pos=self.edf_info.fs,
-                                angle=90, movable=True,pen=blackPen)
+                                angle=90, movable=True,pen=black_pen)
         self.main_plot.addItem(self.topoplot_line)
         self.topoplot_line.setZValue(2000)
 
@@ -1796,7 +1810,6 @@ class MainPage(QMainWindow):
         self.specPlot.clear()
         self.spec_plot_lines = []
         pen = QPen(QColor(0,0,0))
-        # pen = pg.mkPen(color=self.ci.colors[i], width=2, style=QtCore.Qt.SolidLine)
         self.spec_plot_lines.append(self.specPlot.plot(f,Pxx_den, clickable=False, pen=pen))
 
 
@@ -1814,51 +1827,61 @@ class MainPage(QMainWindow):
         # self.plot_layout.addItem(self.hist, row = 1, col = 1)
         # To make visible, add the histogram
         # self.hist.setLevels(0,200)
-        redBrush = QBrush(QColor(217, 43, 24,50))
-        nchns = self.ci.nchns_to_plot
-        self.selectTimeRect = pg.LinearRegionItem(values=(fs, 4 * fs),
-                        brush=redBrush, movable=True,
-                        orientation=pg.LinearRegionItem.Vertical)
-        self.selectTimeRect.setSpan((self.si.chnPlotted + 2) / (nchns + 3),
-                        (self.si.chnPlotted + 3) / (nchns + 3))
-        self.selectTimeRect.setBounds([0,fs * self.window_size])
-        self.main_plot.addItem(self.selectTimeRect)
-        self.selectTimeRect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
+        #redBrush = QBrush(QColor(217, 43, 24,50))
+        #nchns = self.ci.nchns_to_plot
+        #self.spec_select_time_rect = pg.LinearRegionItem(values=(fs, 4 * fs),
+        #                brush=redBrush, movable=True,
+        #                orientation=pg.LinearRegionItem.Vertical)
+        #self.spec_select_time_rect.setSpan((self.si.chnPlotted + 2) / (nchns + 3),
+        #                (self.si.chnPlotted + 3) / (nchns + 3))
+        #self.spec_select_time_rect.setBounds([0,fs * self.window_size])
+        #self.main_plot.addItem(self.spec_select_time_rect)
+        #self.spec_select_time_rect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
 
     def specTimeSelectChanged(self):
         """ Function called when the user changes the region that selects where in
             time to compute the power spectrum
         """
         fs = self.edf_info.fs
-        bounds = self.selectTimeRect.getRegion()
+        bounds = self.spec_select_time_rect.getRegion()
+        self.spec_roi_val[0] = bounds[0]
+        self.spec_roi_val[1] = bounds[1]
+        if self.spec_roi_val[0] < 0:
+            self.spec_roi_val[0] = 0
+        if self.spec_roi_val[1] > self.window_size * fs:
+            self.spec_roi_val[1] = (self.window_size - 1) * fs
+        if self.spec_roi_val[0] >= self.spec_roi_val[1]:
+            self.spec_roi_val[1] = 100 + self.spec_roi_val[0]
+
+        self.spec_select_time_rect.setRegion((self.spec_roi_val[0], self.spec_roi_val[1]))
         bounds = bounds + self.count * fs
         # f, Pxx_den = signal.welch(self.si.data[int(bounds[0]):int(bounds[1])], fs)
         f, Pxx_den = signal.periodogram(self.si.data[int(bounds[0]):int(bounds[1])], fs)
         pen = pg.mkPen(color=(178, 7, 245), width=3, style=QtCore.Qt.SolidLine)
         # pen = pg.mkPen(color=self.ci.colors[i], width=2, style=QtCore.Qt.SolidLine)
-        self.spec_plot_lines[0].setData(f,Pxx_den, clickable=False, pen=pen)
+        self.spec_plot_lines[0].setData(f[1:],Pxx_den[1:], clickable=False, pen=pen)
 
     def updateSpecChn(self):
         """ Updates spectrogram plot.
         """
-        self.main_plot.removeItem(self.selectTimeRect)
+        self.main_plot.removeItem(self.spec_select_time_rect)
         redBrush = QBrush(QColor(217, 43, 24,50))
         nchns = self.ci.nchns_to_plot
         fs = self.edf_info.fs
-        self.selectTimeRect = pg.LinearRegionItem(values=(fs, 4 * fs),
+        self.spec_select_time_rect = pg.LinearRegionItem(values=(fs, 4 * fs),
                         brush=redBrush, movable=True,
                         orientation=pg.LinearRegionItem.Vertical)
-        self.selectTimeRect.setSpan((self.si.chnPlotted + 2) / (nchns + 3),
+        self.spec_select_time_rect.setSpan((self.si.chnPlotted + 2) / (nchns + 3),
                                     (self.si.chnPlotted + 3) / (nchns + 3))
-        self.main_plot.addItem(self.selectTimeRect)
-        self.selectTimeRect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
+        self.main_plot.addItem(self.spec_select_time_rect)
+        self.spec_select_time_rect.sigRegionChangeFinished.connect(self.specTimeSelectChanged)
 
     def removeSpecPlot(self):
         """ Removes the spectrogram plot.
         """
         self.plot_layout.removeItem(self.specPlot)
         # self.plot_layout.removeItem(self.hist)
-        self.main_plot.removeItem(self.selectTimeRect)
+        self.main_plot.removeItem(self.spec_select_time_rect)
 
     def load_spec(self):
         """ Opens the SpecOptions window
