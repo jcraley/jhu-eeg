@@ -60,6 +60,40 @@ def create_label(duration, sz_starts, sz_ends, window_length, overlap,
     return label
 
 
+def onset_zone_to_lateralization(onset_zone):
+    """Returns the lateralization target from the onset zone
+
+    Args:
+        onset_zone (int): onset zone
+
+    Returns:
+        torch tensor long: binary lateralization label
+    """
+
+    # Set target to 0, 1
+    if onset_zone == 1 or onset_zone == 3:
+        return 0
+    if onset_zone == 2 or onset_zone == 4:
+        return 1
+
+
+def onset_zone_to_lobe(onset_zone):
+    """Returns the lateralization target from the onset zone
+
+    Args:
+        onset_zone (int): onset zone
+
+    Returns:
+        torch tensor long: binary lateralization label
+    """
+
+    # Set target to 0, 1
+    if onset_zone == 1 or onset_zone == 2:
+        return 0
+    if onset_zone == 3 or onset_zone == 4:
+        return 1
+
+
 class EpilepsyDataset(Dataset):
     """Load pre-windowed and pre-processed EDFs into a dataset
     """
@@ -97,6 +131,8 @@ class EpilepsyDataset(Dataset):
         self.labels = []
         self.start_windows = []
         self.onset_zones = []
+        self.lateralizations = []
+        self.lobes = []
         self.patient_numbers = []
         window_idx = 0
         for recording in self.manifest_files:
@@ -110,7 +146,10 @@ class EpilepsyDataset(Dataset):
             self.start_windows.append(window_idx)
             window_idx += len(self.labels[-1])
 
-            self.onset_zones.append(int(recording['onset_zone']))
+            oz = int(recording['onset_zone'])
+            self.onset_zones.append(oz)
+            self.lateralizations.append(onset_zone_to_lateralization(oz))
+            self.lobes.append(onset_zone_to_lobe(oz))
             self.patient_numbers.append(recording['pt_num'])
         self.nwindows = window_idx
 
@@ -236,6 +275,8 @@ class EpilepsyDataset(Dataset):
             sample['labels'] = self.labels[idx]
             sample['filename'] = self.filenames[idx]
             sample['onset zone'] = self.onset_zones[idx]
+            sample['lateralization'] = self.lateralizations[idx]
+            sample['lobe'] = self.lobes[idx]
             sample['patient number'] = self.patient_numbers[idx]
             if self.features:
                 start_idx, end_idx = self.sequence_indices[idx]
@@ -262,6 +303,8 @@ class EpilepsyDataset(Dataset):
             sample['labels'] = self.labels[buffer_idx][window_number]
             sample['filename'] = self.filenames[buffer_idx]
             sample['onset zones'] = self.onset_zones[buffer_idx]
+            sample['lateralization'] = self.lateralizations[idx]
+            sample['lobe'] = self.lobes[idx]
             sample['patient numbers'] = self.patient_numbers[buffer_idx]
             if self.features:
                 sample['buffers'] = self.data[idx]
