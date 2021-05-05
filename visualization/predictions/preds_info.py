@@ -1,3 +1,4 @@
+""" Holds the data needed for plotting """
 import torch
 import numpy as np
 
@@ -25,12 +26,18 @@ class PredsInfo():
         self.pred_by_chn = 0 # whether or not we are predicting by channel
         self.multi_class = 0 # whether or not we are doing multi-class predictions
         self.predicted = 0
-         # default colors to use for multi-class: transparent, dark blue, green, yellow, red, pink, purple
+        # default colors to use for multi-class:
+        # transparent
+        # dark blue
+        # green
+        # yellow
+        # red
+        # pink
+        # purple
         self.class_colors = [(255,255,255,0),(50, 95, 168, 50), (50, 168, 82,50), (168, 52, 50, 50),
                                 (164, 168, 50, 50), (168, 50, 150,50), (127, 50, 168, 50)]
     def write_data(self, pi2):
-        """
-        Writes data from pi2 into self.
+        """ Writes data from pi2 into self.
         """
         self.ready = pi2.ready
         self.model = pi2.model
@@ -50,10 +57,12 @@ class PredsInfo():
         self.pred_by_chn = pi2.pred_by_chn
 
     def set_data(self, data_fn):
+        """ Set the data to the data from data_fn
+        """
         self.data = torch.load(data_fn)
         self.data_loaded = 1
         self.update_ready()
-    
+
     def get_color(self, i):
         """ Returns a color for multi-class prediction
 
@@ -64,20 +73,20 @@ class PredsInfo():
         """
         if i < 6:
             return self.class_colors[i]
-        else:
-            num0 = np.random.random() * 255
-            num1 = np.random.random() * 255
-            num2 = np.random.random() * 255
-            return (num0, num1, num2, 50)
+        num0 = np.random.random() * 255
+        num1 = np.random.random() * 255
+        num2 = np.random.random() * 255
+        return (num0, num1, num2, 50)
 
     def set_model(self, model_fn):
+        """ Load in the model given by model_fn.
+        """
         self.model = torch.load(model_fn)
         self.model_loaded = 1
         self.update_ready()
 
     def set_preds(self, preds_fn, max_time, fs, nchns, binary = True):
-        """
-        Loads predictions.
+        """ Loads predictions.
 
         Returns:
             0 for sucess, -1 if predictions are not the right length
@@ -91,22 +100,20 @@ class PredsInfo():
             preds = preds.detach()
         except:
             pass
-        print("in set pred")
-        print(binary)
         preds = np.array(preds)
         ret = self.check_preds_shape(preds, 0, max_time, fs, nchns, binary)
         return ret
 
     def predict(self, max_time, fs, nchns, binary = True):
-        """
-        Loads model, passes data through the model to get binary seizure predictions
+        """ Loads model, passes data through the model to get
+            binary seizure predictions
 
-        inputs:
+        Args:
             data - the pytorch tensor, fully preprocessed
             model_fn - filename of the model to load
             binary - whether to do binary or multi-class
 
-        returns:
+        Returns:
             0 for sucess, -2 for failure to pass through the predict function,
             -1 for incorrect size
         """
@@ -125,7 +132,7 @@ class PredsInfo():
         Samples in the file must be an integer multiple of length.
         The other dimension must be either 1, 2 (which will be collapsed) or nchns
 
-        Input:
+        Args:
             preds - the predictions (np array)
             model_or_preds - 1 for model loaded, 0 for loaded predictions
             max_time - amount of seconds in the .edf file
@@ -146,7 +153,9 @@ class PredsInfo():
                     preds = preds[:,1,:]
                 elif preds.shape[2] == 2:
                     preds = preds[:,:,1]
-                if len(preds.shape) == 3 and (preds.shape[0] == 1 or preds.shape[1] == 1 or preds.shape[2] == 1):
+                if (len(preds.shape) == 3 and
+                    (preds.shape[0] == 1 or preds.shape[1] == 1 or
+                    preds.shape[2] == 1)):
                     preds = np.squeeze(preds)
             dim = len(preds.shape)
             if dim == 1:
@@ -167,7 +176,7 @@ class PredsInfo():
         else:
             if (fs * max_time) % preds.shape[0] == 0:
                 if len(preds.shape) == 3:
-                    if (preds.shape[1] != nchns):
+                    if preds.shape[1] != nchns:
                         return 1
                     self.pred_by_chn = 1
                 ret = 0
@@ -198,7 +207,7 @@ class PredsInfo():
         Output:
             starts - the start times
             ends - the corresponding end times
-            chns - the channel to plot the given prediction (if 
+            chns - the channel to plot the given prediction (if
                     multi-class and multi-channel, class preds
                     will be stored here instead of in chns)
             class_vals - the values for each class
@@ -209,11 +218,9 @@ class PredsInfo():
         ends = []
         chns = []
         class_vals = []
-        start_pred_idx = 0
-        end_pred_idx = 0
         pw = self.pred_width
 
-        if self.pred_by_chn:
+        if self.pred_by_chn and not self.multi_class:
             preds_flipped = np.zeros(self.preds_to_plot.shape)
             for i in range(preds_flipped.shape[1]):
                 preds_flipped[:,i] += self.preds_to_plot[:,self.preds_to_plot.shape[1] - i - 1]
@@ -223,19 +230,31 @@ class PredsInfo():
                 preds_mutli_chn += preds_flipped[:,self.preds_to_plot.shape[1] - nchns:]
             else:
                 preds_mutli_chn[:,nchns - self.preds_to_plot.shape[1]:] += preds_flipped
+        if self.pred_by_chn and self.multi_class:
+            preds_flipped = np.zeros(self.preds_to_plot.shape)
+            for i in range(preds_flipped.shape[1]):
+                preds_flipped[:,i,:] += self.preds_to_plot[:,self.preds_to_plot.shape[1] - i - 1,:]
+
+            preds_mutli_chn_multi_class = np.zeros((self.preds_to_plot.shape[0],
+                        nchns, self.preds_to_plot.shape[2]))
+            if self.preds_to_plot.shape[1] >= nchns:
+                preds_mutli_chn_multi_class += (
+                    preds_flipped[:,self.preds_to_plot.shape[1] - nchns:,:])
+            else:
+                preds_mutli_chn[:,nchns - self.preds_to_plot.shape[1]:,:] += preds_flipped
 
         i = 0
         while i * pw < start_t: # find starting value
             i += 1
         i -= 1
-        if i * pw < start_t and (i + 1) * pw > start_t:
+        if i * pw < start_t < (i + 1) * pw:
             if self.multi_class:
                 starts.append(start_t)
                 ends.append((i + 1) * pw)
                 val = np.argmax(self.preds_to_plot[i])
                 class_vals.append(val)
                 if self.pred_by_chn:
-                    val = np.argmax(self.preds_to_plot[i])
+                    val = np.argmax(self.preds_to_plot[i], axis=1)
                     chns.append(val)
             else:
                 if np.max(self.preds_to_plot[i]) > thresh:
@@ -255,7 +274,7 @@ class PredsInfo():
                     val = np.argmax(self.preds_to_plot[i])
                     class_vals.append(val)
                     if self.pred_by_chn:
-                        val = np.argmax(self.preds_to_plot[i])
+                        val = np.argmax(self.preds_to_plot[i],axis=1)
                         chns.append(val)
                     return starts, ends, chns, class_vals
                 else:
@@ -272,7 +291,7 @@ class PredsInfo():
                 val = np.argmax(self.preds_to_plot[i])
                 class_vals.append(val)
                 if self.pred_by_chn:
-                    val = np.argmax(self.preds_to_plot[i])
+                    val = np.argmax(self.preds_to_plot[i],axis=1)
                     chns.append(val)
             elif np.max(self.preds_to_plot[i]) > thresh:
                 starts.append(i * pw)
@@ -282,39 +301,3 @@ class PredsInfo():
                     chns.append(chn_i)
             i += 1
         return starts, ends, chns, class_vals
-
-    def updatePredicted(self, data, max_time, predicted):
-        """
-        Function used to update self.predicted from plot whenever new data
-        is loaded.
-
-        inputs:
-            data - the data used for plotting
-            predicted - the current value of predicted
-
-        returns:
-            1 for predicted = 1, 0 for predicted = 0
-        """
-        """fs = data.shape[1] / max_time
-        nchns = data.shape[0]
-
-        if predicted:
-            # check if valid and set plot_model/loaded_preds to 0 if not
-            if self.plot_model_preds:
-                if ready:
-                    ret = self.predict(max_time, fs, nchns)
-                    if ret == 0:
-                        return 1
-                    else:
-                        self.plot_model_preds = 0
-                else:
-                    self.plot_model_preds = 0
-            elif self.plot_loaded_preds:
-                ret = self.check_preds_shape(self.preds,0,max_time,fs,nchns)
-                if ret == 0:
-                    return 1
-                else:
-                    self.plot_loaded_preds = 0"""
-        if self.plot_model_preds or self.plot_loaded_preds:
-            return 1
-        return 0

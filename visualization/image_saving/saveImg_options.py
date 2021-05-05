@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 
-from plot_utils import checkAnnotations
+from plot_utils import check_annotations
 from ui_files.saveImg import Ui_Form
 
 class SaveImgOptions(QWidget):
@@ -269,7 +269,7 @@ class SaveImgOptions(QWidget):
         self.ax.set_title(self.data.title, fontsize=self.data.font_size)
 
         if self.data.plot_ann:
-            ann, idx_w_ann = checkAnnotations(
+            ann, idx_w_ann = check_annotations(
                 self.count, self.window_size, self.parent.edf_info)
             font_size = self.data.font_size - 4
             # Add in annotations

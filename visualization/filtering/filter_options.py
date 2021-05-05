@@ -161,14 +161,14 @@ class FilterOptions(QWidget):
         lp = self.btn_get_lp.value()
         bp1 = self.btn_get_bp1.value()
         bp2 = self.btn_get_bp2.value()
-        if ((lp > 0 and lp < self.data.fs / 2) and
-            (hp > 0 and hp < self.data.fs / 2)):
+        if ((0 < lp < self.data.fs / 2) and
+            (0 < hp < self.data.fs / 2)):
             if lp - hp > 0:
                 if self.data.do_lp:
                     self.data.lp = self.btn_get_lp.value()
                 if self.data.do_hp:
                     self.data.hp = self.btn_get_hp.value()
-        if bp1 > 0 and bp2 > 0 and bp1 < bp2:
+        if 0 < bp1 < bp2:
             if self.data.do_bp:
                 self.data.bp1 = bp1
                 self.data.bp2 = bp2
@@ -179,7 +179,7 @@ class FilterOptions(QWidget):
                 self.data.notch = self.btn_get_notch.value()
         else:
             self.data.do_notch = 0
-        self.parent.callmovePlot(0,0,0)
+        self.parent.call_move_plot(0,0,0)
         self.close_window()
 
     def close_window(self):
