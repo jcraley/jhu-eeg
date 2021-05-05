@@ -100,7 +100,7 @@ class OrganizeChannels(QWidget):
         self.data.labels_to_plot = temp_labels
         self.data.colors = temp_colors
         self.data.data_to_plot = temp_data
-        self.parent.callInitialMovePlot()
+        self.parent.call_initial_move_plot()
         self.close_window()
 
     def close_window(self):

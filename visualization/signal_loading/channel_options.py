@@ -166,7 +166,7 @@ class ChannelOptions(QWidget):
         # if len(self.unprocessed_data) > 0: # reset predicted
         #    self.parent.predicted = 0
         if len(chns) == 0:
-            self.parent.throwAlert("There are no named channels in the file.")
+            self.parent.throw_alert("There are no named channels in the file.")
             self.close_window()
         else:
             self.chn_items = []
@@ -373,14 +373,14 @@ class ChannelOptions(QWidget):
         if len(name.split('/')[-1]) > 15:
             short_name = name.split('/')[-1][0:15] + "..."
         if short_name in self.data.labels_from_txt_file.keys():
-            self.parent.throwAlert("Each loaded text file must have a unique "
+            self.parent.throw_alert("Each loaded text file must have a unique "
                 + "name (first 14 characters). Please rename your file.")
             return
         if self._check_chns(name, short_name):
             self.add_txt_file(short_name)
         else:
             # throw error
-            self.parent.throwAlert("The channels in this file do not match"
+            self.parent.throw_alert("The channels in this file do not match"
                 + " those of the .edf file you have loaded. Please check your file.")
 
     def _check_chns(self, txt_fn, txt_fn_short):
@@ -397,7 +397,7 @@ class ChannelOptions(QWidget):
         try:
             text_file = open(txt_fn, "r")
         except:
-            self.parent.throwAlert("The .txt file is invalid.")
+            self.parent.throw_alert("The .txt file is invalid.")
         lines = text_file.readlines()
         l = 0
         while l < len(lines):
@@ -478,18 +478,18 @@ class ChannelOptions(QWidget):
             if self.chn_items[k] in selected_list_items:
                 idxs.append(self.data.labels2chns[self.data.chns2labels[k]])
         if len(idxs) > self.parent.max_channels:
-            self.parent.throwAlert("You may select at most " +
+            self.parent.throw_alert("You may select at most " +
                                     str(self.parent.max_channels) + " to plot. " +
                                     "You have selected " + str(len(idxs)) + ".")
             return -1
         if len(idxs) == 0:
-            self.parent.throwAlert("Please select channels to plot.")
+            self.parent.throw_alert("Please select channels to plot.")
             return -1
         # Overwrite if needed, and prepare to plot
         if self.new_load:
             self.overwrite_temp_info()
-            if self.parent.si.plotSpec:
-                self.parent.si.plotSpec = 0
+            if self.parent.si.plot_spec:
+                self.parent.si.plot_spec = 0
                 self.parent.removeSpecPlot()
         plot_bip_from_ar = 0
         if (self.ar1020 and self.cbox_bip.isChecked()):# or
@@ -537,7 +537,7 @@ class ChannelOptions(QWidget):
         """
         ret = self.check()
         if ret == 0:
-            self.parent.callInitialMovePlot()
+            self.parent.call_initial_move_plot()
             self.close_window()
 
     def close_window(self):

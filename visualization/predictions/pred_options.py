@@ -216,7 +216,7 @@ class PredictionOptions(QWidget):
         if (self.data.set_preds(preds_fn[0], self.parent.max_time,
             self.parent.edf_info.fs,self.nchns,
             self.radio_binary_preds.isChecked()) == -1):
-            self.parent.throwAlert("Predictions are not an even multiple of the" +
+            self.parent.throw_alert("Predictions are not an even multiple of the" +
                             " samples in the .edf" +
                             "file you loaded or are the incorrect shape." +
                             " Please check your file.")
@@ -239,11 +239,11 @@ class PredictionOptions(QWidget):
         if self.data.plot_loaded_preds == 0 and self.data.plot_model_preds == 0:
             self.parent.predicted = 0
             self.close_window()
-            self.parent.throwAlert("You have not chosen to plot any predictions.")
-            self.parent.callmovePlot(0,0,0)
+            self.parent.throw_alert("You have not chosen to plot any predictions.")
+            self.parent.call_move_plot(0,0,0)
         elif self.data.plot_loaded_preds:
             if not self.data.preds_loaded:
-                self.parent.throwAlert("Please load predictions.")
+                self.parent.throw_alert("Please load predictions.")
             else:
                 print(self.radio_binary_preds.isChecked())
                 loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
@@ -260,10 +260,10 @@ class PredictionOptions(QWidget):
                         self.parent.add_topoplot()
                         self.parent.btn_topo.setEnabled(1)
                         self.parent.btn_topo.setText("Hide topoplots")
-                    self.parent.callmovePlot(0,0,0)
+                    self.parent.call_move_plot(0,0,0)
                     self.close_window()
                 elif loaded_preds_valid == -1:
-                    self.parent.throwAlert("Predictions are not an even multiple" +
+                    self.parent.throw_alert("Predictions are not an even multiple" +
                                     " of the samples in the .edf" +
                                     "file you loaded or are the incorrect shape." +
                                     " Please check your file.")
@@ -273,10 +273,10 @@ class PredictionOptions(QWidget):
                                 self.parent.edf_info.fs,self.nchns,
                                 self.radio_binary_model.isChecked())
                 if preds_ret == -2:
-                    self.parent.throwAlert("An error occured when trying to call the predict() " +
+                    self.parent.throw_alert("An error occured when trying to call the predict() " +
                                 "function using your model. Please check your model and data.")
                 elif preds_ret == -1:
-                    self.parent.throwAlert("Predictions are not an even multiple" +
+                    self.parent.throw_alert("Predictions are not an even multiple" +
                                     " of the samples in the .edf" +
                                     "file you loaded or are the incorrect shape." +
                                     " Please check your file.")
@@ -291,12 +291,12 @@ class PredictionOptions(QWidget):
                         self.parent.add_topoplot()
                         self.parent.btn_topo.setEnabled(1)
                         self.parent.btn_topo.setText("Hide topoplots")
-                    self.parent.callmovePlot(0,0,0)
+                    self.parent.call_move_plot(0,0,0)
                     self.close_window()
             elif not self.data.data_loaded:
-                self.parent.throwAlert('Please load data.')
+                self.parent.throw_alert('Please load data.')
             else:
-                self.parent.throwAlert('Please load a model.')
+                self.parent.throw_alert('Please load a model.')
 
     def close_window(self):
         """ Called to close the predictions window.

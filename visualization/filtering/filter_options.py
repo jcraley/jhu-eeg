@@ -179,7 +179,7 @@ class FilterOptions(QWidget):
                 self.data.notch = self.btn_get_notch.value()
         else:
             self.data.do_notch = 0
-        self.parent.callmovePlot(0,0,0)
+        self.parent.call_move_plot(0,0,0)
         self.close_window()
 
     def close_window(self):
