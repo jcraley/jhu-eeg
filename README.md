@@ -9,18 +9,18 @@ Python >= 3.5 is required. Other packages can be installed by creating a virtual
 
 To create the virtual environment:  
 ```
-$ python3 -m venv eeg-gui-venv
+python3 -m venv eeg-gui-venv
 ``` 
 
 Activate the environment:  
 ```
-$ source eeg-gui-venv/bin/activate
+source eeg-gui-venv/bin/activate
 ```  
 
 Install required packages:  
 ```
-$ pip install numpy==1.18.1  
-$ pip install -r requirements.txt
+pip install numpy==1.18.1  
+pip install -r requirements.txt
 ```
 
 
@@ -55,7 +55,7 @@ Command line options:
 -----
 We have added command line options to streamline use: 
 ```
-$ python visualization/plot.py --show {0 | 1} --fn [EDF_FILE] --montage-file [TXT_FILE] 
+python visualization/plot.py --show {0 | 1} --fn [EDF_FILE] --montage-file [TXT_FILE] 
 --predictions-file [PT_FILE] --filter {0 | 1} [LOW_PASS_FS] [HIGH_PASS_FS] [NOTCH_FS] [BAND_PASS_FS_1] [BAND_PASS_FS_2] 
 --location [INT] --window-width {5 | 10 | 15 | 20 | 25 | 30} --export-png-file [PNG_FILE] --plot-title [TITLE]
 --print-annotations {0 | 1} --line-thickness [THICKNESS] --font-size [FONT_SIZE] --save-edf-fn [EDF_FILE] 
