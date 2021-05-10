@@ -5,3 +5,4 @@ scikit-learn==0.22.1
 torch==1.4.0
 pyedflib==0.1.22
 pyqtgraph==0.11.0
+mne==0.23.0
