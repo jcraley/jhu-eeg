@@ -3,7 +3,7 @@ JHU EEG
 
 Installation:
 -----
-Clone the repository ```$ git clone https://github.com/jcraley/jhu-eeg.git```  
+Clone the repository ```git clone https://github.com/jcraley/jhu-eeg.git```  
 
 Python >= 3.5 is required. Other packages can be installed by creating a virtual environment and using the provided requirements.txt file.
 
