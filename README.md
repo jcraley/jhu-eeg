@@ -12,10 +12,14 @@ To create the virtual environment:
 python3 -m venv eeg-gui-venv
 ``` 
 
-Activate the environment:  
+Activate the environment (MacOS and Linux):
 ```
 source eeg-gui-venv/bin/activate
 ```  
+Activate the environment (Windows):
+```
+.\eeg-gui-venv\Scripts\activate
+```
 
 Install required packages:  
 ```
