@@ -161,6 +161,11 @@ class MainPage(QMainWindow):
         grid_lt.addWidget(self.button_chg_spec, ud, 1)
         ud += 1
 
+        label_view_ops = QLabel("View options:", self)
+        label_view_ops.setAlignment(Qt.AlignCenter)
+        grid_lt.addWidget(label_view_ops, ud, 0, 1, 2)
+        ud += 1
+
         label_amp = QLabel("Change amplitude:", self)
         grid_lt.addWidget(label_amp, ud, 0)
         ud += 1
