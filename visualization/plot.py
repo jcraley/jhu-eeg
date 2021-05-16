@@ -44,8 +44,6 @@ from pyqtgraph.dockarea import *
 from preprocessing.edf_loader import *
 from scipy import signal
 
-
-
 class MainPage(QMainWindow):
     """ Class for main plottintg window """
 

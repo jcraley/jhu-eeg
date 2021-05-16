@@ -4,6 +4,10 @@ from PyQt5.QtWidgets import (QWidget, QPushButton, QLabel, QGridLayout,
 from PyQt5.QtGui import QFont
 from matplotlib.backends.qt_compat import QtWidgets
 
+from plot_utils import filter_data
+import numpy as np
+from scipy import signal
+
 class SpecOptions(QWidget):
     """ Class for spectrogram options window """
     def __init__(self,data,parent):
@@ -105,6 +109,9 @@ class SpecOptions(QWidget):
             self.data.chn_plotted = nchns - row
             self.data.chn_name = self.labels_flipped[len(self.labels_flipped) - row]
             self.data.data = self.parent.ci.data_to_plot[self.data.chn_plotted,:]
+            fs = self.parent.edf_info.fs
+            if self.parent.filter_checked == 1:
+                self.data.data = np.squeeze(filter_data(np.array(self.data.data)[np.newaxis,:], fs, self.parent.fi))
             if not self.data.plot_spec:
                 self.data.plot_spec = 1
                 self.parent.make_spec_plot()
