@@ -161,8 +161,8 @@ class FilterOptions(QWidget):
         lp = self.btn_get_lp.value()
         bp1 = self.btn_get_bp1.value()
         bp2 = self.btn_get_bp2.value()
-        if ((0 < lp <= self.data.fs / 2) and
-            (0 < hp <= self.data.fs / 2)):
+        if ((0 < lp < self.data.fs / 2) and
+            (0 < hp < self.data.fs / 2)):
             if lp - hp > 0:
                 if self.data.do_lp:
                     self.data.lp = self.btn_get_lp.value()
@@ -174,7 +174,7 @@ class FilterOptions(QWidget):
                 self.data.bp2 = bp2
         else:
             self.data.do_bp = 0
-        if self.btn_get_notch.value() > 0 and self.btn_get_notch.value() <= self.data.fs / 2:
+        if self.btn_get_notch.value() > 0 and self.btn_get_notch.value() < self.data.fs / 2:
             if self.data.do_notch:
                 self.data.notch = self.btn_get_notch.value()
         else:
