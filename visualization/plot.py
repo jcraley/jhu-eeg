@@ -60,7 +60,7 @@ class MainPage(QMainWindow):
         self.argv = argv
         self.left = 10
         self.top = 10
-        self.title = 'EEG Visualization'
+        self.title = 'EEG Prediction Visualization (EPViz)'
         size_object = QtWidgets.QDesktopWidget().screenGeometry(-1)
         self.width = size_object.width() * 0.9
         self.height = size_object.height() * 0.9
