@@ -313,7 +313,7 @@ class SaveImgOptions(QWidget):
             if self.parent.argv.show == 0:
                 sys.exit()
             else:
-                self.closeWindow()
+                self.close_window()
         else:
             file = QFileDialog.getSaveFileName(self, 'Save File')
             if len(file[0]) == 0 or file[0] == None:
