@@ -236,6 +236,7 @@ class PredictionOptions(QWidget):
         # reset topoplot
         self.parent.btn_topo.setEnabled(0)
         self.parent.btn_topo.setText("Show topoplots")
+        self.parent.topoplot_dock.hide()
         if self.data.plot_loaded_preds == 0 and self.data.plot_model_preds == 0:
             self.parent.predicted = 0
             self.close_window()
@@ -245,7 +246,6 @@ class PredictionOptions(QWidget):
             if not self.data.preds_loaded:
                 self.parent.throw_alert("Please load predictions.")
             else:
-                print(self.radio_binary_preds.isChecked())
                 loaded_preds_valid = self.data.check_preds_shape(self.data.preds, 0,
                                         self.parent.max_time, self.parent.edf_info.fs,
                                         self.nchns, self.radio_binary_preds.isChecked())

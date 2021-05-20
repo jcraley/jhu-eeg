@@ -500,7 +500,6 @@ class ChannelInfo():
                         colors.append(self.other_colors[idx])
                     except ValueError:
                         colors.append(self.green)
-                print(colors)
         elif bip:
             labels = self.labelsBIP1020
             colors = self.colorsBIP1020
@@ -514,9 +513,6 @@ class ChannelInfo():
             labels = self.labelsAR1010
             colors = self.colorsAR1010
 
-        print('colors and labels')
-        print(colors)
-        print(labels)
         # insert any data for the given montages
         if bip or ar or ar1010 or bip1010 or self.use_loaded_txt_file:
             for i in range(len(labels)):
