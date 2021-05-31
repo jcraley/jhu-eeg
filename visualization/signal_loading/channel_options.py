@@ -8,6 +8,7 @@ import numpy as np
 from predictions.preds_info import PredsInfo
 from signal_loading.channel_info import ChannelInfo, convert_txt_chn_names
 from signal_loading.organize_channels import OrganizeChannels
+from signal_loading.color_options import ColorOptions
 import pyedflib
 
 class ChannelOptions(QWidget):
@@ -139,9 +140,13 @@ class ChannelOptions(QWidget):
         btn_organize.clicked.connect(self.organize)
         grid_lt.addWidget(btn_organize,8,0)
 
+        btn_colors = QPushButton('Change colors', self)
+        btn_colors.clicked.connect(self.chg_colors)
+        grid_lt.addWidget(btn_colors,9,0)
+
         btn_exit = QPushButton('Ok', self)
         btn_exit.clicked.connect(self.okay_pressed)
-        grid_lt.addWidget(btn_exit,9,0)
+        grid_lt.addWidget(btn_exit,10,0)
 
         grid_rt.addWidget(self.scroll,0,1)
 
@@ -464,6 +469,17 @@ class ChannelOptions(QWidget):
                 self.parent.organize_win_open = 1
                 self.parent.chn_org = OrganizeChannels(self.data, self.parent)
                 self.parent.chn_org.show()
+                self.close_window()
+
+    def chg_colors(self):
+        """ Function to open the window to change signal color.
+        """
+        if not self.parent.color_win_open:
+            ret = self.check()
+            if ret == 0:
+                self.parent.color_win_open = 1
+                self.parent.color_ops = ColorOptions(self.data, self.parent, self)
+                self.parent.color_ops.show()
                 self.close_window()
 
     def check(self):

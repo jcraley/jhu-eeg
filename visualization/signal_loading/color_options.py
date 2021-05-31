@@ -2,7 +2,8 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QWidget, QListWidget, QPushButton, QLabel,
                                 QGridLayout, QScrollArea, QListWidgetItem,
-                                QAbstractItemView)
+                                QAbstractItemView, QGroupBox, QRadioButton,
+                                QHBoxLayout, QColorDialog)
 
 from signal_loading.channel_info import ChannelInfo
 
@@ -11,105 +12,161 @@ from matplotlib.backends.qt_compat import QtWidgets
 
 class ColorOptions(QWidget):
     """ Class for the color options channel """
-    def __init__(self,data,parent):
+    def __init__(self,data,parent,chn_ops):
         """ Constructor for color options.
 
             Args:
                 data - the channel info object
-                parent - the channel options (parent) window
+                parent - the main (parent) window
+                chn_ops - the channel options window
         """
         super().__init__()
         self.left = 10
         self.top = 10
         self.title = 'Choose colors'
         self.width = parent.width / 6
-        self.height = parent.height / 2.5
+        self.height = parent.height / 3
         self.data = data
         self.parent = parent
+        self.chn_ops = chn_ops
         self.setup_ui()
 
     def setup_ui(self):
         """ Setup UI for the color options window.
         """
-        grid_lt = QGridLayout()
-
-        self.scroll = QScrollArea()
-        self.scroll.setMinimumWidth(120)
-        self.scroll.setMinimumHeight(200)
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-
-        self.chn_qlist = QListWidget()
-        self.chn_qlist.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.chn_qlist.setDragEnabled(True)
-        self.chn_qlist.setDragDropMode(QAbstractItemView.InternalMove)
-        self.chn_qlist.setDropIndicatorShown(True)
-
-        self.scroll.setWidget(self.chn_qlist)
-        self.populateChnList()
-
         self.setWindowTitle(self.title)
         centerPoint = QtWidgets.QDesktopWidget().availableGeometry().center()
         self.setGeometry(centerPoint.x() - self.width / 2,
                 centerPoint.y() - self.height / 2, self.width, self.height)
+        
+        grid_lt = QGridLayout()
+        
+        lbl_info = QLabel("Select the color for each channel:")
+        grid_lt.addWidget(lbl_info,0,0)
 
-        lblInfo = QLabel("Select the color for each channel:")
-        grid_lt.addWidget(lblInfo,0,0)
+        lbl_left = QLabel("Left hemisphere:")
+        grid_lt.addWidget(lbl_left,1,0)
+        lbl_right = QLabel("Right hemisphere:")
+        grid_lt.addWidget(lbl_right,2,0)
+        lbl_mid = QLabel("Midline:")
+        grid_lt.addWidget(lbl_mid,3,0)
+
+        groupbox_left_colors = QGroupBox()
+        self.radio_col_r_lt = QRadioButton("R")
+        self.radio_col_g_lt = QRadioButton("G")
+        self.radio_col_b_lt = QRadioButton("B")
+        self.radio_col_k_lt = QRadioButton("")
+        self.k_btn_lt = QPushButton("Custom")
+        self.k_btn_lt.clicked.connect(self.select_col_k_lt)
+        self.radio_col_b_lt.setChecked(True)
+        hbox_left = QHBoxLayout()
+        hbox_left.addWidget(self.radio_col_r_lt)
+        hbox_left.addWidget(self.radio_col_g_lt)
+        hbox_left.addWidget(self.radio_col_b_lt)
+        hbox_left.addWidget(self.radio_col_k_lt)
+        hbox_left.addWidget(self.k_btn_lt)
+        groupbox_left_colors.setLayout(hbox_left)
+        grid_lt.addWidget(groupbox_left_colors, 1,1)
+
+        groupbox_right_colors = QGroupBox()
+        self.radio_col_r_rt = QRadioButton("R")
+        self.radio_col_g_rt = QRadioButton("G")
+        self.radio_col_b_rt = QRadioButton("B")
+        self.radio_col_k_rt = QRadioButton("")
+        self.k_btn_rt = QPushButton("Custom")
+        self.k_btn_rt.clicked.connect(self.select_col_k_rt)
+        self.radio_col_r_rt.setChecked(True)
+        hbox_right = QHBoxLayout()
+        hbox_right.addWidget(self.radio_col_r_rt)
+        hbox_right.addWidget(self.radio_col_g_rt)
+        hbox_right.addWidget(self.radio_col_b_rt)
+        hbox_right.addWidget(self.radio_col_k_rt)
+        hbox_right.addWidget(self.k_btn_rt)
+        groupbox_right_colors.setLayout(hbox_right)
+        grid_lt.addWidget(groupbox_right_colors, 2,1)
+
+        groupbox_mid_colors = QGroupBox()
+        self.radio_col_r_mid = QRadioButton("R")
+        self.radio_col_g_mid = QRadioButton("G")
+        self.radio_col_b_mid = QRadioButton("B")
+        self.radio_col_k_mid = QRadioButton("")
+        self.k_btn_mid = QPushButton("Custom")
+        self.k_btn_mid.clicked.connect(self.select_col_k_mid)
+        self.radio_col_g_mid.setChecked(True)
+        hbox_mid = QHBoxLayout()
+        hbox_mid.addWidget(self.radio_col_r_mid)
+        hbox_mid.addWidget(self.radio_col_g_mid)
+        hbox_mid.addWidget(self.radio_col_b_mid)
+        hbox_mid.addWidget(self.radio_col_k_mid)
+        hbox_mid.addWidget(self.k_btn_mid)
+        groupbox_mid_colors.setLayout(hbox_mid)
+        grid_lt.addWidget(groupbox_mid_colors, 3,1)
 
         btn_exit = QPushButton('Ok', self)
-        btn_exit.clicked.connect(self.updateChnOrder)
-        grid_lt.addWidget(btn_exit,2,0)
-        grid_lt.addWidget(self.scroll,1,0)
+        btn_exit.clicked.connect(self.check)
+        grid_lt.addWidget(btn_exit,4,0)
         self.setLayout(grid_lt)
 
         self.show()
 
-    def populateChnList(self):
-        """ Fills the list with all of the channels to be loaded.
+    def select_col_k_lt(self):
+        """ Color picker.
         """
-        self.chn_items = []
-        self.labels_flipped = []
-        self.data.organize = 1 # set that channels were organized
-        if len(self.data.labels_to_plot) == 0:
-            self.close_window()
+        color = QColorDialog.getColor()
+        self.sender().setStyleSheet("background-color: " + color.name())
+        self.lt_custom = color.name()
+
+    def select_col_k_rt(self):
+        """ Color picker.
+        """
+        color = QColorDialog.getColor()
+        self.sender().setStyleSheet("background-color: " + color.name())
+        self.rt_custom = color.name()
+
+    def select_col_k_mid(self):
+        """ Color picker.
+        """
+        color = QColorDialog.getColor()
+        self.sender().setStyleSheet("background-color: " + color.name())
+        self.mid_custom = color.name()
+
+    def _get_col(self, hemi):
+        """ Function to get the color.
+
+            Args:
+                hemi: "lt", "rt", or "mid"
+            Returns:
+                the color in hex
+        """
+        if eval("self.radio_col_r_" + hemi).isChecked():
+            return "r"
+        elif eval("self.radio_col_b_" + hemi).isChecked():
+            return "b"
+        elif eval("self.radio_col_g_" + hemi).isChecked():
+            return '#1f8c45'
         else:
-            for i in range(len(self.data.labels_to_plot) - 1):                
-                self.labels_flipped.append(self.data.labels_to_plot[i+1])
-                self.chn_items.append(QListWidgetItem(self.data.labels_to_plot[len(self.data.labels_to_plot) - 1 - i], self.chn_qlist))
-                self.chn_qlist.addItem(self.chn_items[i])
-            self.scroll.show()
+            return eval("self." + hemi + "_custom")
 
-    def updateChnOrder(self):
-        """ Function to check the clicked channels and exit.
+    def check(self):
+        """ Function to get colors and exit.
         """
-        temp_labels = ["Notes"]
-        temp_colors = []
-        temp_data = np.zeros(self.data.data_to_plot.shape)
-        for i in range(len(self.data.colors)):
-            temp_labels.append(self.data.labels_to_plot[i+1])
-            temp_colors.append(self.data.colors[i])
-            temp_data[i,:] += self.data.data_to_plot[i,:]
-
-        for k in range(len(self.chn_items)):
-            row = self.chn_qlist.row(self.chn_items[k])
-            temp_labels[len(self.chn_items) - row] = self.chn_items[k].text()
-            temp_colors[len(self.chn_items) - row - 1] = self.data.colors[len(self.chn_items) - k - 1]
-            temp_data[len(self.chn_items) - row - 1,:] = self.data.data_to_plot[len(self.chn_items) - k - 1,:]
-        self.data.labels_to_plot = temp_labels
-        self.data.colors = temp_colors
-        self.data.data_to_plot = temp_data
+        self.data.rt_col = self._get_col("rt")
+        self.data.lt_col = self._get_col("lt")
+        self.data.mid_col = self._get_col("mid")
+        # redo setting data, channel names, and colors
+        self.chn_ops.check()
+    
         self.parent.call_initial_move_plot()
         self.close_window()
 
     def close_window(self):
         """ Closes the window.
         """
-        self.parent.organize_win_open = 0
+        self.parent.color_win_open = 0
         self.close()
 
     def closeEvent(self, event):
         """ Called when the window is closed.
         """
-        self.parent.organize_win_open = 0
+        self.parent.color_win_open = 0
         event.accept()

@@ -529,6 +529,7 @@ class MainPage(QMainWindow):
         self.preds_win_open = 0  # whether or not the predictions window is open
         self.chn_win_open = 0  # whether or not the channel selection window is open
         self.organize_win_open = 0  # whether or not the signal organization window is open
+        self.color_win_open = 0  # whether or not the signal colors window is open
         self.spec_win_open = 0 # whether or not the spectrogram window is open
         self.saveimg_win_open = 0 # whether or not the print preview window is open
         self.saveedf_win_open = 0 # whether or not the save edf options window is open
@@ -561,6 +562,8 @@ class MainPage(QMainWindow):
             self.chn_ops.close_window()
         if self.organize_win_open:
             self.chn_org.close_window()
+        if self.color_win_open:
+            self.color_ops.close_window()
         if self.spec_win_open:
             self.spec_ops.close_window()
         if self.saveimg_win_open:
