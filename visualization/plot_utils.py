@@ -59,9 +59,8 @@ def filter_data(data, fs, fi):
 
     Args:
         data - the data to filter
-        lp - lowpass frequency
-        hp - highpass frequency
-        standardize - whether or not to standardize the data
+        fs - the fs
+        fi - a filterInfo object
     Returns:
         filtered data
     """
@@ -76,7 +75,6 @@ def filter_data(data, fs, fi):
     if fi.do_bp == 0 or bp1 < 0 or bp1 > fs / 2 or bp2 < 0 or bp1 > fs / 2 or bp2 - bp1 <= 0:
         bp1 = 0
         bp2 = 0
-
 
     nchns = len(data)
     filt_bufs = deepcopy(data)

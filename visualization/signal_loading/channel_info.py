@@ -29,15 +29,34 @@ def _check_label(label, label_list):
                     labels_noRef[k] = labels_noEEG[k]
             ret = _check_label_helper(label, labels_noRef)
             if ret == -1:
-                label2 = ""
-                if label == "T7":
-                    label2 = "T3"
-                if label == "P7":
-                    label2 = "T5"
-                if label == "T8":
-                    label2 = "T4"
-                if label == "P8":
-                    label2 = "T6"
+                if label.find("-") != -1:
+                    label2 = ""
+                    if label.split("-")[0] == "T7":
+                        label2 = "T3-"
+                    if label.split("-")[0] == "P7":
+                        label2 = "T5-"
+                    if label.split("-")[0] == "T8":
+                        label2 = "T4-"
+                    if label.split("-")[0] == "P8":
+                        label2 = "T6-"
+                    if label.split("-")[1] == "T7":
+                        label2 += "T3"
+                    if label.split("-")[1] == "P7":
+                        label2 += "T5"
+                    if label.split("-")[1] == "T8":
+                        label2 += "T4"
+                    if label.split("-")[1] == "P8":
+                        label2 += "T6"
+                else:
+                    label2 = ""
+                    if label == "T7":
+                        label2 = "T3"
+                    if label == "P7":
+                        label2 = "T5"
+                    if label == "T8":
+                        label2 = "T4"
+                    if label == "P8":
+                        label2 = "T6"
                 ret = _check_label_helper(label2, label_CAPS)
                 if ret == -1:
                     ret = _check_label_helper(label2, labels_noEEG)
@@ -66,14 +85,34 @@ def convert_txt_chn_names(chn_txt):
     loc = chn.find("-REF")
     if loc != -1:
         chn = chn[0:loc] + chn[loc+4:]
-    if chn == "T7":
-        chn = "T3"
-    if chn == "P7":
-        chn = "T5"
-    if chn == "T8":
-        chn = "T4"
-    if chn == "P8":
-        chn = "T6"
+    if chn.find("-") != -1:
+        chn2 = ""
+        if chn.split("-")[0] == "T7":
+            chn2 = "T3-"
+        if chn.split("-")[0] == "P7":
+            chn2 = "T5-"
+        if chn.split("-")[0] == "T8":
+            chn2 = "T4-"
+        if chn.split("-")[0] == "P8":
+            chn2 = "T6-"
+        if chn.split("-")[1] == "T7":
+            chn2 += "T3"
+        if chn.split("-")[1] == "P7":
+            chn2 += "T5"
+        if chn.split("-")[1] == "T8":
+            chn2 += "T4"
+        if chn.split("-")[1] == "P8":
+            chn2 += "T6"
+        chn = chn2
+    else:
+        if chn == "T7":
+            chn = "T3"
+        if chn == "P7":
+            chn = "T5"
+        if chn == "T8":
+            chn = "T4"
+        if chn == "P8":
+            chn = "T6"
     return chn
 
 class ChannelInfo():
@@ -437,22 +476,24 @@ class ChannelInfo():
                     bip = 1
 
         if self.use_loaded_txt_file and mont_type == 4:
+            print("generating colors")
             labels = self.labels_from_txt_file[txt_file_name]
             colors = []
             for i in range(len(labels)):
                 idx = -1
+                print(labels[i])
                 if ar:
                     try:
                         idx = self.labelsAR1020.index(labels[i])
                         colors.append(self.colorsAR1020[idx])
                     except ValueError:
-                        pass
+                        colors.append(self.green)
                 elif bip:
                     try:
                         idx = self.labelsBIP1020.index(labels[i])
                         colors.append(self.colorsBIP1020[idx])
                     except ValueError:
-                        pass
+                        colors.append(self.green)
                 else:
                     try:
                         idx = self.other_labels.index(labels[i])
@@ -471,7 +512,6 @@ class ChannelInfo():
         elif ar1010:
             labels = self.labelsAR1010
             colors = self.colorsAR1010
-
 
         # insert any data for the given montages
         if bip or ar or ar1010 or bip1010 or self.use_loaded_txt_file:

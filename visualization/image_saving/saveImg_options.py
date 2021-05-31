@@ -68,7 +68,7 @@ class SaveImgOptions(QWidget):
         if (not self.parent.argv.export_png_file is None) and self.parent.init == 0:
             self.data.plot_ann = self.parent.argv.print_annotations
             self.data.line_thick = self.parent.argv.line_thickness
-            self.data.fontSize = self.parent.argv.font_size
+            self.data.font_size = self.parent.argv.font_size
             self.data.plot_title = 1
             self.data.title = self.parent.argv.plot_title
             self.make_plot()
@@ -313,7 +313,7 @@ class SaveImgOptions(QWidget):
             if self.parent.argv.show == 0:
                 sys.exit()
             else:
-                self.closeWindow()
+                self.close_window()
         else:
             file = QFileDialog.getSaveFileName(self, 'Save File')
             if len(file[0]) == 0 or file[0] == None:

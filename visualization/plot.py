@@ -44,8 +44,6 @@ from pyqtgraph.dockarea import *
 from preprocessing.edf_loader import *
 from scipy import signal
 
-
-
 class MainPage(QMainWindow):
     """ Class for main plottintg window """
 
@@ -63,7 +61,7 @@ class MainPage(QMainWindow):
         self.title = 'EEG Prediction Visualization (EPViz)'
         size_object = QtWidgets.QDesktopWidget().screenGeometry(-1)
         self.width = size_object.width() * 0.9
-        self.height = size_object.height() * 0.9
+        self.height = size_object.height() * 0.8
         self.app = app
         self.init_ui()
 
@@ -159,6 +157,11 @@ class MainPage(QMainWindow):
         self.button_chg_spec = QPushButton("Power spectrum", self)
         self.button_chg_spec.setToolTip("Click to plot the spectrogram of a signal")
         grid_lt.addWidget(self.button_chg_spec, ud, 1)
+        ud += 1
+
+        label_view_ops = QLabel("View options:", self)
+        label_view_ops.setAlignment(Qt.AlignCenter)
+        grid_lt.addWidget(label_view_ops, ud, 0, 1, 2)
         ud += 1
 
         label_amp = QLabel("Change amplitude:", self)
@@ -645,7 +648,7 @@ class MainPage(QMainWindow):
         self.rect_list = [] # list of prediction rectangles
         self.aspan_list = []  # list of lines on the axis from preds
         self.pred_label.setText("")  # reset text of predictions
-        self.thresh = 0.5  # threshold for plotting
+        self.thresh = self.argv.prediction_thresh  # threshold for plotting
         self.thresh_lbl.setText(
             "Change threshold of prediction:  " +
             "(threshold = " + str(self.thresh) + ")")  # reset label
@@ -1206,7 +1209,7 @@ class MainPage(QMainWindow):
 
         self.fi.fs = self.ci.fs
         self.slider.setMaximum(self.max_time - self.window_size)
-        self.thresh_slider.setValue(self.thresh * 100)
+        self.thresh_slider.setValue(self.argv.prediction_thresh * 100)
 
         self.ann_qlist.clear()  # Clear annotations
         self.populate_ann_dock()  # Add annotations if they exist
@@ -2128,6 +2131,7 @@ def get_args():
     p.add_argument("--plot-title", type=str, default="")
     p.add_argument("--save-edf-fn", type=str, default=None)
     p.add_argument("--anonymize-edf", type=int, default=1, choices=[0,1])
+    p.add_argument("--prediction-thresh", type=float, default=0.5)
 
     return p.parse_args()
 
@@ -2164,6 +2168,9 @@ def check_args(args):
             raise Exception("The --predictions_file that you specifed does not exist.")
         elif not args.predictions_file[len(args.predictions_file) - 3:] == ".pt":
             raise Exception("The --predictions_file must be a .pt file.")
+    
+    if not (0 <= args.prediction_thresh <= 1):
+        raise Exception("The --prediction-thresh must be between 0 and 1.")
 
     if not args.line_thickness is None:
         if args.line_thickness < 0.1 or args.line_thickness > 3:
