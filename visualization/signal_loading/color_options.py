@@ -1,28 +1,27 @@
-""" Module for the organize channels window """
+""" Module for the color options class """
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QWidget, QListWidget, QPushButton, QLabel,
                                 QGridLayout, QScrollArea, QListWidgetItem,
                                 QAbstractItemView)
 
-import numpy as np
 from signal_loading.channel_info import ChannelInfo
 
 from matplotlib.backends.qt_compat import QtWidgets
 
 
-class OrganizeChannels(QWidget):
-    """ Class for the organize channels window """
+class ColorOptions(QWidget):
+    """ Class for the color options channel """
     def __init__(self,data,parent):
-        """ Constructor for organize channels.
+        """ Constructor for color options.
 
             Args:
                 data - the channel info object
-                parent - the main (parent) window
+                parent - the channel options (parent) window
         """
         super().__init__()
         self.left = 10
         self.top = 10
-        self.title = 'Organize signals'
+        self.title = 'Choose colors'
         self.width = parent.width / 6
         self.height = parent.height / 2.5
         self.data = data
@@ -30,7 +29,7 @@ class OrganizeChannels(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        """ Setup UI for the organize channels window.
+        """ Setup UI for the color options window.
         """
         grid_lt = QGridLayout()
 
@@ -55,7 +54,7 @@ class OrganizeChannels(QWidget):
         self.setGeometry(centerPoint.x() - self.width / 2,
                 centerPoint.y() - self.height / 2, self.width, self.height)
 
-        lblInfo = QLabel("Drag and drop channels \n to change their order: ")
+        lblInfo = QLabel("Select the color for each channel:")
         grid_lt.addWidget(lblInfo,0,0)
 
         btn_exit = QPushButton('Ok', self)
