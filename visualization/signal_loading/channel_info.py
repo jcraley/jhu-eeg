@@ -162,6 +162,20 @@ class ChannelInfo():
         self.mid_col = '#1f8c45'
         self.lt_col = "b"
         self.rt_col = "r"
+        
+        self.pred_chn_data = []
+        self.labels_from_txt_file = {}
+        self.use_loaded_txt_file = 0
+        self.txt_file_fn = ""
+        self.organize = 0
+
+        self.labels_to_plot = []
+        self.nchns_to_plot = 0
+        self.mont_type = 5
+
+    def _set_colors(self):
+        """ Reset the colors in case of a color change.
+        """
         self.colorsBIP1020 = [self.mid_col, self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,
                             self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
         self.colorsAR1020 = [self.lt_col,self.rt_col,self.mid_col, self.mid_col, self.mid_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,
@@ -188,15 +202,6 @@ class ChannelInfo():
                                 self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,
                                 self.mid_col,self.lt_col,self.lt_col,self.mid_col,self.mid_col,self.mid_col,self.rt_col,self.rt_col,self.lt_col,
                                 self.lt_col,self.mid_col]
-        self.pred_chn_data = []
-        self.labels_from_txt_file = {}
-        self.use_loaded_txt_file = 0
-        self.txt_file_fn = ""
-        self.organize = 0
-
-        self.labels_to_plot = []
-        self.nchns_to_plot = 0
-        self.mont_type = 5
 
     def write_data(self, ci2):
         """
@@ -340,6 +345,8 @@ class ChannelInfo():
                 from average reference data
             txt_file_name - name of text file if needed
         """
+        print("in prep to plot")
+        self._set_colors()
         f = pyedflib.EdfReader(self.edf_fn)
 
         # Things needed to plot - reset each time

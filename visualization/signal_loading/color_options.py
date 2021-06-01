@@ -29,6 +29,9 @@ class ColorOptions(QWidget):
         self.data = data
         self.parent = parent
         self.chn_ops = chn_ops
+        self.lt_custom = "#ffffff"
+        self.rt_custom = "#ffffff"
+        self.mid_custom = "#ffffff"
         self.setup_ui()
 
     def setup_ui(self):
@@ -60,7 +63,6 @@ class ColorOptions(QWidget):
         self.radio_col_k_lt = QRadioButton("")
         self.k_btn_lt = QPushButton("Custom")
         self.k_btn_lt.clicked.connect(self.select_col_k_lt)
-        self.radio_col_b_lt.setChecked(True)
         hbox_left = QHBoxLayout()
         hbox_left.addWidget(self.radio_col_r_lt)
         hbox_left.addWidget(self.radio_col_g_lt)
@@ -77,7 +79,6 @@ class ColorOptions(QWidget):
         self.radio_col_k_rt = QRadioButton("")
         self.k_btn_rt = QPushButton("Custom")
         self.k_btn_rt.clicked.connect(self.select_col_k_rt)
-        self.radio_col_r_rt.setChecked(True)
         hbox_right = QHBoxLayout()
         hbox_right.addWidget(self.radio_col_r_rt)
         hbox_right.addWidget(self.radio_col_g_rt)
@@ -94,7 +95,6 @@ class ColorOptions(QWidget):
         self.radio_col_k_mid = QRadioButton("")
         self.k_btn_mid = QPushButton("Custom")
         self.k_btn_mid.clicked.connect(self.select_col_k_mid)
-        self.radio_col_g_mid.setChecked(True)
         hbox_mid = QHBoxLayout()
         hbox_mid.addWidget(self.radio_col_r_mid)
         hbox_mid.addWidget(self.radio_col_g_mid)
@@ -103,6 +103,10 @@ class ColorOptions(QWidget):
         hbox_mid.addWidget(self.k_btn_mid)
         groupbox_mid_colors.setLayout(hbox_mid)
         grid_lt.addWidget(groupbox_mid_colors, 3,1)
+
+        self._set_init_col("lt")
+        self._set_init_col("rt")
+        self._set_init_col("mid")
 
         btn_exit = QPushButton('Ok', self)
         btn_exit.clicked.connect(self.check)
@@ -132,6 +136,23 @@ class ColorOptions(QWidget):
         self.sender().setStyleSheet("background-color: " + color.name())
         self.mid_custom = color.name()
 
+    def _set_init_col(self, hemi):
+        """ Function to set the initial color.
+
+            Args:
+                hemi: "lt", "rt", or "mid"
+        """
+        if eval("self.data." + hemi + "_col") == "r":
+            eval("self.radio_col_r_" + hemi).setChecked(1)
+        elif eval("self.data." + hemi + "_col") == "b":
+            eval("self.radio_col_b_" + hemi).setChecked(1)
+        elif eval("self.data." + hemi + "_col") == "#1f8c45":
+            eval("self.radio_col_g_" + hemi).setChecked(1)
+        else:
+            eval("self.radio_col_k_" + hemi).setChecked(1)
+            eval("self.k_btn_" + hemi).setStyleSheet(
+                "background-color: " + eval("self.data." + hemi + "_col"))
+
     def _get_col(self, hemi):
         """ Function to get the color.
 
@@ -147,16 +168,29 @@ class ColorOptions(QWidget):
         elif eval("self.radio_col_g_" + hemi).isChecked():
             return '#1f8c45'
         else:
-            return eval("self." + hemi + "_custom")
+            col = eval("self." + hemi + "_custom")
+            if col == "#ffffff":
+                self.parent.throw_alert("Please click \"Custom\" to select a custom color.")
+                return ""
+            return col
 
     def check(self):
         """ Function to get colors and exit.
         """
+        if (self._get_col("rt") == "" or self._get_col("lt") == ""
+            or self._get_col("mid") == ""):
+            return
         self.data.rt_col = self._get_col("rt")
+        print(self.data.rt_col)
         self.data.lt_col = self._get_col("lt")
+        print(self.data.lt_col)
         self.data.mid_col = self._get_col("mid")
+        print(self.data.mid_col)
         # redo setting data, channel names, and colors
         self.chn_ops.check()
+        print(self.data.rt_col)
+        print(self.data.lt_col)
+        print(self.data.mid_col)
     
         self.parent.call_initial_move_plot()
         self.close_window()
