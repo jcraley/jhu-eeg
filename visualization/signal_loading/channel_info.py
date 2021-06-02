@@ -32,21 +32,21 @@ def _check_label(label, label_list):
                 if label.find("-") != -1:
                     label2 = ""
                     if label.split("-")[0] == "T7":
-                        label2 = "T3-"
+                        label2 = "T3-" + label.split("-")[1]
                     if label.split("-")[0] == "P7":
-                        label2 = "T5-"
+                        label2 = "T5-" + label.split("-")[1]
                     if label.split("-")[0] == "T8":
-                        label2 = "T4-"
+                        label2 = "T4-" + label.split("-")[1]
                     if label.split("-")[0] == "P8":
-                        label2 = "T6-"
+                        label2 = "T6-" + label.split("-")[1]
                     if label.split("-")[1] == "T7":
-                        label2 += "T3"
+                        label2 = label.split("-")[0] + "T3"
                     if label.split("-")[1] == "P7":
-                        label2 += "T5"
+                        label2 = label.split("-")[0] + "T5"
                     if label.split("-")[1] == "T8":
-                        label2 += "T4"
+                        label2 = label.split("-")[0] + "T4"
                     if label.split("-")[1] == "P8":
-                        label2 += "T6"
+                        label2 = label.split("-")[0] + "T6"
                 else:
                     label2 = ""
                     if label == "T7":
@@ -345,7 +345,6 @@ class ChannelInfo():
                 from average reference data
             txt_file_name - name of text file if needed
         """
-        print("in prep to plot")
         self._set_colors()
         f = pyedflib.EdfReader(self.edf_fn)
 
@@ -481,12 +480,10 @@ class ChannelInfo():
                     bip = 1
 
         if self.use_loaded_txt_file and mont_type == 4:
-            print("generating colors")
             labels = self.labels_from_txt_file[txt_file_name]
             colors = []
             for i in range(len(labels)):
                 idx = -1
-                print(labels[i])
                 if ar:
                     try:
                         idx = self.labelsAR1020.index(labels[i])
