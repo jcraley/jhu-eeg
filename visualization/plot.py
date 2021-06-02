@@ -61,7 +61,7 @@ class MainPage(QMainWindow):
         self.title = 'EEG Visualization'
         size_object = QtWidgets.QDesktopWidget().screenGeometry(-1)
         self.width = size_object.width() * 0.9
-        self.height = size_object.height() * 0.8
+        self.height = size_object.height() * 0.7
         self.app = app
         self.init_ui()
 
