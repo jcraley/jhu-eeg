@@ -1685,7 +1685,6 @@ class MainPage(QMainWindow):
     def update_topoplot_line(self):
         """ Called whenever the topoplot line is moved.
         """
-        print(self.topoplot_line.value())
         # get the actual location in nsamples
         plot_val = self.topoplot_line.value() + self.count * self.edf_info.fs
         # convert this to prediction value

@@ -181,17 +181,10 @@ class ColorOptions(QWidget):
             or self._get_col("mid") == ""):
             return
         self.data.rt_col = self._get_col("rt")
-        print(self.data.rt_col)
         self.data.lt_col = self._get_col("lt")
-        print(self.data.lt_col)
         self.data.mid_col = self._get_col("mid")
-        print(self.data.mid_col)
         # redo setting data, channel names, and colors
         self.chn_ops.check()
-        print(self.data.rt_col)
-        print(self.data.lt_col)
-        print(self.data.mid_col)
-    
         self.parent.call_initial_move_plot()
         self.close_window()
 
