@@ -17,6 +17,7 @@ from image_saving.saveTopoplot_options import SaveTopoplotOptions
 from edf_saving.saveEdf_info import SaveEdfInfo
 from edf_saving.saveEdf_options import SaveEdfOptions
 from signalStats_info import SignalStatsInfo
+from statsFsBand_options import StatsFsBandOptions
 
 import pyedflib
 from plot_utils import *
@@ -337,6 +338,7 @@ class MainPage(QMainWindow):
         self.stats_dock.setTitleBarWidget(self.btn_open_stats)
         self.stats_dock.setFixedWidth(self.dock_width)
 
+        self.stats_grid = QtWidgets.QGridLayout()
         self.grid_layout = QtWidgets.QGridLayout()
         ud = 0
         all_lbl = QtWidgets.QLabel(self)
@@ -378,66 +380,34 @@ class MainPage(QMainWindow):
         ud += 1
         self.grid_layout.addWidget(QHLine(), ud, 1, 1, 3)
         ud += 1
-        alpha_l = QtWidgets.QLabel(self)
-        alpha_l.setText("Alpha:")
-        self.grid_layout.addWidget(alpha_l, ud, 1, 1,1)
-        self.alpha_lbl = QtWidgets.QLabel(self)
-        self.alpha_lbl.setText("")
-        self.grid_layout.addWidget(self.alpha_lbl, ud, 2, 1, 1)
-        self.alpha_sel_lbl = QtWidgets.QLabel(self)
-        self.alpha_sel_lbl.setText("")
-        self.grid_layout.addWidget(self.alpha_sel_lbl, ud, 3, 1, 1)
-        ud += 1
-        beta_l = QtWidgets.QLabel(self)
-        beta_l.setText("Beta:")
-        self.grid_layout.addWidget(beta_l, ud, 1, 1, 1)
-        self.beta_lbl = QtWidgets.QLabel(self)
-        self.beta_lbl.setText("")
-        self.grid_layout.addWidget(self.beta_lbl, ud, 2, 1, 1)
-        self.beta_sel_lbl = QtWidgets.QLabel(self)
-        self.beta_sel_lbl.setText("")
-        self.grid_layout.addWidget(self.beta_sel_lbl, ud, 3, 1, 2)
-        ud += 1
-        gamma_l = QtWidgets.QLabel(self)
-        gamma_l.setText("Gamma:")
-        self.grid_layout.addWidget(gamma_l, ud, 1, 1, 1)
-        self.gamma_lbl = QtWidgets.QLabel(self)
-        self.gamma_lbl.setText("")
-        self.grid_layout.addWidget(self.gamma_lbl, ud, 2, 1, 1)
-        self.gamma_sel_lbl = QtWidgets.QLabel(self)
-        self.gamma_sel_lbl.setText("")
-        self.grid_layout.addWidget(self.gamma_sel_lbl, ud, 3, 1, 1)
-        ud += 1
-        delta_l = QtWidgets.QLabel(self)
-        delta_l.setText("Delta:")
-        self.grid_layout.addWidget(delta_l, ud, 1, 1, 1)
-        self.delta_lbl = QtWidgets.QLabel(self)
-        self.delta_lbl.setText("")
-        self.grid_layout.addWidget(self.delta_lbl, ud, 2, 1, 1)
-        self.delta_sel_lbl = QtWidgets.QLabel(self)
-        self.delta_sel_lbl.setText("")
-        self.grid_layout.addWidget(self.delta_sel_lbl, ud, 3, 1, 1)
-        ud += 1
-        theta_l = QtWidgets.QLabel(self)
-        theta_l.setText("Theta:")
-        self.grid_layout.addWidget(theta_l, ud, 1, 1, 1)
-        self.theta_lbl = QtWidgets.QLabel(self)
-        self.theta_lbl.setText("")
-        self.grid_layout.addWidget(self.theta_lbl, ud, 2, 1, 1)
-        self.theta_sel_lbl = QtWidgets.QLabel(self)
-        self.theta_sel_lbl.setText("")
-        self.grid_layout.addWidget(self.theta_sel_lbl, ud, 3, 1, 1)
-        ud += 1
+        fs_band_names = ["alpha", "beta", "gamma", "delta", "theta"]
+        self.fs_band_lbls = {} # for holding fs band labels
+        self.fs_band_sel_lbls = {} # for holding fs band labels for selected area
+        for i, fs_band in enumerate(fs_band_names):
+            lbl = QtWidgets.QLabel(self)
+            lbl.setText(fs_band + ":")
+            self.grid_layout.addWidget(lbl, ud + i, 1, 1, 1)
+            self.fs_band_lbls[fs_band] = QtWidgets.QLabel(self)
+            self.fs_band_lbls[fs_band].setText("")
+            self.grid_layout.addWidget(self.fs_band_lbls[fs_band], ud + i, 2, 1, 1)
+            self.fs_band_sel_lbls[fs_band] = QtWidgets.QLabel(self)
+            self.fs_band_sel_lbls[fs_band].setText("")
+            self.grid_layout.addWidget(self.fs_band_sel_lbls[fs_band], ud + i, 3, 1, 1)
+        ud += 5
         self.qscroll = QtWidgets.QScrollArea(self)
         self.qscroll.setWidgetResizable(True)
         self.qscroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.qscroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.chn_qlist = QListWidget()
         self.qscroll.setWidget(self.chn_qlist)
-        self.grid_layout.addWidget(self.qscroll, 0, 0, ud, 1)
+        self.stats_grid.addWidget(self.qscroll, 0, 0, 2, 1)
+        self.stats_grid.addLayout(self.grid_layout, 0, 1)
+
+        self.btn_add_fs_band = QPushButton("Add frequency band", self)
+        self.stats_grid.addWidget(self.btn_add_fs_band,1,1)
 
         self.stats_main_widget = QWidget()
-        self.stats_main_widget.setLayout(self.grid_layout)
+        self.stats_main_widget.setLayout(self.stats_grid)
         self.stats_dock.setWidget(self.stats_main_widget)
 
         self.scroll.hide()
@@ -515,6 +485,7 @@ class MainPage(QMainWindow):
         self.btn_ann_create.clicked.connect(self.ann_editor_create)
         self.btn_open_stats.clicked.connect(self.open_stat_window)
         self.chn_qlist.itemClicked.connect(self.stat_chn_clicked)
+        self.btn_add_fs_band.clicked.connect(self.stat_add_fs_band)
 
     def init_values(self):
         """ Set some initial values and create Info objects.
@@ -535,6 +506,7 @@ class MainPage(QMainWindow):
         self.saveedf_win_open = 0 # whether or not the save edf options window is open
         self.anon_win_open = 0 # whether or not the anonymize window is open
         self.savetopo_win_open = 0 # whether or not the topoplots window is open
+        self.stat_fs_band_win_open = 0 # whether or not the stat fs window is open
         self.max_time = 0  # number of seconds in the recording
         self.pi = PredsInfo()  # holds data needed to predict
         self.ci = ChannelInfo()  # holds channel information
@@ -574,6 +546,8 @@ class MainPage(QMainWindow):
             self.anon_ops.close_window()
         if self.savetopo_win_open:
             self.savetopo_ops.close_window()
+        if self.stat_fs_band_win_open:
+            self.stats_fs_band_win.close_window()
 
         event.accept()
 
@@ -1935,6 +1909,16 @@ class MainPage(QMainWindow):
             self.ssi.chn_items.append(QListWidgetItem(chns[i], self.chn_qlist))
             self.chn_qlist.addItem(self.ssi.chn_items[i - 1])
 
+    def stat_add_fs_band(self):
+        """ TODO: Opens the window to add new fs bands.
+        """
+        # lbl = QtWidgets.QLabel(self)
+        # lbl.setText("theta" + str(len(self.ssi.fs_bands.keys())))
+        # self.grid_layout.addWidget(lbl, len(self.ssi.fs_bands.keys()) + 5, 1, 1, 1)
+        # self.ssi.fs_bands[lbl] = (1,2)
+        self.stat_fs_band_win_open = 1
+        self.stats_fs_band_win = StatsFsBandOptions(self.ssi, self)
+
     def stat_chn_clicked(self):
         """ When a channel is clicked.
         """
@@ -1985,17 +1969,10 @@ class MainPage(QMainWindow):
         line_len_str = "" + "{:.2f}".format(line_len_str)
         self.line_len_sel_lbl.setText(line_len_str)
 
-        alpha, beta, theta, gamma, delta = self.get_power_band_stats(int(bounds[0]), int(bounds[1]))
-        alpha_str = "" + "{:.2e}".format(alpha)
-        self.alpha_sel_lbl.setText(alpha_str)
-        beta_str = "" + "{:.2e}".format(beta)
-        self.beta_sel_lbl.setText(beta_str)
-        theta_str = "" + "{:.2e}".format(theta)
-        self.theta_sel_lbl.setText(theta_str)
-        gamma_str = "" + "{:.2e}".format(gamma)
-        self.gamma_sel_lbl.setText(gamma_str)
-        delta_str = "" + "{:.2e}".format(delta)
-        self.delta_sel_lbl.setText(delta_str)
+        fs_band_dict = self.get_power_band_stats(int(bounds[0]), int(bounds[1]))
+        for k in fs_band_dict.keys():
+            key_str = "" + "{:.2e}".format(fs_band_dict[k])
+            self.fs_band_sel_lbls[k].setText(key_str)
 
     def get_stats(self, s, f):
         """ Get mean, var, and line length.
@@ -2009,7 +1986,6 @@ class MainPage(QMainWindow):
             var
             line length (for the part of the signal specified)
         """
-
         if self.filter_checked == 1:
             self.prep_filter_ws()
             array_sum = np.sum(self.filtered_data)
@@ -2031,34 +2007,24 @@ class MainPage(QMainWindow):
             s: start time in samples
             f: end time in samples
         Returns:
-            alpha, beta, gamma, theta, delta
-            (for the part of the signal specified)
+            dict holding fs values (ex: {'alpha': #...})
         """
         data = self.ci.data_to_plot[self.ssi.chn,:]
         lp = 0
         hp = 0
         if self.filter_checked == 1:
-            print("in stat - filter checked")
             lp = self.fi.lp
             hp = self.fi.hp
-        alpha, beta, theta, gamma, delta = self.ssi.get_power(data, s, f, hp, lp)
-        return alpha, beta, theta, gamma, delta
+        fs_band_dict = self.ssi.get_power(data, s, f, hp, lp)
+        return fs_band_dict
 
     def set_fs_band_lbls(self):
         """ Sets alpha, beta, gamma, delta, theta lbls for stats.
         """
-        alpha, beta, theta, gamma, delta = self.get_power_band_stats(0,
-                                        self.max_time * self.edf_info.fs)
-        alpha_str = "" + "{:.2e}".format(alpha)
-        self.alpha_lbl.setText(alpha_str)
-        beta_str = "" + "{:.2e}".format(beta)
-        self.beta_lbl.setText(beta_str)
-        theta_str = "" + "{:.2e}".format(theta)
-        self.theta_lbl.setText(theta_str)
-        gamma_str = "" + "{:.2e}".format(gamma)
-        self.gamma_lbl.setText(gamma_str)
-        delta_str = "" + "{:.2e}".format(delta)
-        self.delta_lbl.setText(delta_str)
+        fs_band_dict = self.get_power_band_stats(0, self.max_time * self.edf_info.fs)
+        for k in fs_band_dict.keys():
+            key_str = "" + "{:.2e}".format(fs_band_dict[k])
+            self.fs_band_lbls[k].setText(key_str)
 
     def throw_alert(self, msg):
         """ Throws an alert to the user.
