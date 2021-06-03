@@ -24,7 +24,7 @@ class StatsFsBandOptions(QWidget):
         self.top = 10
         self.title = 'Add frequency band'
         self.width = parent.width / 6
-        self.height = parent.height / 3
+        self.height = parent.height / 4
         self.data = data
         self.parent = parent
         self.fs_band_count = len(self.data.fs_bands.keys()) - 5

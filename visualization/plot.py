@@ -1592,7 +1592,7 @@ class MainPage(QMainWindow):
             # pyqtgraph automatically scales the axis and adjusts
             # the SI prefix (in this case kHz)
             self.specPlot.getAxis('left').setTextPen(black_pen)
-            self.specPlot.setLabel('left', "PSD", units='V**2/Hz')
+            self.specPlot.setLabel('left', "PSD", units='log(V**2/Hz)')
             self.specPlot.setXRange(self.si.min_fs,self.si.max_fs,padding=0)
             self.specPlot.setLogMode(False, True)
             # self.specPlot.setYRange(self.si.min_fs,self.si.max_fs,padding=0)
@@ -1884,7 +1884,7 @@ class MainPage(QMainWindow):
         if self.btn_open_stats.text() == "Open signal stats":
             self.btn_open_stats.setText("Close signal stats")
             self.stats_main_widget.show()
-            self.populateStatList()
+            self.populate_stat_list()
             self.chn_qlist.setCurrentRow(0)
             self.ssi.chn = 0
             self.ssi.fs = self.edf_info.fs
@@ -1898,7 +1898,7 @@ class MainPage(QMainWindow):
                 self.populate_ann_dock()
                 self.show_ann_stats_dock()
 
-    def populateStatList(self):
+    def populate_stat_list(self):
         """ Fill the stats window with channels.
         """
         # Remove old channels if they exist
@@ -1910,12 +1910,8 @@ class MainPage(QMainWindow):
             self.chn_qlist.addItem(self.ssi.chn_items[i - 1])
 
     def stat_add_fs_band(self):
-        """ TODO: Opens the window to add new fs bands.
+        """ Opens the window to add new fs bands.
         """
-        # lbl = QtWidgets.QLabel(self)
-        # lbl.setText("theta" + str(len(self.ssi.fs_bands.keys())))
-        # self.grid_layout.addWidget(lbl, len(self.ssi.fs_bands.keys()) + 5, 1, 1, 1)
-        # self.ssi.fs_bands[lbl] = (1,2)
         self.stat_fs_band_win_open = 1
         self.stats_fs_band_win = StatsFsBandOptions(self.ssi, self)
 
