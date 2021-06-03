@@ -6,6 +6,9 @@ class SignalStatsInfo():
     """ Class to hold relevant information for computing statistics
     """
     def __init__(self):
+        """ Constructor.
+            fs_bands - holds dict of bands, can be expanded
+        """
         self.chn = 0
         self.chn_items = []
         self.fs = -1
@@ -75,9 +78,9 @@ class SignalStatsInfo():
         Returns:
             alpha, beta, theta, gamma, delta
         """
-        bands = ['alpha', 'beta', 'theta', 'gamma', 'delta']
-        ret = []
+        bands =  self.fs_bands.keys()
+        ret = {}
         for b in bands:
-            ret.append(self._get_power_for_band(sig, s, f, b, lp, hp))
+            ret[b] = self._get_power_for_band(sig, s, f, b, lp, hp)
 
-        return ret[0], ret[1], ret[2], ret[3], ret[4]
+        return ret

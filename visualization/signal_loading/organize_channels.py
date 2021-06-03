@@ -55,8 +55,8 @@ class OrganizeChannels(QWidget):
         self.setGeometry(centerPoint.x() - self.width / 2,
                 centerPoint.y() - self.height / 2, self.width, self.height)
 
-        lblInfo = QLabel("Drag and drop channels \n to change their order: ")
-        grid_lt.addWidget(lblInfo,0,0)
+        lbl_info = QLabel("Drag and drop channels \n to change their order: ")
+        grid_lt.addWidget(lbl_info,0,0)
 
         btn_exit = QPushButton('Ok', self)
         btn_exit.clicked.connect(self.updateChnOrder)

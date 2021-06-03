@@ -32,21 +32,21 @@ def _check_label(label, label_list):
                 if label.find("-") != -1:
                     label2 = ""
                     if label.split("-")[0] == "T7":
-                        label2 = "T3-"
+                        label2 = "T3-" + label.split("-")[1]
                     if label.split("-")[0] == "P7":
-                        label2 = "T5-"
+                        label2 = "T5-" + label.split("-")[1]
                     if label.split("-")[0] == "T8":
-                        label2 = "T4-"
+                        label2 = "T4-" + label.split("-")[1]
                     if label.split("-")[0] == "P8":
-                        label2 = "T6-"
+                        label2 = "T6-" + label.split("-")[1]
                     if label.split("-")[1] == "T7":
-                        label2 += "T3"
+                        label2 = label.split("-")[0] + "T3"
                     if label.split("-")[1] == "P7":
-                        label2 += "T5"
+                        label2 = label.split("-")[0] + "T5"
                     if label.split("-")[1] == "T8":
-                        label2 += "T4"
+                        label2 = label.split("-")[0] + "T4"
                     if label.split("-")[1] == "P8":
-                        label2 += "T6"
+                        label2 = label.split("-")[0] + "T6"
                 else:
                     label2 = ""
                     if label == "T7":
@@ -159,37 +159,10 @@ class ChannelInfo():
                             "CP4","CP6","TP8","TP10","P9","P5","P1","P2","P6",
                             "P10","PO7","PO3","POZ","PO4","PO8","OZ","LZ",
                             "NZ","FT9","FT7","FT8","FT10","IZ"]
-        self.green = '#1f8c45'
-        self.colorsBIP1020 = [self.green, self.green,'b','b','b','b','r','r','r','r','b',
-                            'b','b','b','r','r','r','r','r']
-        self.colorsAR1020 = ['b','r',self.green, self.green, self.green,'b','r','b','r','b',
-                            'r','b','r','b','r','b','r','b','r','b']
-        self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b','b','b',
-                                self.green,self.green,self.green,self.green,'r','r','r','r','r',
-                                'r','r','r','r','r','r','r']
-        self.colorsAR1010 = [self.green,'b','r',self.green,self.green,self.green,self.green,self.green,
-                             self.green,self.green,self.green,self.green,
-                             'b','r','b','r','b','r','b','r','b','r','b','r',
-                             'b','r','b','r','b','r','b','r','b','r','b','r','b','r','b','r',
-                             'b','r','b','r','b','r','b','r','b','r',
-                             'b','r','b','r','b','r','b','r','b','r','b','r','b','r',
-                             'b','r','b','r','b','r','b','r','b','r',self.green]
-
-
-
-
-
-        self.colorsBIP1010 = ['b','b','b','b','b','b','b','b','b','b',self.green,
-                               self.green,'r','r','r','r','r','r','r','r','r','r']
-        self.colorsAR1010 = ['b','b','b','b','b','b','b','b','b','b',self.green,
-                              self.green,self.green,'r','r','r','r','r','r','r','r','r','r']
-        self.other_colors = ['r','b','r','b',self.green, self.green,'r','r','r',self.green,
-                                'b','b','b','r','r','r','b','b','b','r','r','r',
-                                'r','r',self.green,'b','b','b','b','b','r','r','r',
-                                'b','b','b','r','r','r','r','r',self.green,'b','b',
-                                'b','b','b','r','r','r','b','b','b','r','r',
-                                self.green,'b','b',self.green,self.green,self.green,'r','r','b',
-                                'b',self.green]
+        self.mid_col = '#1f8c45'
+        self.lt_col = "b"
+        self.rt_col = "r"
+        
         self.pred_chn_data = []
         self.labels_from_txt_file = {}
         self.use_loaded_txt_file = 0
@@ -199,6 +172,36 @@ class ChannelInfo():
         self.labels_to_plot = []
         self.nchns_to_plot = 0
         self.mont_type = 5
+
+    def _set_colors(self):
+        """ Reset the colors in case of a color change.
+        """
+        self.colorsBIP1020 = [self.mid_col, self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,
+                            self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
+        self.colorsAR1020 = [self.lt_col,self.rt_col,self.mid_col, self.mid_col, self.mid_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,
+                            self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col]
+        self.colorsBIP1010 = [self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,
+                                self.mid_col,self.mid_col,self.mid_col,self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,
+                                self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
+        self.colorsAR1010 = [self.mid_col,self.lt_col,self.rt_col,self.mid_col,self.mid_col,self.mid_col,self.mid_col,self.mid_col,
+                             self.mid_col,self.mid_col,self.mid_col,self.mid_col,
+                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
+                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
+                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
+                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
+                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.mid_col]
+
+        self.colorsBIP1010 = [self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.mid_col,
+                               self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
+        self.colorsAR1010 = [self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.mid_col,
+                              self.mid_col,self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
+        self.other_colors = [self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.mid_col, self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.mid_col,
+                                self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,
+                                self.rt_col,self.rt_col,self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,
+                                self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.mid_col,self.lt_col,self.lt_col,
+                                self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,
+                                self.mid_col,self.lt_col,self.lt_col,self.mid_col,self.mid_col,self.mid_col,self.rt_col,self.rt_col,self.lt_col,
+                                self.lt_col,self.mid_col]
 
     def write_data(self, ci2):
         """
@@ -342,6 +345,7 @@ class ChannelInfo():
                 from average reference data
             txt_file_name - name of text file if needed
         """
+        self._set_colors()
         f = pyedflib.EdfReader(self.edf_fn)
 
         # Things needed to plot - reset each time
@@ -476,30 +480,28 @@ class ChannelInfo():
                     bip = 1
 
         if self.use_loaded_txt_file and mont_type == 4:
-            print("generating colors")
             labels = self.labels_from_txt_file[txt_file_name]
             colors = []
             for i in range(len(labels)):
                 idx = -1
-                print(labels[i])
                 if ar:
                     try:
                         idx = self.labelsAR1020.index(labels[i])
                         colors.append(self.colorsAR1020[idx])
                     except ValueError:
-                        colors.append(self.green)
+                        colors.append(self.mid_col)
                 elif bip:
                     try:
                         idx = self.labelsBIP1020.index(labels[i])
                         colors.append(self.colorsBIP1020[idx])
                     except ValueError:
-                        colors.append(self.green)
+                        colors.append(self.mid_col)
                 else:
                     try:
                         idx = self.other_labels.index(labels[i])
                         colors.append(self.other_colors[idx])
                     except ValueError:
-                        colors.append(self.green)
+                        colors.append(self.mid_col)
         elif bip:
             labels = self.labelsBIP1020
             colors = self.colorsBIP1020
@@ -539,6 +541,6 @@ class ChannelInfo():
                     i = self.other_labels.index(self.converted_chn_names[idxs[k]])
                     self.colors.insert(0,self.other_colors[i])
                 else:
-                    self.colors.insert(0,self.green)
+                    self.colors.insert(0,self.mid_col)
                 self.data_to_plot[c,:] = f.readSignal(idxs[k]) # data[idxs[k],:]
                 c -= 1
