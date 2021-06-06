@@ -160,8 +160,8 @@ class ChannelInfo():
                             "P10","PO7","PO3","POZ","PO4","PO8","OZ","LZ",
                             "NZ","FT9","FT7","FT8","FT10","IZ"]
         self.mid_col = '#1f8c45'
-        self.lt_col = "b"
         self.rt_col = "r"
+        self.lt_col = "b"
         
         self.pred_chn_data = []
         self.labels_from_txt_file = {}
@@ -176,32 +176,32 @@ class ChannelInfo():
     def _set_colors(self):
         """ Reset the colors in case of a color change.
         """
-        self.colorsBIP1020 = [self.mid_col, self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,
-                            self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
-        self.colorsAR1020 = [self.lt_col,self.rt_col,self.mid_col, self.mid_col, self.mid_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,
-                            self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col]
-        self.colorsBIP1010 = [self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,
-                                self.mid_col,self.mid_col,self.mid_col,self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,
-                                self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
-        self.colorsAR1010 = [self.mid_col,self.lt_col,self.rt_col,self.mid_col,self.mid_col,self.mid_col,self.mid_col,self.mid_col,
+        self.colorsBIP1020 = [self.mid_col, self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,
+                            self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col]
+        self.colorsAR1020 = [self.rt_col,self.lt_col,self.mid_col, self.mid_col, self.mid_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
+                            self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col]
+        self.colorsBIP1010 = [self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,
+                                self.mid_col,self.mid_col,self.mid_col,self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,
+                                self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col]
+        self.colorsAR1010 = [self.mid_col,self.rt_col,self.lt_col,self.mid_col,self.mid_col,self.mid_col,self.mid_col,self.mid_col,
                              self.mid_col,self.mid_col,self.mid_col,self.mid_col,
-                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
-                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
-                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
-                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,
-                             self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.mid_col]
+                             self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,
+                             self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,
+                             self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,
+                             self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,
+                             self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.mid_col]
 
-        self.colorsBIP1010 = [self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.mid_col,
-                               self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
-        self.colorsAR1010 = [self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.mid_col,
-                              self.mid_col,self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col]
-        self.other_colors = [self.rt_col,self.lt_col,self.rt_col,self.lt_col,self.mid_col, self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.mid_col,
-                                self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,
-                                self.rt_col,self.rt_col,self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,
-                                self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.mid_col,self.lt_col,self.lt_col,
-                                self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,
-                                self.mid_col,self.lt_col,self.lt_col,self.mid_col,self.mid_col,self.mid_col,self.rt_col,self.rt_col,self.lt_col,
-                                self.lt_col,self.mid_col]
+        self.colorsBIP1010 = [self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.mid_col,
+                               self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col]
+        self.colorsAR1010 = [self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.mid_col,
+                              self.mid_col,self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col]
+        self.other_colors = [self.lt_col,self.rt_col,self.lt_col,self.rt_col,self.mid_col, self.mid_col,self.lt_col,self.lt_col,self.lt_col,self.mid_col,
+                                self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,
+                                self.lt_col,self.lt_col,self.mid_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,
+                                self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.lt_col,self.mid_col,self.rt_col,self.rt_col,
+                                self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,self.lt_col,self.rt_col,self.rt_col,self.rt_col,self.lt_col,self.lt_col,
+                                self.mid_col,self.rt_col,self.rt_col,self.mid_col,self.mid_col,self.mid_col,self.lt_col,self.lt_col,self.rt_col,
+                                self.rt_col,self.mid_col]
 
     def write_data(self, ci2):
         """
