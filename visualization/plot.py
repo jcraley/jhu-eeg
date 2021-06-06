@@ -1660,7 +1660,7 @@ class MainPage(QMainWindow):
         layout = mne.channels.read_layout('EEG1005')
         pos2d = []
         layout_names = [name.upper() for name in layout.names]
-        for ch in self.ci.labels_to_plot:
+        for ch in reversed(self.ci.labels_to_plot):
             if ch != "Notes":
                 if '-' in ch:
                     anode, cathode = ch.split('-')
